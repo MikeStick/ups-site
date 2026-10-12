@@ -10,11 +10,31 @@
     "inputVoltage": "100~240Vac/50-60Hz",
     "outputPortCount": "5",
     "outputPorts": [
-      { "type": "USB", "voltage": "5Vdc", "current": "3.0A" },
-      { "type": "DC1", "voltage": "9Vdc", "current": "3.0A" },
-      { "type": "DC2", "voltage": "12Vdc", "current": "3.0A" },
-      { "type": "DC3", "voltage": "5Vdc", "current": "3.0A" },
-      { "type": "POE", "voltage": "24Vdc/48Vdc", "current": "1A/0.5A" }
+      {
+        "type": "USB",
+        "voltage": "5Vdc",
+        "current": "3.0A"
+      },
+      {
+        "type": "DC1",
+        "voltage": "9Vdc",
+        "current": "3.0A"
+      },
+      {
+        "type": "DC2",
+        "voltage": "12Vdc",
+        "current": "3.0A"
+      },
+      {
+        "type": "DC3",
+        "voltage": "5Vdc",
+        "current": "3.0A"
+      },
+      {
+        "type": "POE",
+        "voltage": "24Vdc/48Vdc",
+        "current": "1A/0.5A"
+      }
     ],
     "batterySpec": "5000mAh*4",
     "dimensions": "210*130*40",
@@ -25,10 +45,21 @@
       "en": "Mini UPS with 24V/48V PoE output for routers, ONTs and IP cameras. Universal 100–240V input: one model works in every country, only the plug changes.",
       "ru": "Мини-ИБП с выходом PoE 24В/48В для роутеров, ONT и IP-камер. Универсальный вход 100–240В: одна модель подходит для любой страны, меняется только вилка."
     },
-    "sale": { "mode": "stock", "stock": "500", "tiers": [ { "qty": "20", "price": "19.90" }, { "qty": "100", "price": "18.50" }, { "qty": "500", "price": "16.90" }, { "qty": "1000", "price": "16.20" } ] },
+    "sale": {
+      "mode": "stock",
+      "stock": "500",
+      "minPrice": "19.90",
+      "maxPrice": "16.20"
+    },
     "images": [
-      { "src": "/sample/mini-ups-front.svg", "thumb": "/sample/mini-ups-front.svg" },
-      { "src": "/sample/mini-ups-ports.svg", "thumb": "/sample/mini-ups-ports.svg" }
+      {
+        "src": "/sample/mini-ups-front.svg",
+        "thumb": "/sample/mini-ups-front.svg"
+      },
+      {
+        "src": "/sample/mini-ups-ports.svg",
+        "thumb": "/sample/mini-ups-ports.svg"
+      }
     ]
   },
   {
@@ -42,14 +73,35 @@
     "inputVoltage": "100~240Vac/50-60Hz",
     "outputPortCount": "4",
     "outputPorts": [
-      { "type": "USB", "voltage": "5Vdc", "current": "2.0A" },
-      { "type": "DC1", "voltage": "9Vdc", "current": "1.0A" },
-      { "type": "DC2", "voltage": "12Vdc", "current": "1.5A" }
+      {
+        "type": "USB",
+        "voltage": "5Vdc",
+        "current": "2.0A"
+      },
+      {
+        "type": "DC1",
+        "voltage": "9Vdc",
+        "current": "1.0A"
+      },
+      {
+        "type": "DC2",
+        "voltage": "12Vdc",
+        "current": "1.5A"
+      }
     ],
     "batterySpec": "2600mAh*4",
     "dimensions": "116*116*26",
     "netWeight": "0.36",
-    "sale": { "mode": "group", "tiers": [ { "qty": "100", "price": "11.50" }, { "qty": "300", "price": "10.80" }, { "qty": "500", "price": "10.20" }, { "qty": "1000", "price": "9.60" } ] },
-    "images": [ { "src": "/sample/mini-ups-ports.svg", "thumb": "/sample/mini-ups-ports.svg" } ]
+    "sale": {
+      "mode": "group",
+      "minPrice": "11.50",
+      "maxPrice": "9.60"
+    },
+    "images": [
+      {
+        "src": "/sample/mini-ups-ports.svg",
+        "thumb": "/sample/mini-ups-ports.svg"
+      }
+    ]
   }
 ]

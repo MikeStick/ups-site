@@ -17,7 +17,9 @@ const tiers = tiersOf(p);
 const group = p.sale && p.sale.mode === 'group';
 const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
-const features = (p.sellingPoints || '').split('\n').map((s) => s.trim()).filter((s) => s && !/[\u4e00-\u9fff]/.test(s));
+// 卖点：优先用接口给的当前语言译文，没有就退回英文
+const features = ((p.sellingPointsI18n && (p.sellingPointsI18n[lang] || p.sellingPointsI18n.en)) ||
+  (p.sellingPoints || '').split('\n')).map((s) => String(s).trim()).filter((s) => s && !/[\u4e00-\u9fff]/.test(s));
 const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
@@ -66,7 +68,7 @@ const jsonLd = {
               {tiers.map((x) => <tr><td>{t.from(x.qty)}</td><td class="num">${x.price.toFixed(2)}</td></tr>)}
             </tbody>
           </table>
-          <p class="note">{t.priceNote}</p>
+          <p class="note">{t.priceNote} {t.bigOrder}</p>
         </div>
       )}
 

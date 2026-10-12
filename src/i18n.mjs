@@ -26,6 +26,7 @@ export const UI = {
     playVideo: 'Reproducir video',
     noProducts: 'Pronto publicaremos nuestros productos.',
     priceNote: 'Precios FOB en USD, sin flete. Sujetos a confirmación.',
+    bigOrder: 'Más de 1000 uds: contáctenos para un precio especial.',
     morePhotos: 'Fotos',
     quoteMsg: (model) => `Hola, me interesa el ${model}. ¿Me pueden enviar una cotización?`,
   },
@@ -53,6 +54,7 @@ export const UI = {
     playVideo: 'Play video',
     noProducts: 'Our products will be published here soon.',
     priceNote: 'FOB prices in USD, freight not included. Subject to confirmation.',
+    bigOrder: 'Over 1000 pcs: contact us for a special price.',
     morePhotos: 'Photos',
     quoteMsg: (model) => `Hello, I'm interested in the ${model}. Could you send me a quote?`,
   },
@@ -80,6 +82,7 @@ export const UI = {
     playVideo: 'Смотреть видео',
     noProducts: 'Скоро здесь появится наша продукция.',
     priceNote: 'Цены FOB в USD, без учёта доставки. Требуют подтверждения.',
+    bigOrder: 'Более 1000 шт.: свяжитесь с нами для специальной цены.',
     morePhotos: 'Фото',
     quoteMsg: (model) => `Здравствуйте, меня интересует ${model}. Пришлите, пожалуйста, коммерческое предложение.`,
   },
@@ -161,10 +164,21 @@ export function specRows(p, lang) {
   return rows;
 }
 
+// 阶梯价：客户档案系统只填起订量单价（minPrice）和1000台单价（maxPrice），中间档位按数量线性插值。
+// 公式与客户档案系统 App.jsx 里的 webTiers() 保持一致。
 export function tiersOf(p) {
-  const tiers = (p.sale && Array.isArray(p.sale.tiers) ? p.sale.tiers : [])
+  const sale = p.sale || {};
+  const pMin = Number(sale.minPrice), pMax = Number(sale.maxPrice);
+  if (pMin > 0) {
+    const moq = sale.mode === 'group' ? 100 : 20;
+    if (!(pMax > 0)) return [{ qty: moq, price: pMin }];
+    const pts = [moq];
+    for (let q = 100; q <= 1000; q += 100) if (q > moq) pts.push(q);
+    return pts.map((q) => ({ qty: q, price: Math.round((pMin + (pMax - pMin) * (q - moq) / (1000 - moq)) * 100) / 100 }));
+  }
+  // 兼容旧格式：逐档填写的 tiers
+  return (Array.isArray(sale.tiers) ? sale.tiers : [])
     .map((t) => ({ qty: Number(t.qty), price: Number(t.price) }))
     .filter((t) => t.qty > 0 && t.price > 0)
     .sort((a, b) => a.qty - b.qty);
-  return tiers;
 }
