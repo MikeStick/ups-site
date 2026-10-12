@@ -1,0 +1,14 @@
+---
+// 根路径跳到默认语言（西班牙语）。Cloudflare 上还有 public/_redirects 做服务端跳转，这里是兜底。
+import { DEFAULT_LANG } from '../config.mjs';
+---
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="refresh" content={`0; url=/${DEFAULT_LANG}/`} />
+  <link rel="canonical" href={`/${DEFAULT_LANG}/`} />
+  <title>SKE Power</title>
+</head>
+<body><a href={`/${DEFAULT_LANG}/`}>Continue</a></body>
+</html>

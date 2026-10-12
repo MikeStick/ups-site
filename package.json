@@ -1,0 +1,16 @@
+{
+  "name": "ups-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-data": "node scripts/fetch-data.mjs",
+    "build": "node scripts/fetch-data.mjs && astro build",
+    "dev": "astro dev",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "5.18.1",
+    "sharp": "0.33.5"
+  },
+  "engines": { "node": ">=20" }
+}

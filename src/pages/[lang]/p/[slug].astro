@@ -1,0 +1,128 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Gallery from '../../../components/Gallery.astro';
+import { LANGS, SITE } from '../../../config.mjs';
+import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
+import products from '../../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => products.map((p) => ({ params: { lang, slug: p.slug }, props: { p } })));
+}
+
+const { lang } = Astro.params;
+const { p } = Astro.props;
+const t = UI[lang];
+const rows = specRows(p, lang);
+const tiers = tiersOf(p);
+const group = p.sale && p.sale.mode === 'group';
+const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
+const desc = (p.description && (p.description[lang] || p.description.en)) || '';
+const features = (p.sellingPoints || '').split('\n').map((s) => s.trim()).filter((s) => s && !/[\u4e00-\u9fff]/.test(s));
+const typeName = term(p.type, lang);
+const title = `${p.model}${typeName ? ' ' + typeName : ''} · ${SITE.name}`;
+const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(t.quoteMsg(p.model))}` : '';
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const jsonLd = {
+  '@context': 'https://schema.org', '@type': 'Product', name: p.model, brand: p.brand ? { '@type': 'Brand', name: p.brand } : undefined,
+  description: desc || undefined, image: (p.images || []).map((im) => site + im.src),
+  offers: tiers.length ? { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: tiers[tiers.length - 1].price, highPrice: tiers[0].price } : undefined,
+};
+---
+<Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
+  <nav class="crumbs"><a href={`/${lang}/`}>{t.allProducts}</a> / <span>{p.model}</span></nav>
+
+  <div class="layout">
+    <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} />
+
+    <section class="summary">
+      {typeName && <span class="type">{typeName}</span>}
+      <h1>{p.model}</h1>
+      {desc && <p class="desc">{desc}</p>}
+
+      {p.sale && (
+        <div class={`sale ${group ? 'group' : 'stock'}`}>
+          <div class="sale-head">
+            <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>
+            {!group && stock > 0 && <span class="stock-qty">{t.stockQty(stock)}</span>}
+          </div>
+          <p>{group ? t.groupRules : t.stockRules}</p>
+        </div>
+      )}
+
+      {tiers.length > 0 && (
+        <div class="tiers">
+          <h2>{t.pricing}</h2>
+          <table>
+            <thead><tr><th>{t.qty}</th><th>{t.unitPrice}</th></tr></thead>
+            <tbody>
+              {tiers.map((x) => <tr><td>{t.from(x.qty)}</td><td class="num">${x.price.toFixed(2)}</td></tr>)}
+            </tbody>
+          </table>
+          <p class="note">{t.priceNote}</p>
+        </div>
+      )}
+
+      <p class="plug">{t.plugNote}</p>
+
+      <div class="cta">
+        {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
+        {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
+      </div>
+    </section>
+  </div>
+
+  <div class="details">
+    <section>
+      <h2>{t.specs}</h2>
+      <div class="table-wrap">
+        <table class="specs">
+          <tbody>{rows.map(([k, v]) => <tr><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+    {features.length > 0 && (
+      <section>
+        <h2>{t.features}</h2>
+        <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
+      </section>
+    )}
+  </div>
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>
+
+<style>
+  .crumbs { font-size: 13px; color: var(--muted); margin: 20px 0 14px; }
+  .crumbs a { color: var(--muted); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 36px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 22px; } }
+  .summary { display: grid; gap: 16px; min-width: 0; }
+  .type { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .summary h1 { font-size: clamp(36px, 5.5vw, 56px); margin: -8px 0 0; }
+  .desc { margin: 0; max-width: 62ch; }
+  .sale { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+  .sale p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .sale-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .stock-qty { font-size: 14px; font-weight: 500; color: var(--ok); }
+  .pill { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; }
+  .pill.stock { background: var(--ok-soft); color: var(--ok); }
+  .pill.group { background: var(--charge-soft); color: var(--warn); }
+  .tiers h2, .details h2 { font-size: 22px; margin: 0 0 10px; }
+  .tiers table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .tiers th, .tiers td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+  .tiers th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .tiers td:last-child, .tiers th:last-child { text-align: right; }
+  .tiers tr:last-child td { border-bottom: 0; }
+  .note { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .plug { margin: 0; font-size: 14px; padding-left: 12px; border-left: 3px solid var(--charge); }
+  .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .details { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 36px; margin-top: 44px; align-items: start; }
+  @media (max-width: 860px) { .details { grid-template-columns: 1fr; gap: 28px; } }
+  .table-wrap { overflow-x: auto; }
+  .specs { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+  .specs th { text-align: left; font-weight: 500; color: var(--muted); width: 42%; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #f8faf9; }
+  .specs td { font-variant-numeric: tabular-nums; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .features { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+</style>

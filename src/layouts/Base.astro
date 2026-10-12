@@ -1,0 +1,73 @@
+---
+import { SITE, LANGS } from '../config.mjs';
+import { UI } from '../i18n.mjs';
+
+const { lang, title, description = '', path = '' } = Astro.props;
+const t = UI[lang];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+// path：不含语言前缀的路径，例如 "p/poe-36e-lfp-48v/"，用来生成其他语言版本的链接
+const altHref = (l) => `/${l}/${path}`;
+---
+<!doctype html>
+<html lang={lang}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  {description && <meta name="description" content={description} />}
+  <link rel="canonical" href={`${site}${altHref(lang)}`} />
+  {LANGS.map((l) => <link rel="alternate" hreflang={l} href={`${site}${altHref(l)}`} />)}
+  <link rel="alternate" hreflang="x-default" href={`${site}${altHref('es')}`} />
+  <meta property="og:title" content={title} />
+  {description && <meta property="og:description" content={description} />}
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+  <style is:global>
+    :root {
+      --bg: #f3f5f4; --surface: #ffffff; --ink: #15211f; --muted: #5d6b68; --line: #d6dedb;
+      --accent: #0f6b5c; --accent-ink: #ffffff; --charge: #e0a800; --charge-soft: #fbefc6;
+      --ok: #1d7a3e; --ok-soft: #dcf1e2; --warn: #a5480b;
+      --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+      --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); }
+    img { max-width: 100%; display: block; }
+    a { color: var(--accent); }
+    .wrap { max-width: 1160px; margin: 0 auto; padding-inline: 16px; }
+    .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    h1, h2 { font-family: var(--display); text-transform: uppercase; letter-spacing: .01em; line-height: 1.05; text-wrap: balance; }
+
+    .top { background: var(--ink); color: #fff; }
+    .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; flex-wrap: wrap; }
+    .brand { color: #fff; text-decoration: none; font-family: var(--display); font-size: 24px; text-transform: uppercase; letter-spacing: .03em; }
+    .brand small { display: block; font-family: var(--body); font-size: 12px; text-transform: none; letter-spacing: 0; color: #a9b8b4; }
+    .langs { display: flex; gap: 4px; }
+    .langs a { color: #cfd9d6; text-decoration: none; font-size: 13px; padding: 4px 10px; border-radius: 5px; border: 1px solid transparent; }
+    .langs a[aria-current="true"] { border-color: #4b5f5b; color: #fff; }
+    footer { border-top: 1px solid var(--line); margin-top: 56px; padding-block: 24px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href={`/${lang}/`}>{SITE.name}<small>{SITE.tagline[lang]}</small></a>
+      <nav class="langs" aria-label="Language">
+        {LANGS.map((l) => <a href={altHref(l)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : 'false'}>{UI[l].langName}</a>)}
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <slot />
+  </main>
+  <footer>
+    <div class="wrap">© {new Date().getFullYear()} {SITE.name}{SITE.email && <> · <span>{SITE.email}</span></>}</div>
+  </footer>
+</body>
+</html>
