@@ -19,6 +19,13 @@ const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
 const features = (p.sellingPoints || '').split('\n').map((s) => s.trim()).filter((s) => s && !/[\u4e00-\u9fff]/.test(s));
 const typeName = term(p.type, lang);
+// 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
+const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
+const highlights = [
+  p.outputPower,
+  p.batterySpec && String(p.batterySpec).replace(/\*/g, '×'),
+  portTypes.length && portTypes.join(' / '),
+].filter((x) => x && !/[\u4e00-\u9fff]/.test(x));
 const title = `${p.model}${typeName ? ' ' + typeName : ''} · ${SITE.name}`;
 const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(t.quoteMsg(p.model))}` : '';
 const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
@@ -37,6 +44,7 @@ const jsonLd = {
     <section class="summary">
       {typeName && <span class="type">{typeName}</span>}
       <h1>{p.model}</h1>
+      {highlights.length > 0 && <ul class="highlights">{highlights.map((h) => <li>{h}</li>)}</ul>}
       {desc && <p class="desc">{desc}</p>}
 
       {p.sale && (
@@ -100,6 +108,8 @@ const jsonLd = {
   .type { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
   .summary h1 { font-size: clamp(36px, 5.5vw, 56px); margin: -8px 0 0; }
   .desc { margin: 0; max-width: 62ch; }
+  .highlights { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .highlights li { font-size: 14px; font-weight: 500; padding: 5px 12px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
   .sale { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
   .sale p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
   .sale-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

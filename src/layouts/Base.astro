@@ -51,6 +51,8 @@ const altHref = (l) => `/${l}/${path}`;
     .langs { display: flex; gap: 4px; }
     .langs a { color: #cfd9d6; text-decoration: none; font-size: 13px; padding: 4px 10px; border-radius: 5px; border: 1px solid transparent; }
     .langs a[aria-current="true"] { border-color: #4b5f5b; color: #fff; }
+    .contact { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+    .contact a { color: var(--muted); }
     footer { border-top: 1px solid var(--line); margin-top: 56px; padding-block: 24px; color: var(--muted); font-size: 13px; }
   </style>
 </head>
@@ -67,7 +69,11 @@ const altHref = (l) => `/${l}/${path}`;
     <slot />
   </main>
   <footer>
-    <div class="wrap">© {new Date().getFullYear()} {SITE.name}{SITE.email && <> · <span>{SITE.email}</span></>}</div>
+    <div class="wrap contact">
+      <span>© {new Date().getFullYear()} {SITE.name}</span>
+      {SITE.whatsapp && <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+      {SITE.email && <a href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+    </div>
   </footer>
 </body>
 </html>
