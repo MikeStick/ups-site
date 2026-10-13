@@ -96,15 +96,14 @@ const jsonLd = {
 <style>
   .crumbs { font-size: 13px; color: var(--muted); margin: 20px 0 14px; }
   .crumbs a { color: var(--muted); }
-  /* 桌面：左 图片（吸顶，与右侧顶部对齐）| 右 型号信息 + 价格数量；下方通栏：插头；再下：发货 | 结算 */
+  /* 桌面：左 图片（与右侧顶部对齐，随页面正常滚动）| 右 型号信息 + 价格数量；下方通栏：插头；再下：发货 | 结算 */
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; row-gap: 20px; align-items: start;
     grid-template-areas: "gallery info" "gallery buy" "plugs plugs" "ship checkout"; }
-  .gallery-col { grid-area: gallery; position: sticky; top: 16px; min-width: 0; }
+  .gallery-col { grid-area: gallery; min-width: 0; }
   .summary { grid-area: info; }
   .buy-fallback { grid-area: buy; display: grid; gap: 16px; }
   @media (max-width: 860px) {
     .layout { grid-template-columns: minmax(0, 1fr); row-gap: 18px; grid-template-areas: "gallery" "info" "buy" "plugs" "ship" "checkout"; }
-    .gallery-col { position: static; }
   }
   .summary { display: grid; gap: 16px; min-width: 0; align-content: start; }
   .type { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
