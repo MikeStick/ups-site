@@ -2,6 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import Gallery from '../../../components/Gallery.astro';
 import OrderConsole from '../../../components/OrderConsole.astro';
+import RuntimeCalc from '../../../components/RuntimeCalc.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import products from '../../../data/products.json';
@@ -82,6 +83,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
+    <RuntimeCalc p={p} lang={lang} />
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">

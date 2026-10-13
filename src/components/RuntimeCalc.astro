@@ -1,0 +1,94 @@
+---
+// 产品页"能撑多久"计算器：选设备 → 估算后备时间
+import DevicePicker from './DevicePicker.astro';
+import { batteryWh, powerW, EFFICIENCY, CALC_T } from '../lib/power.mjs';
+const { p, lang } = Astro.props;
+const T = CALC_T[lang];
+const wh = batteryWh(p);
+const maxW = powerW(p);
+const cfg = { wh, maxW, eff: EFFICIENCY, h: T.h, min: T.min, over: T.over, none: T.none };
+---
+{wh > 0 && (
+  <section class="card rc" data-rc>
+    <script type="application/json" data-rc-cfg set:html={JSON.stringify(cfg)} />
+    <div class="rc-head">
+      <h2>{T.title}</h2>
+      <p>{T.sub}</p>
+    </div>
+    <div class="rc-body">
+      <DevicePicker lang={lang} id={`rc-${p.slug}`} />
+      <div class="rc-out">
+        <div class="rc-line"><span>{T.total}</span><b class="num" data-total>0 W</b></div>
+        <div class="rc-result">
+          <span>{T.runtime}</span>
+          <strong class="num" data-result>—</strong>
+        </div>
+        <div class="rc-gauge" aria-hidden="true"><i data-gauge></i></div>
+        <p class="rc-msg" data-msg>{T.none}</p>
+        <p class="rc-note">{T.note.replace('{e}', String(Math.round(EFFICIENCY * 100)))}</p>
+      </div>
+    </div>
+  </section>
+)}
+
+<script is:inline>
+(function () {
+  document.querySelectorAll('[data-rc]').forEach(function (root) {
+    var c = JSON.parse(root.querySelector('[data-rc-cfg]').textContent);
+    var counts = {};
+    var fmt = function (hours) {
+      var m = Math.round(hours * 60);
+      if (m < 60) return m + ' ' + c.min;
+      var h = Math.floor(m / 60), r = m % 60;
+      return h + ' ' + c.h + (r ? ' ' + r + ' ' + c.min : '');
+    };
+    function update() {
+      var total = 0;
+      root.querySelectorAll('[data-dev]').forEach(function (r) {
+        var n = counts[r.dataset.dev] || 0;
+        r.querySelector('[data-count]').textContent = n;
+        total += n * +r.dataset.w;
+      });
+      total += Math.max(0, +root.querySelector('[data-custom]').value || 0);
+      root.querySelector('[data-total]').textContent = total + ' W';
+      var res = root.querySelector('[data-result]'), msg = root.querySelector('[data-msg]'), g = root.querySelector('[data-gauge]');
+      if (!total) { res.textContent = '—'; msg.textContent = c.none; msg.className = 'rc-msg'; g.style.width = '0%'; return; }
+      var over = c.maxW > 0 && total > c.maxW;
+      var hours = c.wh * c.eff / total;
+      res.textContent = over ? '—' : '≈ ' + fmt(hours);
+      msg.textContent = over ? c.over.replace('{w}', c.maxW) : '';
+      msg.className = 'rc-msg' + (over ? ' bad' : '');
+      g.style.width = over ? '0%' : Math.min(100, hours / 12 * 100) + '%';
+    }
+    root.querySelectorAll('[data-dev]').forEach(function (r) {
+      r.querySelectorAll('[data-step]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var k = r.dataset.dev; counts[k] = Math.max(0, Math.min(20, (counts[k] || 0) + +b.dataset.step)); update();
+        });
+      });
+    });
+    root.querySelector('[data-custom]').addEventListener('input', update);
+    // 默认放一个路由器 + 一个光猫，打开就能看到结果
+    counts.router = 1; counts.ont = 1; update();
+  });
+})();
+</script>
+
+<style>
+  .rc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; min-width: 0; }
+  .rc h2 { font-size: 24px; margin: 0 0 14px; }
+  .rc-head p { margin: -6px 0 16px; color: var(--muted); font-size: 14px; }
+  .rc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 760px) { .rc-body { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
+  .rc-out { display: grid; gap: 10px; padding: 18px; border-radius: 10px; background: var(--bg); }
+  .rc-line { display: flex; justify-content: space-between; font-size: 14px; }
+  .rc-result { display: grid; gap: 2px; }
+  .rc-result span { font-size: 13px; color: var(--muted); }
+  .rc-result strong { font-size: 34px; font-weight: 600; color: var(--accent); line-height: 1.1; }
+  .rc-gauge { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .rc-gauge i { display: block; height: 100%; width: 0; background: var(--charge); transition: width .25s; }
+  @media (prefers-reduced-motion: reduce) { .rc-gauge i { transition: none; } }
+  .rc-msg { margin: 0; font-size: 13px; min-height: 1em; }
+  .rc-msg.bad { color: var(--warn); font-weight: 600; }
+  .rc-note { margin: 0; font-size: 12px; color: var(--muted); }
+</style>

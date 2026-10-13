@@ -1,0 +1,33 @@
+---
+// 设备选择器（只有界面）：产品页计算器和列表页筛选共用。脚本由使用它的页面负责读取。
+import { DEVICES, CALC_T } from '../lib/power.mjs';
+const { lang, id } = Astro.props;
+const T = CALC_T[lang];
+---
+<div class="dp" data-dp>
+  {DEVICES.map((d) => (
+    <div class="dp-row" data-dev={d.id} data-w={d.w}>
+      <span class="dp-name">{T.devices[d.id]} <small>~{d.w} W</small></span>
+      <span class="dp-mini">
+        <button type="button" data-step="-1" aria-label="−">−</button>
+        <output data-count>0</output>
+        <button type="button" data-step="1" aria-label="+">+</button>
+      </span>
+    </div>
+  ))}
+  <label class="dp-row dp-custom" for={`dp-custom-${id}`}>
+    <span class="dp-name">{T.custom}</span>
+    <input id={`dp-custom-${id}`} type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-custom />
+  </label>
+</div>
+
+<style>
+  .dp { display: grid; gap: 6px; }
+  .dp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .dp-name { font-size: 14px; min-width: 0; }
+  .dp-name small { color: var(--muted); font-size: 12px; margin-left: 4px; white-space: nowrap; }
+  .dp-mini { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .dp-mini button { background: var(--bg); border: 0; width: 32px; cursor: pointer; font-size: 16px; color: var(--ink); }
+  .dp-mini output { width: 36px; text-align: center; padding: 4px 0; font: 14px var(--mono); }
+  .dp-custom input { width: 84px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: 14px var(--mono); text-align: right; background: var(--surface); color: var(--ink); }
+</style>

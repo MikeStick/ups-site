@@ -1,7 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
+import DevicePicker from '../../components/DevicePicker.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { UI, term, tiersOf } from '../../i18n.mjs';
+import { batteryWh, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
 import products from '../../data/products.json';
 
 export function getStaticPaths() {
@@ -10,39 +12,181 @@ export function getStaticPaths() {
 
 const { lang } = Astro.params;
 const t = UI[lang];
+const C = CALC_T[lang];
+const items = products.map((p) => ({ p, tags: outputTags(p), wh: batteryWh(p), w: powerW(p) }));
+// 筛选项只列出现有产品里真实出现过的输出口
+const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
+  const o = (t) => (t === 'USB' ? 0 : t.startsWith('PoE') ? 1000 + parseFloat(t.slice(4)) : parseFloat(t));
+  return o(a) - o(b);
+});
+const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
+const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
+const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
 ---
 <Base lang={lang} title={`${t.products} · ${SITE.name}`} description={SITE.tagline[lang]} path="">
   <h1 class="page-title">{t.allProducts}</h1>
   {products.length === 0 && <p class="empty">{t.noProducts}</p>}
-  <ul class="grid">
-    {products.map((p) => {
-      const tiers = tiersOf(p);
-      const cover = p.images && p.images[0];
-      const group = p.sale && p.sale.mode === 'group';
-      return (
-        <li class="card">
-          <a href={`/${lang}/p/${p.slug}/`}>
-            <div class="thumb">
-              {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
-              {p.sale && <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>}
-            </div>
-            <div class="info">
-              <span class="type">{term(p.type, lang)}</span>
-              <strong>{p.model}</strong>
-              <span class="meta num">{[p.outputPower, p.batterySpec].filter(Boolean).join(' · ')}</span>
-              {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
-            </div>
-          </a>
-        </li>
-      );
-    })}
-  </ul>
+
+  {products.length > 0 && (
+    <div class="shop" data-shop>
+      <script type="application/json" data-shop-cfg set:html={JSON.stringify(cfg)} />
+
+      <details class="filters" open>
+        <summary>{C.filterTitle}</summary>
+        <div class="filters-body">
+          {allTags.length > 0 && (
+            <fieldset>
+              <legend>{C.outputs}</legend>
+              <div class="chips">
+                {allTags.map((tag) => (
+                  <label class="chip"><input type="checkbox" value={tag} data-tag /> <span>{tag}</span></label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {hasStock && hasGroup && (
+            <fieldset>
+              <legend>{C.avail}</legend>
+              <div class="chips">
+                <label class="chip"><input type="radio" name={`avail-${lang}`} value="" checked data-avail /> <span>{C.any}</span></label>
+                <label class="chip"><input type="radio" name={`avail-${lang}`} value="stock" data-avail /> <span>{C.stock}</span></label>
+                <label class="chip"><input type="radio" name={`avail-${lang}`} value="group" data-avail /> <span>{C.group}</span></label>
+              </div>
+            </fieldset>
+          )}
+
+          <fieldset>
+            <legend>{C.load} <span class="load-total num" data-load-total></span></legend>
+            <DevicePicker lang={lang} id={`list-${lang}`} />
+            <label class="check"><input type="checkbox" checked data-can-power /> {C.canPower}</label>
+          </fieldset>
+
+          <button type="button" class="clear" data-clear>{C.clear}</button>
+        </div>
+      </details>
+
+      <div class="results">
+        <p class="count" data-count-label>{products.length === 1 ? C.count1 : C.count.replace('{n}', String(products.length))}</p>
+        <ul class="grid">
+          {items.map(({ p, tags, wh, w }) => {
+            const tiers = tiersOf(p);
+            const cover = p.images && p.images[0];
+            const group = p.sale && p.sale.mode === 'group';
+            return (
+              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.sale ? (group ? 'group' : 'stock') : ''} data-wh={wh} data-w={w}>
+                <a href={`/${lang}/p/${p.slug}/`}>
+                  <div class="thumb">
+                    {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
+                    {p.sale && <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>}
+                    <span class="runs num" data-runs hidden></span>
+                  </div>
+                  <div class="info">
+                    <span class="type">{term(p.type, lang)}</span>
+                    <strong>{p.model}</strong>
+                    <span class="meta num">{[p.outputPower, p.batterySpec && String(p.batterySpec).replace(/\*/g, '×')].filter(Boolean).join(' · ')}</span>
+                    {tags.length > 0 && <span class="tags">{tags.map((x) => <i>{x}</i>)}</span>}
+                    {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
+                  </div>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+        <p class="empty" data-nomatch hidden>{C.noMatch}</p>
+      </div>
+    </div>
+  )}
 </Base>
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-shop]'); if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-shop-cfg]').textContent);
+  var cards = [].slice.call(root.querySelectorAll('[data-card]'));
+  var counts = {};
+  var fmt = function (hours) {
+    var m = Math.round(hours * 60);
+    if (m < 60) return m + ' ' + c.min;
+    var h = Math.floor(m / 60), r = m % 60;
+    return h + ' ' + c.h + (r ? ' ' + r + ' ' + c.min : '');
+  };
+  function load() {
+    var total = 0;
+    root.querySelectorAll('[data-dev]').forEach(function (r) {
+      var n = counts[r.dataset.dev] || 0;
+      r.querySelector('[data-count]').textContent = n;
+      total += n * +r.dataset.w;
+    });
+    return total + Math.max(0, +root.querySelector('[data-custom]').value || 0);
+  }
+  function apply() {
+    var tags = [].slice.call(root.querySelectorAll('[data-tag]:checked')).map(function (x) { return x.value; });
+    var availEl = root.querySelector('[data-avail]:checked');
+    var avail = availEl ? availEl.value : '';
+    var total = load();
+    var canPower = root.querySelector('[data-can-power]').checked;
+    root.querySelector('[data-load-total]').textContent = total ? '· ' + total + ' W' : '';
+    var shown = 0;
+    cards.forEach(function (card) {
+      var have = card.dataset.tags ? card.dataset.tags.split('|') : [];
+      var ok = tags.every(function (t) { return have.indexOf(t) >= 0; });
+      if (avail && card.dataset.mode !== avail) ok = false;
+      var w = +card.dataset.w, wh = +card.dataset.wh;
+      if (total && canPower && w > 0 && total > w) ok = false;
+      var runs = card.querySelector('[data-runs]');
+      if (total && wh > 0 && !(w > 0 && total > w)) { runs.hidden = false; runs.textContent = c.runs.replace('{t}', fmt(wh * c.eff / total)); }
+      else runs.hidden = true;
+      card.hidden = !ok;
+      if (ok) shown++;
+    });
+    root.querySelector('[data-count-label]').textContent = shown === 1 ? c.count1 : c.count.replace('{n}', shown);
+    root.querySelector('[data-nomatch]').hidden = shown > 0;
+  }
+  root.querySelectorAll('[data-tag], [data-avail], [data-can-power]').forEach(function (el) { el.addEventListener('change', apply); });
+  root.querySelector('[data-custom]').addEventListener('input', apply);
+  root.querySelectorAll('[data-dev]').forEach(function (r) {
+    r.querySelectorAll('[data-step]').forEach(function (b) {
+      b.addEventListener('click', function () { var k = r.dataset.dev; counts[k] = Math.max(0, Math.min(20, (counts[k] || 0) + +b.dataset.step)); apply(); });
+    });
+  });
+  root.querySelector('[data-clear]').addEventListener('click', function () {
+    root.querySelectorAll('[data-tag]').forEach(function (x) { x.checked = false; });
+    var any = root.querySelector('[data-avail][value=""]'); if (any) any.checked = true;
+    counts = {}; root.querySelector('[data-custom]').value = '';
+    apply();
+  });
+  // 手机上默认收起筛选
+  if (window.matchMedia('(max-width: 860px)').matches) root.querySelector('.filters').open = false;
+  apply();
+})();
+</script>
 
 <style>
   .page-title { font-size: clamp(30px, 5vw, 44px); margin: 32px 0 20px; }
   .empty { color: var(--muted); }
-  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+  .shop { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 860px) { .shop { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+  .filters { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .filters summary { font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+  .filters summary::-webkit-details-marker { display: none; }
+  .filters summary::after { content: "▾"; color: var(--muted); }
+  .filters[open] summary::after { content: "▴"; }
+  .filters-body { display: grid; gap: 18px; margin-top: 14px; }
+  fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+  legend { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0; margin-bottom: 8px; }
+  .load-total { text-transform: none; letter-spacing: 0; color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { position: relative; cursor: pointer; }
+  .chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .chip span { display: inline-block; padding: 5px 11px; border: 1px solid var(--line); border-radius: 99px; font-size: 13px; background: var(--surface); }
+  .chip input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+  .check input { margin-top: 3px; }
+  .clear { justify-self: start; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; }
+  .count { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .card a { display: flex; flex-direction: column; height: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: inherit; text-decoration: none; transition: border-color .15s; }
   .card a:hover { border-color: var(--accent); }
   .thumb { position: relative; aspect-ratio: 1; background: #eef2f1; max-width: 100%; }
@@ -51,9 +195,12 @@ const t = UI[lang];
   .pill { position: absolute; left: 10px; top: 10px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; }
   .pill.stock { background: var(--ok-soft); color: var(--ok); }
   .pill.group { background: var(--charge-soft); color: var(--warn); }
-  .info { display: grid; gap: 2px; padding: 12px 14px 14px; }
+  .runs { position: absolute; left: 10px; bottom: 10px; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; padding: 4px 9px; border-radius: 6px; }
+  .info { display: grid; gap: 4px; padding: 12px 14px 14px; }
   .type { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
   .info strong { font-size: 17px; }
   .meta { font-size: 13px; color: var(--muted); }
-  .price { margin-top: 6px; font-weight: 600; color: var(--accent); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tags i { font-style: normal; font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+  .price { margin-top: 4px; font-weight: 600; color: var(--accent); }
 </style>
