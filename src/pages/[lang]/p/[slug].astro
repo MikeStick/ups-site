@@ -42,7 +42,7 @@ const jsonLd = {
   <nav class="crumbs"><a href={`/${lang}/`}>{t.allProducts}</a> / <span>{p.model}</span></nav>
 
   <div class="layout">
-    <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} />
+    <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
 
     <section class="summary">
       {typeName && <span class="type">{typeName}</span>}
@@ -60,35 +60,34 @@ const jsonLd = {
         </div>
       )}
 
-      {tiers.length > 0 ? (
-        <OrderConsole p={p} lang={lang} />
-      ) : (
-        <>
-          <p class="plug">{t.plugNote}</p>
-          <div class="cta">
-            {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
-            {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
-          </div>
-        </>
-      )}
     </section>
+
+    {tiers.length > 0 ? (
+      <OrderConsole p={p} lang={lang} />
+    ) : (
+      <div class="buy-fallback">
+        <p class="plug">{t.plugNote}</p>
+        <div class="cta">
+          {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
+          {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
+        </div>
+      </div>
+    )}
   </div>
 
   <div class="details">
-    <section>
-      <h2>{t.specs}</h2>
-      <div class="table-wrap">
-        <table class="specs">
-          <tbody>{rows.map(([k, v]) => <tr><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody>
-        </table>
-      </div>
-    </section>
     {features.length > 0 && (
-      <section>
+      <section class="card">
         <h2>{t.features}</h2>
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
+    <section class="card">
+      <h2>{t.specs}</h2>
+      <dl class="specs">
+        {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+    </section>
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
@@ -97,9 +96,17 @@ const jsonLd = {
 <style>
   .crumbs { font-size: 13px; color: var(--muted); margin: 20px 0 14px; }
   .crumbs a { color: var(--muted); }
-  .layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 36px; align-items: start; }
-  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 22px; } }
-  .summary { display: grid; gap: 16px; min-width: 0; }
+  /* 桌面：左 图片（吸顶，与右侧顶部对齐）| 右 型号信息 + 价格数量；下方通栏：插头；再下：发货 | 结算 */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; row-gap: 20px; align-items: start;
+    grid-template-areas: "gallery info" "gallery buy" "plugs plugs" "ship checkout"; }
+  .gallery-col { grid-area: gallery; position: sticky; top: 16px; min-width: 0; }
+  .summary { grid-area: info; }
+  .buy-fallback { grid-area: buy; display: grid; gap: 16px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); row-gap: 18px; grid-template-areas: "gallery" "info" "buy" "plugs" "ship" "checkout"; }
+    .gallery-col { position: static; }
+  }
+  .summary { display: grid; gap: 16px; min-width: 0; align-content: start; }
   .type { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
   .summary h1 { font-size: clamp(36px, 5.5vw, 56px); margin: -8px 0 0; }
   .desc { margin: 0; max-width: 62ch; }
@@ -123,11 +130,15 @@ const jsonLd = {
   .cta { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .details { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 36px; margin-top: 44px; align-items: start; }
-  @media (max-width: 860px) { .details { grid-template-columns: 1fr; gap: 28px; } }
-  .table-wrap { overflow-x: auto; }
-  .specs { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
-  .specs th { text-align: left; font-weight: 500; color: var(--muted); width: 42%; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #f8faf9; }
-  .specs td { font-variant-numeric: tabular-nums; padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  .features { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .details { display: grid; gap: 20px; margin-top: 40px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; min-width: 0; }
+  .details h2 { font-size: 24px; margin: 0 0 14px; }
+  .features { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 28px; }
+  .features li { position: relative; padding-left: 22px; }
+  .features li::before { content: ""; position: absolute; left: 0; top: .55em; width: 10px; height: 10px; border-radius: 2px; background: var(--charge); }
+  .specs { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  @media (max-width: 700px) { .specs { grid-template-columns: minmax(0, 1fr); } }
+  .specs div { display: grid; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .specs dt { color: var(--muted); }
+  .specs dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 </style>
