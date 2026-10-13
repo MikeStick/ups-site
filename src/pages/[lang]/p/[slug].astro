@@ -1,6 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import Gallery from '../../../components/Gallery.astro';
+import OrderConsole from '../../../components/OrderConsole.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import products from '../../../data/products.json';
@@ -59,25 +60,17 @@ const jsonLd = {
         </div>
       )}
 
-      {tiers.length > 0 && (
-        <div class="tiers">
-          <h2>{t.pricing}</h2>
-          <table>
-            <thead><tr><th>{t.qty}</th><th>{t.unitPrice}</th></tr></thead>
-            <tbody>
-              {tiers.map((x) => <tr><td>{t.from(x.qty)}</td><td class="num">${x.price.toFixed(2)}</td></tr>)}
-            </tbody>
-          </table>
-          <p class="note">{t.priceNote} {t.bigOrder}</p>
-        </div>
+      {tiers.length > 0 ? (
+        <OrderConsole p={p} lang={lang} />
+      ) : (
+        <>
+          <p class="plug">{t.plugNote}</p>
+          <div class="cta">
+            {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
+            {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
+          </div>
+        </>
       )}
-
-      <p class="plug">{t.plugNote}</p>
-
-      <div class="cta">
-        {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
-        {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
-      </div>
     </section>
   </div>
 

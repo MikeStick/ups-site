@@ -1,0 +1,315 @@
+---
+// 下单面板：价格区间 → 选择数量（必选）→ 单价/总价随数量变化 → 插头分配 → 付款与发货说明 → WhatsApp / 邮件下单。
+// 单价公式与客户档案系统 App.jsx 的 webTiers() 一致：起订量单价到1000台单价之间按数量线性插值。
+import { SITE } from '../config.mjs';
+
+const { p, lang } = Astro.props;
+const sale = p.sale || {};
+const group = sale.mode === 'group';
+const moq = group ? 100 : 20;
+const step = group ? 100 : 20;
+const MAX = 1000;
+const pMin = Number(sale.minPrice) || 0;
+const pMax = Number(sale.maxPrice) || pMin;
+const stockRaw = String(sale.stock ?? '').trim();
+const stock = stockRaw === '' ? null : Math.max(0, Number(stockRaw) || 0);
+const priceAt = (q) => (MAX === moq ? pMin : Math.round((pMin + (pMax - pMin) * (q - moq) / (MAX - moq)) * 100) / 100);
+
+const T = {
+  es: {
+    range: 'Precio por unidad', perPc: '/ ud', qty: 'Cantidad', required: 'obligatorio',
+    hint: `Mínimo ${moq} uds, en múltiplos de ${step}, hasta ${MAX}.`,
+    big: '¿Más de 1000 uds? Contáctenos para un precio especial.',
+    plugs: 'Enchufe', assign: 'Por asignar: {n} uds', assigned: 'Cantidad asignada completa',
+    otherName: 'Otro tipo', otherWhere: 'Tipo J, L, M, N u otro estándar',
+    otherLabel: '¿Qué enchufe necesita?', otherPh: 'Ej.: Tipo L (Chile), Tipo M (Sudáfrica)', otherReq: 'Indique el tipo de enchufe para continuar',
+    unit: 'Precio unitario', total: 'Total',
+    pay100: 'Pago anticipado (100%)', pay50: 'Anticipo (50%)', balance: 'Saldo antes del envío',
+    dep30: 'Anticipo para unirse al lote (30%)', balanceProd: 'Saldo al terminar la producción (70%)',
+    shipNow: 'Desde stock · envío en 7 días', shipLater: 'Producción · envío en 30 días',
+    stockLeft: '{n} uds en stock',
+    order: group ? 'Unirme al lote por WhatsApp' : 'Hacer pedido por WhatsApp', email: 'Pedir por email',
+    msg: (m, q, plugs, u, tot) => `Hola, quiero pedir el ${m}: ${q} uds (${plugs}). Precio unitario ${u}, total ${tot}. ¿Me pueden confirmar?`,
+    note: 'Precios FOB en USD, sin flete. Sujetos a confirmación.',
+    where: { US: 'Venezuela, Colombia, Ecuador, México, EE. UU.', EU: 'Europa, Rusia, CEI, Medio Oriente', UK: 'Reino Unido, Nigeria, Emiratos, Malasia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka' },
+    typeWord: 'Tipo',
+  },
+  en: {
+    range: 'Unit price', perPc: '/ pc', qty: 'Quantity', required: 'required',
+    hint: `Minimum ${moq} pcs, in steps of ${step}, up to ${MAX}.`,
+    big: 'Need more than 1000 pcs? Contact us for a special price.',
+    plugs: 'Plug', assign: 'Left to assign: {n} pcs', assigned: 'All units assigned',
+    otherName: 'Other type', otherWhere: 'Type J, L, M, N or another standard',
+    otherLabel: 'Which plug do you need?', otherPh: 'e.g. Type L (Chile), Type M (South Africa)', otherReq: 'Enter the plug type to continue',
+    unit: 'Unit price', total: 'Total',
+    pay100: 'Prepayment (100%)', pay50: 'Deposit (50%)', balance: 'Balance before shipping',
+    dep30: 'Deposit to join the batch (30%)', balanceProd: 'Balance when production is done (70%)',
+    shipNow: 'From stock · ships within 7 days', shipLater: 'Production · ships within 30 days',
+    stockLeft: '{n} pcs in stock',
+    order: group ? 'Join the batch on WhatsApp' : 'Order on WhatsApp', email: 'Order by email',
+    msg: (m, q, plugs, u, tot) => `Hello, I'd like to order the ${m}: ${q} pcs (${plugs}). Unit price ${u}, total ${tot}. Could you confirm?`,
+    note: 'FOB prices in USD, freight not included. Subject to confirmation.',
+    where: { US: 'Venezuela, Colombia, Ecuador, Mexico, USA', EU: 'Europe, Russia, CIS, Middle East', UK: 'UK, Nigeria, UAE, Malaysia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka' },
+    typeWord: 'Type',
+  },
+  ru: {
+    range: 'Цена за шт.', perPc: '/ шт.', qty: 'Количество', required: 'обязательно',
+    hint: `Минимум ${moq} шт., кратно ${step}, до ${MAX}.`,
+    big: 'Нужно больше 1000 шт.? Свяжитесь с нами для специальной цены.',
+    plugs: 'Вилка', assign: 'Осталось распределить: {n} шт.', assigned: 'Всё количество распределено',
+    otherName: 'Другой тип', otherWhere: 'Тип J, L, M, N или другой стандарт',
+    otherLabel: 'Какая вилка нужна?', otherPh: 'Напр.: Тип L (Чили), Тип M (ЮАР)', otherReq: 'Укажите тип вилки, чтобы продолжить',
+    unit: 'Цена за шт.', total: 'Итого',
+    pay100: 'Предоплата (100%)', pay50: 'Предоплата (50%)', balance: 'Остаток перед отгрузкой',
+    dep30: 'Депозит за участие в партии (30%)', balanceProd: 'Остаток после производства (70%)',
+    shipNow: 'Со склада · отгрузка за 7 дней', shipLater: 'Производство · отгрузка за 30 дней',
+    stockLeft: 'На складе {n} шт.',
+    order: group ? 'Участвовать в партии через WhatsApp' : 'Заказать в WhatsApp', email: 'Заказать по email',
+    msg: (m, q, plugs, u, tot) => `Здравствуйте, хочу заказать ${m}: ${q} шт. (${plugs}). Цена за шт. ${u}, итого ${tot}. Подтвердите, пожалуйста.`,
+    note: 'Цены FOB в USD, без учёта доставки. Требуют подтверждения.',
+    where: { US: 'Венесуэла, Колумбия, Эквадор, Мексика, США', EU: 'Европа, Россия, СНГ, Ближний Восток', UK: 'Великобритания, Нигерия, ОАЭ, Малайзия', AU: 'Австралия, Аргентина, Китай', IN: 'Индия, Непал, Шри-Ланка' },
+    typeWord: 'Тип',
+  },
+}[lang];
+
+const PLUGS = [
+  ['US', 'US', 'A/B'], ['EU', 'EU', 'C/F'], ['UK', 'UK', 'G'], ['AU', 'AU', 'I'], ['IN', 'India', 'D'], ['OT', '', ''],
+];
+// 插头正面示意图（与之前演示版一致）
+const sq = '<rect x="4" y="4" width="40" height="40" rx="7" fill="#f3f5f4" stroke="#5d6b68" stroke-width="1.5"/>';
+const rd = '<circle cx="24" cy="24" r="20" fill="#f3f5f4" stroke="#5d6b68" stroke-width="1.5"/>';
+const P = 'fill="#15211f"', F = 'fill="#15211f" opacity=".3"';
+const face = (shape, pins) => `<svg viewBox="0 0 48 48" aria-hidden="true">${shape}${pins}</svg>`;
+const ICON = {
+  US: face(sq, `<rect x="14" y="11" width="4" height="15" rx="1" ${P}/><rect x="30" y="11" width="4" height="15" rx="1" ${P}/><circle cx="24" cy="34" r="3.5" ${F}/>`),
+  EU: face(rd, `<circle cx="15" cy="24" r="3.5" ${P}/><circle cx="33" cy="24" r="3.5" ${P}/><rect x="22" y="5" width="4" height="5" rx="1" ${F}/><rect x="22" y="38" width="4" height="5" rx="1" ${F}/>`),
+  UK: face(sq, `<rect x="21.5" y="9" width="5" height="12" rx="1" ${P}/><rect x="10" y="29" width="11" height="5" rx="1" ${P}/><rect x="27" y="29" width="11" height="5" rx="1" ${P}/>`),
+  AU: face(sq, `<rect x="13" y="12" width="3.5" height="13" rx="1" transform="rotate(-30 14.75 18.5)" ${P}/><rect x="31.5" y="12" width="3.5" height="13" rx="1" transform="rotate(30 33.25 18.5)" ${P}/><rect x="22.25" y="28" width="3.5" height="11" rx="1" ${F}/>`),
+  IN: face(rd, `<circle cx="24" cy="14" r="5" ${P}/><circle cx="15" cy="30" r="3.5" ${P}/><circle cx="33" cy="30" r="3.5" ${P}/>`),
+  OT: face('<rect x="4" y="4" width="40" height="40" rx="7" fill="#f3f5f4" stroke="#5d6b68" stroke-width="1.5" stroke-dasharray="4 3"/>', `<text x="24" y="31" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="600" ${P}>?</text>`),
+};
+
+const usd = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const lo = Math.min(pMin, pMax), hi = Math.max(pMin, pMax);
+const cfg = {
+  model: p.model, moq, step, max: MAX, pMin, pMax, stock, group,
+  wa: SITE.whatsapp, email: SITE.email,
+  t: { assign: T.assign, assigned: T.assigned, stockLeft: T.stockLeft },
+};
+const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
+---
+<div class="oc" data-oc>
+  <script type="application/json" data-oc-cfg set:html={JSON.stringify({ ...cfg, msgTpl })} />
+
+  <div class="oc-range">
+    <span class="oc-label">{T.range}</span>
+    <span class="oc-range-val num">{lo === hi ? usd(lo) : `${usd(lo)} – ${usd(hi)}`} <small>{T.perPc}</small></span>
+  </div>
+
+  <div class="oc-field">
+    <label class="oc-label" for={`qty-${p.slug}`}>{T.qty} <em>· {T.required}</em></label>
+    <div class="oc-stepper">
+      <button type="button" data-minus aria-label="−">−</button>
+      <input id={`qty-${p.slug}`} type="number" inputmode="numeric" min={moq} max={MAX} step={step} value={moq} data-qty required />
+      <button type="button" data-plus aria-label="+">+</button>
+      <button type="button" class="oc-max" data-max>MAX</button>
+    </div>
+    <span class="oc-hint">{T.hint}</span>
+    <div class="oc-big" data-big hidden>{T.big}</div>
+  </div>
+
+  <div class="oc-field">
+    <span class="oc-label">{T.plugs}</span>
+    <div class="oc-plugs">
+      {PLUGS.map(([k, name, type]) => (
+        <div class={`oc-plug${k === 'US' ? ' used' : ''}`} data-plug={k}>
+          <span class="oc-ico" set:html={ICON[k]} />
+          <span class="oc-pname">
+            <b>{k === 'OT' ? T.otherName : `${name} · ${T.typeWord} ${type}`}</b>
+            <small>{k === 'OT' ? T.otherWhere : T.where[k]}</small>
+          </span>
+          <span class="oc-mini">
+            <button type="button" data-d="-1" aria-label="−">−</button>
+            <output class="num" data-n>{k === 'US' ? moq : 0}</output>
+            <button type="button" data-d="1" aria-label="+">+</button>
+          </span>
+        </div>
+      ))}
+    </div>
+    <span class="oc-remain good" data-remain>{T.assigned}</span>
+    <div class="oc-other" data-other hidden>
+      <label class="oc-label" for={`other-${p.slug}`}>{T.otherLabel}</label>
+      <input id={`other-${p.slug}`} type="text" maxlength="60" placeholder={T.otherPh} data-other-input />
+      <span class="oc-remain bad" data-other-req>{T.otherReq}</span>
+    </div>
+  </div>
+
+  {!group && stock !== null && (
+    <div class="oc-ship" data-ship>
+      <div><span>{T.shipNow}</span><b class="num" data-ship-now>{Math.min(moq, stock)}</b></div>
+      <div data-ship-later-row hidden><span>{T.shipLater}</span><b class="num" data-ship-later>0</b></div>
+      <small data-stock-left>{T.stockLeft.replace('{n}', String(stock))}</small>
+    </div>
+  )}
+
+  <div class="oc-sum">
+    <div><span>{T.unit}</span><span class="num" data-unit>{usd(priceAt(moq))}</span></div>
+    <div class="big"><span>{T.total}</span><span class="num" data-total>{usd(priceAt(moq) * moq)}</span></div>
+    {group ? (
+      <>
+        <div class="pay"><span>{T.dep30}</span><span class="num" data-dep>{usd(priceAt(moq) * moq * 0.3)}</span></div>
+        <div><span>{T.balanceProd}</span><span class="num" data-bal>{usd(priceAt(moq) * moq * 0.7)}</span></div>
+      </>
+    ) : (
+      <>
+        <div class="pay"><span data-pay-label data-l100={T.pay100} data-l50={T.pay50}>{T.pay100}</span><span class="num" data-dep>{usd(priceAt(moq) * moq)}</span></div>
+        <div data-bal-row hidden><span>{T.balance}</span><span class="num" data-bal>$0.00</span></div>
+      </>
+    )}
+  </div>
+
+  <div class="oc-cta">
+    {SITE.whatsapp && <a class="oc-btn primary" data-wa href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">{T.order}</a>}
+    {SITE.email && <a class="oc-btn" data-mail href={`mailto:${SITE.email}`}>{T.email}</a>}
+  </div>
+  <p class="oc-note">{T.note}</p>
+</div>
+
+<script is:inline>
+(function () {
+  document.querySelectorAll('[data-oc]').forEach(function (root) {
+    var c = JSON.parse(root.querySelector('[data-oc-cfg]').textContent);
+    var $ = function (s) { return root.querySelector(s); };
+    var qtyEl = $('[data-qty]');
+    var plugs = Array.prototype.slice.call(root.querySelectorAll('[data-plug]'));
+    var PSTEP = 10;
+    var alloc = {}; plugs.forEach(function (r) { alloc[r.dataset.plug] = 0; });
+    alloc.US = c.moq;
+    var qty = c.moq;
+    var usd = function (n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var price = function (q) { return c.max === c.moq ? c.pMin : Math.round((c.pMin + (c.pMax - c.pMin) * (q - c.moq) / (c.max - c.moq)) * 100) / 100; };
+    var sum = function () { var s = 0; for (var k in alloc) s += alloc[k]; return s; };
+
+    function setQty(v) {
+      v = Math.round((+v || 0) / c.step) * c.step;
+      qty = Math.min(c.max, Math.max(c.moq, v));
+      var used = Object.keys(alloc).filter(function (k) { return alloc[k] > 0; });
+      if (used.length <= 1 || sum() > qty) {
+        var keep = used[0] || 'US';
+        for (var k in alloc) alloc[k] = 0;
+        alloc[keep] = qty;
+      }
+      render();
+    }
+
+    function render() {
+      qtyEl.value = qty;
+      $('[data-big]').hidden = qty < c.max;
+      var rem = qty - sum();
+      plugs.forEach(function (r) {
+        var k = r.dataset.plug;
+        r.querySelector('[data-n]').textContent = alloc[k];
+        r.classList.toggle('used', alloc[k] > 0);
+      });
+      var remEl = $('[data-remain]');
+      remEl.textContent = rem === 0 ? c.t.assigned : c.t.assign.replace('{n}', rem);
+      remEl.className = 'oc-remain ' + (rem === 0 ? 'good' : 'bad');
+      var otherBox = $('[data-other]'), otherVal = $('[data-other-input]').value.trim();
+      otherBox.hidden = !(alloc.OT > 0);
+      $('[data-other-req]').hidden = !!otherVal;
+
+      var u = price(qty), tot = u * qty;
+      $('[data-unit]').textContent = usd(u);
+      $('[data-total]').textContent = usd(tot);
+      if (c.group) {
+        $('[data-dep]').textContent = usd(tot * 0.3);
+        $('[data-bal]').textContent = usd(tot * 0.7);
+      } else {
+        var over = c.stock !== null && qty > c.stock;
+        var lab = $('[data-pay-label]');
+        lab.textContent = over ? lab.dataset.l50 : lab.dataset.l100;
+        $('[data-dep]').textContent = usd(over ? tot * 0.5 : tot);
+        $('[data-bal-row]').hidden = !over;
+        $('[data-bal]').textContent = usd(tot * 0.5);
+        if ($('[data-ship]')) {
+          var now = Math.min(qty, c.stock), later = qty - now;
+          $('[data-ship-now]').textContent = now;
+          $('[data-ship-later]').textContent = later;
+          $('[data-ship-later-row]').hidden = later <= 0;
+        }
+      }
+
+      var ok = rem === 0 && (!(alloc.OT > 0) || !!otherVal);
+      var plugText = Object.keys(alloc).filter(function (k) { return alloc[k] > 0; })
+        .map(function (k) { return (k === 'OT' ? (otherVal || 'Other') : k) + ' ' + alloc[k]; }).join(', ');
+      var msg = c.msgTpl.replace('{m}', c.model).replace('{q}', qty).replace('{plugs}', plugText).replace('{u}', usd(u)).replace('{tot}', usd(tot));
+      var wa = $('[data-wa]'), mail = $('[data-mail]');
+      [wa, mail].forEach(function (a) { if (a) { a.classList.toggle('disabled', !ok); a.setAttribute('aria-disabled', ok ? 'false' : 'true'); } });
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(c.model + ' · ' + qty) + '&body=' + encodeURIComponent(msg);
+    }
+
+    $('[data-minus]').addEventListener('click', function () { setQty(qty - c.step); });
+    $('[data-plus]').addEventListener('click', function () { setQty(qty + c.step); });
+    $('[data-max]').addEventListener('click', function () { setQty(c.max); });
+    qtyEl.addEventListener('change', function () { setQty(qtyEl.value); });
+    $('[data-other-input]').addEventListener('input', render);
+    plugs.forEach(function (r) {
+      r.querySelectorAll('[data-d]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var k = r.dataset.plug, d = +b.dataset.d * PSTEP;
+          if (d > 0 && sum() + d > qty) return;
+          alloc[k] = Math.max(0, alloc[k] + d);
+          render();
+        });
+      });
+    });
+    root.addEventListener('click', function (e) {
+      var a = e.target.closest('.oc-btn.disabled'); if (a) e.preventDefault();
+    });
+    render();
+  });
+})();
+</script>
+
+<style>
+  .oc { display: grid; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
+  .oc-label { font-size: 13px; font-weight: 600; }
+  .oc-label em { font-style: normal; font-weight: 400; color: var(--muted); }
+  .oc-range { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .oc-range-val { font-size: 26px; font-weight: 600; color: var(--accent); }
+  .oc-range-val small { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .oc-field { display: grid; gap: 8px; }
+  .oc-stepper { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .oc-stepper button { background: var(--bg); border: 0; width: 48px; font-size: 20px; cursor: pointer; color: var(--ink); }
+  .oc-stepper input { flex: 1; min-width: 0; border: 0; border-inline: 1px solid var(--line); text-align: center; font: 500 18px var(--mono); padding: 10px; background: var(--surface); color: var(--ink); }
+  .oc-stepper .oc-max { width: auto; padding-inline: 16px; font-size: 13px; font-weight: 600; background: var(--ink); color: #fff; }
+  .oc-hint { font-size: 12px; color: var(--muted); }
+  .oc-big { font-size: 13px; background: var(--charge-soft); border-radius: 6px; padding: 9px 12px; }
+  .oc-plugs { display: grid; gap: 6px; }
+  .oc-plug { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+  .oc-plug.used { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .oc-ico { width: 44px; height: 44px; display: block; }
+  .oc-ico :global(svg) { width: 100%; height: 100%; display: block; }
+  .oc-pname { display: grid; line-height: 1.3; min-width: 0; font-size: 14px; }
+  .oc-pname small { color: var(--muted); font-size: 12px; }
+  .oc-mini { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .oc-mini button { background: var(--bg); border: 0; width: 32px; cursor: pointer; font-size: 16px; color: var(--ink); }
+  .oc-mini output { width: 52px; text-align: center; padding: 5px 0; font-size: 14px; }
+  .oc-remain { font-size: 12px; font-weight: 600; }
+  .oc-remain.good { color: var(--ok); } .oc-remain.bad { color: var(--warn); }
+  .oc-other { display: grid; gap: 4px; }
+  .oc-other input { padding: 9px 11px; border: 1px solid var(--accent); border-radius: 7px; font: inherit; }
+  .oc-ship { display: grid; gap: 6px; font-size: 14px; }
+  .oc-ship div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 7px; }
+  .oc-ship small { font-size: 12px; color: var(--muted); }
+  .oc-sum { display: grid; gap: 5px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .oc-sum div { display: flex; justify-content: space-between; gap: 10px; }
+  .oc-sum .big { font-size: 19px; font-weight: 600; }
+  .oc-sum .pay { color: var(--accent); font-weight: 600; }
+  .oc-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .oc-btn { flex: 1; min-width: 160px; display: inline-flex; align-items: center; justify-content: center; text-align: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .oc-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .oc-btn.disabled { opacity: .45; cursor: not-allowed; }
+  .oc-note { margin: -6px 0 0; font-size: 12px; color: var(--muted); }
+</style>
