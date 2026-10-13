@@ -46,6 +46,28 @@ async function saveImage(url, slug, idx) {
   return { src: `/media/${slug}/${name}`, thumb: `/media/${slug}/${name}` };
 }
 
+// 详情图：通常是很长的竖图，WebP 最大边长只有 16383px，所以用 JPEG（最大 65535px），宽度压到 1200 以内
+async function saveDetailImage(url, slug, idx) {
+  const r = await fetch(url, { headers: { 'x-site-key': KEY } });
+  if (!r.ok) { console.warn(`[fetch-data] 详情图下载失败 ${url} → HTTP ${r.status}`); return null; }
+  const buf = Buffer.from(await r.arrayBuffer());
+  const dir = path.join(MEDIA_DIR, slug);
+  await fs.mkdir(dir, { recursive: true });
+  if (sharp) {
+    const name = `d${idx + 1}.jpg`;
+    const info = await sharp(buf, { limitInputPixels: false }).rotate()
+      .resize({ width: 1200, withoutEnlargement: true })
+      .flatten({ background: '#ffffff' })
+      .jpeg({ quality: 82, progressive: true, mozjpeg: true })
+      .toFile(path.join(dir, name));
+    return { src: `/media/${slug}/${name}`, w: info.width, h: info.height };
+  }
+  const ext = (url.split('.').pop() || 'jpg').split('?')[0].toLowerCase();
+  const name = `d${idx + 1}.${ext}`;
+  await fs.writeFile(path.join(dir, name), buf);
+  return { src: `/media/${slug}/${name}` };
+}
+
 async function main() {
   await fs.rm(MEDIA_DIR, { recursive: true, force: true });
 
@@ -65,6 +87,12 @@ async function main() {
       if (saved) imgs.push(saved);
     }
     p.images = imgs;
+    const details = [];
+    for (const [i, url] of (p.detailImages || []).entries()) {
+      try { const saved = await saveDetailImage(url, p.slug, i); if (saved) details.push(saved); }
+      catch (e) { console.warn(`[fetch-data] 详情图处理失败 ${url}：${e.message}`); }
+    }
+    p.detailImages = details;
   }
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
 }

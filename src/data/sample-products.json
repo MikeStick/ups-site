@@ -60,6 +60,18 @@
         "src": "/sample/mini-ups-ports.svg",
         "thumb": "/sample/mini-ups-ports.svg"
       }
+    ],
+    "detailImages": [
+      {
+        "src": "/sample/mini-ups-front.svg",
+        "w": 800,
+        "h": 800
+      },
+      {
+        "src": "/sample/mini-ups-ports.svg",
+        "w": 800,
+        "h": 800
+      }
     ]
   },
   {

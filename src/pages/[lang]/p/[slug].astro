@@ -88,6 +88,16 @@ const jsonLd = {
         {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
       </dl>
     </section>
+    {Array.isArray(p.detailImages) && p.detailImages.length > 0 && (
+      <section class="card detail-imgs">
+        <h2>{t.details}</h2>
+        <div class="detail-stack">
+          {p.detailImages.map((im, i) => (
+            <img src={im.src} alt={`${p.model} ${i + 1}`} loading="lazy" decoding="async" width={im.w} height={im.h} />
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
@@ -139,5 +149,8 @@ const jsonLd = {
   @media (max-width: 700px) { .specs { grid-template-columns: minmax(0, 1fr); } }
   .specs div { display: grid; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .specs dt { color: var(--muted); }
+  /* 详情图：按顺序上下拼接，不留缝（详情图通常是一整张长图切成几段） */
+  .detail-stack { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; }
+  .detail-stack img { width: 100%; height: auto; display: block; }
   .specs dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 </style>
