@@ -1,5 +1,5 @@
 ---
-import { SITE, LANGS } from '../config.mjs';
+import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
 
 const { lang, title, description = '', path = '' } = Astro.props;
@@ -17,7 +17,7 @@ const altHref = (l) => `/${l}/${path}`;
   {description && <meta name="description" content={description} />}
   <link rel="canonical" href={`${site}${altHref(lang)}`} />
   {LANGS.map((l) => <link rel="alternate" hreflang={l} href={`${site}${altHref(l)}`} />)}
-  <link rel="alternate" hreflang="x-default" href={`${site}${altHref('es')}`} />
+  <link rel="alternate" hreflang="x-default" href={`${site}${altHref(DEFAULT_LANG)}`} />
   <meta property="og:title" content={title} />
   {description && <meta property="og:description" content={description} />}
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

@@ -8,5 +8,5 @@ export const SITE = {
   email: 'sales@ups-china.com',
 };
 
-export const LANGS = ['es', 'en', 'ru'];
-export const DEFAULT_LANG = 'es';
+export const LANGS = ['en', 'es', 'ru'];
+export const DEFAULT_LANG = 'en';
