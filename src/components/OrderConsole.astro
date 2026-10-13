@@ -17,7 +17,7 @@ const priceAt = (q) => (MAX === moq ? pMin : Math.round((pMin + (pMax - pMin) * 
 
 const T = {
   es: {
-    range: 'Precio por unidad', perPc: '/ ud', qty: 'Cantidad', required: 'obligatorio',
+    range: 'Precio por unidad', perPc: '/ ud', save: 'Ahorra {p}% frente a {m} uds', scale: '{m} uds {a} → 1000 uds {b}', qty: 'Cantidad', required: 'obligatorio',
     hint: `Mínimo ${moq} uds, en múltiplos de ${step}, hasta ${MAX}.`,
     big: '¿Más de 1000 uds? Contáctenos para un precio especial.',
     plugs: 'Enchufe', plugHint: 'Toque un enchufe para elegirlo. Use + / − para combinar varios.', assign: 'Por asignar: {n} uds', assigned: 'Cantidad asignada completa',
@@ -35,7 +35,7 @@ const T = {
     typeWord: 'Tipo',
   },
   en: {
-    range: 'Unit price', perPc: '/ pc', qty: 'Quantity', required: 'required',
+    range: 'Unit price', perPc: '/ pc', save: 'Save {p}% vs {m} pcs', scale: '{m} pcs {a} → 1000 pcs {b}', qty: 'Quantity', required: 'required',
     hint: `Minimum ${moq} pcs, in steps of ${step}, up to ${MAX}.`,
     big: 'Need more than 1000 pcs? Contact us for a special price.',
     plugs: 'Plug', plugHint: 'Tap a plug to choose it. Use + / − to mix several.', assign: 'Left to assign: {n} pcs', assigned: 'All units assigned',
@@ -53,7 +53,7 @@ const T = {
     typeWord: 'Type',
   },
   ru: {
-    range: 'Цена за шт.', perPc: '/ шт.', qty: 'Количество', required: 'обязательно',
+    range: 'Цена за шт.', perPc: '/ шт.', save: 'Экономия {p}% по сравнению с {m} шт.', scale: '{m} шт. {a} → 1000 шт. {b}', qty: 'Количество', required: 'обязательно',
     hint: `Минимум ${moq} шт., кратно ${step}, до ${MAX}.`,
     big: 'Нужно больше 1000 шт.? Свяжитесь с нами для специальной цены.',
     plugs: 'Вилка', plugHint: 'Нажмите на вилку, чтобы выбрать её. Кнопки + / − — чтобы совместить несколько.', assign: 'Осталось распределить: {n} шт.', assigned: 'Всё количество распределено',
@@ -94,7 +94,7 @@ const lo = Math.min(pMin, pMax), hi = Math.max(pMin, pMax);
 const cfg = {
   model: p.model, moq, step, max: MAX, pMin, pMax, stock, group,
   wa: SITE.whatsapp, email: SITE.email,
-  t: { assign: T.assign, assigned: T.assigned, stockLeft: T.stockLeft },
+  t: { assign: T.assign, assigned: T.assigned, stockLeft: T.stockLeft, save: T.save },
 };
 const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
 ---
@@ -102,8 +102,15 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
   <script type="application/json" data-oc-cfg set:html={JSON.stringify({ ...cfg, msgTpl })} />
 
   <div class="oc-range">
-    <span class="oc-label">{T.range}</span>
-    <span class="oc-range-val num">{lo === hi ? usd(lo) : `${usd(lo)} – ${usd(hi)}`} <small>{T.perPc}</small></span>
+    <div class="oc-range-top">
+      <span class="oc-label">{T.range}</span>
+      <span class="oc-range-val num"><span data-unit-big>{usd(priceAt(moq))}</span> <small>{T.perPc}</small></span>
+    </div>
+    <div class="oc-range-sub">
+      <span class="oc-save" data-save hidden></span>
+      <span class="oc-scale num">{T.scale.replace('{m}', String(moq)).replace('{a}', usd(pMin)).replace('{b}', usd(pMax))}</span>
+    </div>
+    <div class="oc-bar" aria-hidden="true"><i data-bar style="width:0%"></i></div>
   </div>
 
   <div class="oc-field">
@@ -222,6 +229,13 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
 
       var u = price(qty), tot = u * qty;
       $('[data-unit]').textContent = usd(u);
+      // 顶部大号价格：当前数量对应的单价，从起订量价格逐步降到1000台价格
+      $('[data-unit-big]').textContent = usd(u);
+      var pct = c.pMin > 0 ? Math.round((1 - u / c.pMin) * 1000) / 10 : 0;
+      var saveEl = $('[data-save]');
+      saveEl.hidden = !(pct > 0);
+      saveEl.textContent = c.t.save.replace('{p}', pct).replace('{m}', c.moq);
+      $('[data-bar]').style.width = (c.max === c.moq ? 100 : (qty - c.moq) / (c.max - c.moq) * 100) + '%';
       $('[data-total]').textContent = usd(tot);
       if (c.group) {
         $('[data-dep]').textContent = usd(tot * 0.3);
@@ -298,8 +312,15 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
   .oc { display: grid; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
   .oc-label { font-size: 13px; font-weight: 600; }
   .oc-label em { font-style: normal; font-weight: 400; color: var(--muted); }
-  .oc-range { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-  .oc-range-val { font-size: 26px; font-weight: 600; color: var(--accent); }
+  .oc-range { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .oc-range-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .oc-range-sub { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+  .oc-save { color: var(--ok); font-weight: 600; background: var(--ok-soft); padding: 1px 8px; border-radius: 99px; }
+  .oc-scale { color: var(--muted); margin-left: auto; }
+  .oc-bar { height: 4px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+  .oc-bar i { display: block; height: 100%; background: var(--charge); transition: width .25s; }
+  @media (prefers-reduced-motion: reduce) { .oc-bar i { transition: none; } }
+  .oc-range-val { font-size: 30px; font-weight: 600; color: var(--accent); }
   .oc-range-val small { font-size: 14px; color: var(--muted); font-weight: 400; }
   .oc-field { display: grid; gap: 8px; }
   .oc-stepper { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
