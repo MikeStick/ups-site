@@ -20,7 +20,7 @@ const T = {
     range: 'Precio por unidad', perPc: '/ ud', qty: 'Cantidad', required: 'obligatorio',
     hint: `Mínimo ${moq} uds, en múltiplos de ${step}, hasta ${MAX}.`,
     big: '¿Más de 1000 uds? Contáctenos para un precio especial.',
-    plugs: 'Enchufe', assign: 'Por asignar: {n} uds', assigned: 'Cantidad asignada completa',
+    plugs: 'Enchufe', plugHint: 'Toque un enchufe para elegirlo. Use + / − para combinar varios.', assign: 'Por asignar: {n} uds', assigned: 'Cantidad asignada completa',
     otherName: 'Otro tipo', otherWhere: 'Tipo J, L, M, N u otro estándar',
     otherLabel: '¿Qué enchufe necesita?', otherPh: 'Ej.: Tipo L (Chile), Tipo M (Sudáfrica)', otherReq: 'Indique el tipo de enchufe para continuar',
     unit: 'Precio unitario', total: 'Total',
@@ -38,7 +38,7 @@ const T = {
     range: 'Unit price', perPc: '/ pc', qty: 'Quantity', required: 'required',
     hint: `Minimum ${moq} pcs, in steps of ${step}, up to ${MAX}.`,
     big: 'Need more than 1000 pcs? Contact us for a special price.',
-    plugs: 'Plug', assign: 'Left to assign: {n} pcs', assigned: 'All units assigned',
+    plugs: 'Plug', plugHint: 'Tap a plug to choose it. Use + / − to mix several.', assign: 'Left to assign: {n} pcs', assigned: 'All units assigned',
     otherName: 'Other type', otherWhere: 'Type J, L, M, N or another standard',
     otherLabel: 'Which plug do you need?', otherPh: 'e.g. Type L (Chile), Type M (South Africa)', otherReq: 'Enter the plug type to continue',
     unit: 'Unit price', total: 'Total',
@@ -56,7 +56,7 @@ const T = {
     range: 'Цена за шт.', perPc: '/ шт.', qty: 'Количество', required: 'обязательно',
     hint: `Минимум ${moq} шт., кратно ${step}, до ${MAX}.`,
     big: 'Нужно больше 1000 шт.? Свяжитесь с нами для специальной цены.',
-    plugs: 'Вилка', assign: 'Осталось распределить: {n} шт.', assigned: 'Всё количество распределено',
+    plugs: 'Вилка', plugHint: 'Нажмите на вилку, чтобы выбрать её. Кнопки + / − — чтобы совместить несколько.', assign: 'Осталось распределить: {n} шт.', assigned: 'Всё количество распределено',
     otherName: 'Другой тип', otherWhere: 'Тип J, L, M, N или другой стандарт',
     otherLabel: 'Какая вилка нужна?', otherPh: 'Напр.: Тип L (Чили), Тип M (ЮАР)', otherReq: 'Укажите тип вилки, чтобы продолжить',
     unit: 'Цена за шт.', total: 'Итого',
@@ -120,9 +120,10 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
 
   <div class="oc-field">
     <span class="oc-label">{T.plugs}</span>
+    <span class="oc-hint">{T.plugHint}</span>
     <div class="oc-plugs">
       {PLUGS.map(([k, name, type]) => (
-        <div class={`oc-plug${k === 'US' ? ' used' : ''}`} data-plug={k}>
+        <div class={`oc-plug${k === 'US' ? ' used' : ''}`} data-plug={k} role="button" tabindex="0" aria-pressed={k === 'US' ? 'true' : 'false'}>
           <span class="oc-ico" set:html={ICON[k]} />
           <span class="oc-pname">
             <b>{k === 'OT' ? T.otherName : `${name} · ${T.typeWord} ${type}`}</b>
@@ -210,6 +211,7 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
         var k = r.dataset.plug;
         r.querySelector('[data-n]').textContent = alloc[k];
         r.classList.toggle('used', alloc[k] > 0);
+        r.setAttribute('aria-pressed', alloc[k] > 0 ? 'true' : 'false');
       });
       var remEl = $('[data-remain]');
       remEl.textContent = rem === 0 ? c.t.assigned : c.t.assign.replace('{n}', rem);
@@ -254,12 +256,32 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
     $('[data-max]').addEventListener('click', function () { setQty(c.max); });
     qtyEl.addEventListener('change', function () { setQty(qtyEl.value); });
     $('[data-other-input]').addEventListener('input', render);
+    function selectOnly(k) {
+      for (var x in alloc) alloc[x] = 0;
+      alloc[k] = qty;
+      render();
+      if (k === 'OT') { var oi = $('[data-other-input]'); if (oi) oi.focus(); }
+    }
     plugs.forEach(function (r) {
+      var k = r.dataset.plug;
+      // 点整行：只选这一种插头，数量 = 当前订购数量
+      r.addEventListener('click', function (e) { if (!e.target.closest('.oc-mini')) selectOnly(k); });
+      r.addEventListener('keydown', function (e) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target === r) { e.preventDefault(); selectOnly(k); }
+      });
       r.querySelectorAll('[data-d]').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var k = r.dataset.plug, d = +b.dataset.d * PSTEP;
-          if (d > 0 && sum() + d > qty) return;
-          alloc[k] = Math.max(0, alloc[k] + d);
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var d = +b.dataset.d * PSTEP;
+          if (d < 0) { alloc[k] = Math.max(0, alloc[k] + d); render(); return; }
+          if (sum() + d > qty) {
+            // 数量已分配满：从当前分得最多的另一种插头里挪过来，不用先手动减
+            var donor = null;
+            for (var x in alloc) if (x !== k && alloc[x] >= d && (!donor || alloc[x] > alloc[donor])) donor = x;
+            if (!donor) return;
+            alloc[donor] -= d;
+          }
+          alloc[k] += d;
           render();
         });
       });
@@ -287,7 +309,8 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
   .oc-hint { font-size: 12px; color: var(--muted); }
   .oc-big { font-size: 13px; background: var(--charge-soft); border-radius: 6px; padding: 9px 12px; }
   .oc-plugs { display: grid; gap: 6px; }
-  .oc-plug { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+  .oc-plug { cursor: pointer; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+  .oc-plug:hover { border-color: var(--accent); }
   .oc-plug.used { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .oc-ico { width: 44px; height: 44px; display: block; }
   .oc-ico :global(svg) { width: 100%; height: 100%; display: block; }
