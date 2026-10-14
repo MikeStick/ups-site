@@ -212,11 +212,12 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
   .pill.stock { background: var(--ok-soft); color: var(--ok); }
   .pill.group { background: var(--charge-soft); color: var(--warn); }
   .runs { position: absolute; left: 10px; bottom: 10px; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; padding: 4px 9px; border-radius: 6px; }
-  .info { display: grid; gap: 4px; padding: 12px 14px 14px; }
+  /* 卡片内容竖向排列，价格固定在卡片底部：同一行的卡片价格始终对齐 */
+  .info { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 12px 14px 14px; }
   .type { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
   .info strong { font-size: 17px; }
   .meta { font-size: 13px; color: var(--muted); }
   .tags { display: flex; flex-wrap: wrap; gap: 4px; }
   .tags i { font-style: normal; font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
-  .price { margin-top: 4px; font-weight: 600; color: var(--accent); }
+  .price { margin-top: auto; padding-top: 10px; font-weight: 600; color: var(--accent); }
 </style>
