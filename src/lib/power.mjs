@@ -15,6 +15,13 @@ export function batteryWh(p) {
   return 0;
 }
 
+// 电池总容量（mAh）：如 "5000mAh*4" → 20000。写法里没有 mAh 的（如铅酸 12V4.5AH）返回 0
+export function totalMah(p) {
+  const s = String(p.batterySpec || '').replace(/\s+/g, '').replace(/[×xX]/g, '*');
+  const m = s.match(/(\d+(?:\.\d+)?)mAh(?:\*(\d+))?/i);
+  return m ? Math.round(+m[1] * (+m[2] || 1)) : 0;
+}
+
 export function powerW(p) {
   const m = String(p.outputPower || '').match(/(\d+(?:\.\d+)?)\s*W/i);
   return m ? +m[1] : 0;
@@ -61,7 +68,7 @@ export const CALC_T = {
     custom: 'Other load (W)', total: 'Total load', runtime: 'Estimated backup time', over: 'Load is above this model’s {w} W output — choose a bigger model.',
     none: 'Add a device to see the backup time.', note: 'Estimate based on battery capacity and {e}% conversion efficiency. Actual time depends on the devices.',
     h: 'h', min: 'min',
-    filterTitle: 'Find the right model', outputs: 'Outputs needed', capacity: 'Battery capacity', avail: 'Availability', any: 'Any',
+    filterTitle: 'Find the right model', outputs: 'Outputs needed', capacity: 'Battery capacity', mah: 'mAh', avail: 'Availability', any: 'Any',
     stock: 'In stock', group: 'Group buy', load: 'My devices', clear: 'Clear filters', count: '{n} models', count1: '1 model', noMatch: 'No model matches these filters.',
     canPower: 'Only models that can power my devices', runs: '≈ {t} backup',
   },
@@ -71,7 +78,7 @@ export const CALC_T = {
     custom: 'Otra carga (W)', total: 'Carga total', runtime: 'Autonomía estimada', over: 'La carga supera la salida de {w} W de este modelo: elija uno más potente.',
     none: 'Agregue un equipo para ver la autonomía.', note: 'Estimación según la capacidad de la batería y {e}% de eficiencia de conversión. El tiempo real depende de los equipos.',
     h: 'h', min: 'min',
-    filterTitle: 'Encuentre el modelo adecuado', outputs: 'Salidas necesarias', capacity: 'Capacidad de batería', avail: 'Disponibilidad', any: 'Todas',
+    filterTitle: 'Encuentre el modelo adecuado', outputs: 'Salidas necesarias', capacity: 'Capacidad de batería', mah: 'mAh', avail: 'Disponibilidad', any: 'Todas',
     stock: 'En stock', group: 'Compra grupal', load: 'Mis equipos', clear: 'Quitar filtros', count: '{n} modelos', count1: '1 modelo', noMatch: 'Ningún modelo coincide con estos filtros.',
     canPower: 'Solo modelos que pueden alimentar mis equipos', runs: '≈ {t} de autonomía',
   },
@@ -81,7 +88,7 @@ export const CALC_T = {
     custom: 'Другая нагрузка (Вт)', total: 'Общая нагрузка', runtime: 'Примерное время работы', over: 'Нагрузка выше выходной мощности модели ({w} Вт) — выберите модель мощнее.',
     none: 'Добавьте устройство, чтобы увидеть время работы.', note: 'Оценка по ёмкости батареи и КПД преобразования {e}%. Реальное время зависит от устройств.',
     h: 'ч', min: 'мин',
-    filterTitle: 'Подбор модели', outputs: 'Нужные выходы', capacity: 'Ёмкость батареи', avail: 'Наличие', any: 'Все',
+    filterTitle: 'Подбор модели', outputs: 'Нужные выходы', capacity: 'Ёмкость батареи', mah: 'мАч', avail: 'Наличие', any: 'Все',
     stock: 'В наличии', group: 'Совместная закупка', load: 'Мои устройства', clear: 'Сбросить фильтры', count: 'Моделей: {n}', count1: 'Моделей: 1', noMatch: 'Нет моделей по этим фильтрам.',
     canPower: 'Только модели, которые потянут мои устройства', runs: '≈ {t} работы',
   },
