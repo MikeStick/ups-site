@@ -3,7 +3,7 @@ import Base from '../../layouts/Base.astro';
 import DevicePicker from '../../components/DevicePicker.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { UI, term, tiersOf } from '../../i18n.mjs';
-import { batteryWh, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
+import { batteryWh, powerW, outputTags, EFFICIENCY, CALC_T, CAP_BUCKETS, capBucket } from '../../lib/power.mjs';
 import products from '../../data/products.json';
 
 export function getStaticPaths() {
@@ -19,6 +19,9 @@ const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
   const o = (t) => (t === 'USB' ? 0 : t.startsWith('PoE') ? 1000 + parseFloat(t.slice(4)) : parseFloat(t));
   return o(a) - o(b);
 });
+// 只列出有产品的容量档位
+const capIds = new Set(items.map((x) => capBucket(x.wh)).filter(Boolean));
+const caps = CAP_BUCKETS.filter((b) => capIds.has(b.id));
 const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
 const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
 const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
@@ -40,6 +43,17 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
               <div class="chips">
                 {allTags.map((tag) => (
                   <label class="chip"><input type="checkbox" value={tag} data-tag /> <span>{tag}</span></label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {caps.length > 1 && (
+            <fieldset>
+              <legend>{C.capacity}</legend>
+              <div class="chips">
+                {caps.map((b) => (
+                  <label class="chip"><input type="checkbox" value={b.id} data-cap /> <span>{b.label}</span></label>
                 ))}
               </div>
             </fieldset>
@@ -74,7 +88,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
             const cover = p.images && p.images[0];
             const group = p.sale && p.sale.mode === 'group';
             return (
-              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.sale ? (group ? 'group' : 'stock') : ''} data-wh={wh} data-w={w}>
+              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.sale ? (group ? 'group' : 'stock') : ''} data-wh={wh} data-w={w} data-capb={capBucket(wh)}>
                 <a href={`/${lang}/p/${p.slug}/`}>
                   <div class="thumb">
                     {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
@@ -84,7 +98,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
                   <div class="info">
                     <span class="type">{term(p.type, lang)}</span>
                     <strong>{p.model}</strong>
-                    <span class="meta num">{[p.outputPower, p.batterySpec && String(p.batterySpec).replace(/\*/g, '×')].filter(Boolean).join(' · ')}</span>
+                    <span class="meta num">{[p.outputPower, p.batterySpec && String(p.batterySpec).replace(/\*/g, '×'), wh > 0 && `≈ ${Math.round(wh)} Wh`].filter(Boolean).join(' · ')}</span>
                     {tags.length > 0 && <span class="tags">{tags.map((x) => <i>{x}</i>)}</span>}
                     {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
                   </div>
@@ -122,6 +136,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
   }
   function apply() {
     var tags = [].slice.call(root.querySelectorAll('[data-tag]:checked')).map(function (x) { return x.value; });
+    var capsSel = [].slice.call(root.querySelectorAll('[data-cap]:checked')).map(function (x) { return x.value; });
     var availEl = root.querySelector('[data-avail]:checked');
     var avail = availEl ? availEl.value : '';
     var total = load();
@@ -131,6 +146,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
     cards.forEach(function (card) {
       var have = card.dataset.tags ? card.dataset.tags.split('|') : [];
       var ok = tags.every(function (t) { return have.indexOf(t) >= 0; });
+      if (capsSel.length && capsSel.indexOf(card.dataset.capb) < 0) ok = false;
       if (avail && card.dataset.mode !== avail) ok = false;
       var w = +card.dataset.w, wh = +card.dataset.wh;
       if (total && canPower && w > 0 && total > w) ok = false;
@@ -143,7 +159,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
     root.querySelector('[data-count-label]').textContent = shown === 1 ? c.count1 : c.count.replace('{n}', shown);
     root.querySelector('[data-nomatch]').hidden = shown > 0;
   }
-  root.querySelectorAll('[data-tag], [data-avail], [data-can-power]').forEach(function (el) { el.addEventListener('change', apply); });
+  root.querySelectorAll('[data-tag], [data-cap], [data-avail], [data-can-power]').forEach(function (el) { el.addEventListener('change', apply); });
   root.querySelector('[data-custom]').addEventListener('input', apply);
   root.querySelectorAll('[data-dev]').forEach(function (r) {
     r.querySelectorAll('[data-step]').forEach(function (b) {
@@ -151,7 +167,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
     });
   });
   root.querySelector('[data-clear]').addEventListener('click', function () {
-    root.querySelectorAll('[data-tag]').forEach(function (x) { x.checked = false; });
+    root.querySelectorAll('[data-tag], [data-cap]').forEach(function (x) { x.checked = false; });
     var any = root.querySelector('[data-avail][value=""]'); if (any) any.checked = true;
     counts = {}; root.querySelector('[data-custom]').value = '';
     apply();
