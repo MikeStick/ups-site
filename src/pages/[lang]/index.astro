@@ -97,7 +97,11 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
                   <div class="info">
                     <span class="type">{term(p.type, lang)}</span>
                     <strong>{p.model}</strong>
-                    <span class="meta num">{[p.outputPower, p.batterySpec && String(p.batterySpec).replace(/\*/g, '×'), mah > 0 && `${mah} mAh`].filter(Boolean).join(' · ')}</span>
+                    <span class="meta num">{[
+                      p.outputPower,
+                      mah > 0 ? `${mah}mAh` : (p.batterySpec && String(p.batterySpec).replace(/\*/g, '×')),
+                      wh > 0 && `${Math.round(wh)}Wh`,
+                    ].filter(Boolean).join(' · ')}</span>
                     {tags.length > 0 && <span class="tags">{tags.map((x) => <i>{x}</i>)}</span>}
                     {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
                   </div>
