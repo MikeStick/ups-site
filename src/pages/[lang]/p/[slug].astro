@@ -16,6 +16,8 @@ const { p } = Astro.props;
 const t = UI[lang];
 const rows = specRows(p, lang);
 const tiers = tiersOf(p);
+// 产品自己的详情图在前，引用的详情模板图片（工厂、认证、包装等）接在后面，无缝拼成一整列
+const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []), ...(Array.isArray(p.templateImages) ? p.templateImages : [])];
 const group = p.sale && p.sale.mode === 'group';
 const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
@@ -90,11 +92,11 @@ const jsonLd = {
         {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
       </dl>
     </section>
-    {Array.isArray(p.detailImages) && p.detailImages.length > 0 && (
+    {detailAll.length > 0 && (
       <section class="card detail-imgs">
         <h2>{t.details}</h2>
         <div class="detail-stack">
-          {p.detailImages.map((im, i) => (
+          {detailAll.map((im, i) => (
             <img src={im.src} alt={`${p.model} ${i + 1}`} loading="lazy" decoding="async" width={im.w} height={im.h} />
           ))}
         </div>

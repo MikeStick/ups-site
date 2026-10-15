@@ -47,14 +47,15 @@ async function saveImage(url, slug, idx) {
 }
 
 // 详情图：通常是很长的竖图，WebP 最大边长只有 16383px，所以用 JPEG（最大 65535px），宽度压到 1200 以内
-async function saveDetailImage(url, slug, idx) {
+// prefix：产品自己的详情图是 d1、d2…；模板图片放在 _tpl/<模板id>/ 下，用 t1、t2…
+async function saveDetailImage(url, slug, idx, prefix = 'd') {
   const r = await fetch(url, { headers: { 'x-site-key': KEY } });
   if (!r.ok) { console.warn(`[fetch-data] 详情图下载失败 ${url} → HTTP ${r.status}`); return null; }
   const buf = Buffer.from(await r.arrayBuffer());
   const dir = path.join(MEDIA_DIR, slug);
   await fs.mkdir(dir, { recursive: true });
   if (sharp) {
-    const name = `d${idx + 1}.jpg`;
+    const name = `${prefix}${idx + 1}.jpg`;
     const info = await sharp(buf, { limitInputPixels: false }).rotate()
       .resize({ width: 1200, withoutEnlargement: true })
       .flatten({ background: '#ffffff' })
@@ -63,7 +64,7 @@ async function saveDetailImage(url, slug, idx) {
     return { src: `/media/${slug}/${name}`, w: info.width, h: info.height };
   }
   const ext = (url.split('.').pop() || 'jpg').split('?')[0].toLowerCase();
-  const name = `d${idx + 1}.${ext}`;
+  const name = `${prefix}${idx + 1}.${ext}`;
   await fs.writeFile(path.join(dir, name), buf);
   return { src: `/media/${slug}/${name}` };
 }
@@ -80,6 +81,22 @@ async function main() {
 
   const list = await getJson(`${API}/api/public/products`);
   console.log(`[fetch-data] 拉取到 ${list.length} 个已发布产品`);
+  // 模板图片缓存：多个产品引用同一个模板时只下载、压缩一次，网站上也是同一个文件（浏览器缓存可复用）
+  const tplCache = new Map();
+  const tplCounters = new Map();
+  async function saveTemplateImage(url) {
+    if (tplCache.has(url)) return tplCache.get(url);
+    const m = url.match(/\/tplmedia\/([^/]+)\//);
+    const tplId = m ? decodeURIComponent(m[1]).replace(/[^A-Za-z0-9_-]/g, '') : 'misc';
+    const n = tplCounters.get(tplId) || 0;
+    tplCounters.set(tplId, n + 1);
+    const job = saveDetailImage(url, `_tpl/${tplId}`, n, 't').catch((e) => {
+      console.warn(`[fetch-data] 模板图片处理失败 ${url}：${e.message}`);
+      return null;
+    });
+    tplCache.set(url, job);
+    return job;
+  }
   for (const p of list) {
     const imgs = [];
     for (const [i, url] of (p.images || []).entries()) {
@@ -93,6 +110,12 @@ async function main() {
       catch (e) { console.warn(`[fetch-data] 详情图处理失败 ${url}：${e.message}`); }
     }
     p.detailImages = details;
+    const tpl = [];
+    for (const url of p.templateImages || []) {
+      const saved = await saveTemplateImage(url);
+      if (saved) tpl.push(saved);
+    }
+    p.templateImages = tpl;
   }
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
 }
