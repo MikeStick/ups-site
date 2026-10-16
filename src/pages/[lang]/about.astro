@@ -17,6 +17,9 @@ const news = Array.isArray(site.news) && site.news.length
   ? site.news.map((n) => ({ d: n.date, title: (n.title && (n.title[lang] || n.title.en)) || '', text: (n.text && (n.text[lang] || n.text.en)) || '', yt: n.youtube }))
   : NEWS.map((n) => ({ d: n.d, title: T.news[n.k][0], text: T.news[n.k][1], yt: null }));
 const introPhotos = ['line', 'rd', 'warehouse'].filter((k) => ph(k));
+// 图集（生产线、研发、仓库）：第一张是首图，点开可翻看全部，带标题
+const capOf = (im) => (im.caption && (im.caption[lang] || im.caption.en)) || '';
+const gallery = (k) => (site.assets[k] || []).map((im) => ({ src: im.src, cap: capOf(im) }));
 const facPhotos = ['smt', 'assembly', 'aging', 'qc'].filter((k) => ph(k));
 const certPhotos = ['cert_iso9001', 'cert_iso14001', 'cert_iso45001', 'cert_cqc', 'cert_tlc', 'cert_hitech'].filter((k) => ph(k));
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
@@ -84,7 +87,15 @@ const WHY_ICONS = [
       </div>
       {introPhotos.length > 0 && (
         <div class:list={['intro-photos', `n${introPhotos.length}`]}>
-          {introPhotos.map((k) => <div class="ph"><img src={ph(k)} alt={T.photo[k]} loading="lazy" /></div>)}
+          {introPhotos.map((k) => {
+            const g = gallery(k);
+            return (
+              <button type="button" class="ph gal" data-gallery={JSON.stringify(g)} data-title={T.photo[k]} aria-label={`${T.photo[k]} (${g.length})`}>
+                <img src={g[0].src} alt={g[0].cap || T.photo[k]} loading="lazy" />
+                <span class="gal-cap"><b>{T.photo[k]}</b>{g.length > 1 && <em>{g.length} ▸</em>}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -204,6 +215,13 @@ const WHY_ICONS = [
     </ol>
   </section>
 
+  <div class="lb" data-lb hidden role="dialog" aria-modal="true">
+    <button type="button" class="lb-x" data-lb-close aria-label="×">×</button>
+    <button type="button" class="lb-nav prev" data-lb-prev aria-label="‹">‹</button>
+    <figure><img alt="" data-lb-img /><figcaption><b data-lb-title></b> <span data-lb-cap></span> <em class="num" data-lb-count></em></figcaption></figure>
+    <button type="button" class="lb-nav next" data-lb-next aria-label="›">›</button>
+  </div>
+
   <section class="wrap cta">
     <div class="cta-box">
       <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
@@ -217,6 +235,35 @@ const WHY_ICONS = [
 </Base>
 
 <script is:inline>
+  // 图集查看：点首图打开，左右切换（按钮 / 方向键 / 手机左右滑），Esc 或点背景关闭
+  (function () {
+    var lb = document.querySelector('[data-lb]'); if (!lb) return;
+    var img = lb.querySelector('[data-lb-img]'), list = [], i = 0, title = '';
+    function show() {
+      var it = list[i]; img.src = it.src; img.alt = it.cap || title;
+      lb.querySelector('[data-lb-title]').textContent = title;
+      lb.querySelector('[data-lb-cap]').textContent = it.cap ? '· ' + it.cap : '';
+      lb.querySelector('[data-lb-count]').textContent = list.length > 1 ? (i + 1) + ' / ' + list.length : '';
+      lb.querySelector('[data-lb-prev]').hidden = lb.querySelector('[data-lb-next]').hidden = list.length < 2;
+    }
+    function open(g, t) { list = g; i = 0; title = t; show(); lb.hidden = false; document.body.style.overflow = 'hidden'; }
+    function close() { lb.hidden = true; document.body.style.overflow = ''; }
+    function go(d) { i = (i + d + list.length) % list.length; show(); }
+    document.querySelectorAll('.about [data-gallery]').forEach(function (b) {
+      b.addEventListener('click', function () { open(JSON.parse(b.dataset.gallery), b.dataset.title); });
+    });
+    lb.querySelector('[data-lb-prev]').addEventListener('click', function (e) { e.stopPropagation(); go(-1); });
+    lb.querySelector('[data-lb-next]').addEventListener('click', function (e) { e.stopPropagation(); go(1); });
+    lb.addEventListener('click', function (e) { if (e.target === lb || e.target.closest('[data-lb-close]')) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (lb.hidden) return;
+      if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1);
+    });
+    var x0 = null;
+    lb.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40 && list.length > 1) go(dx < 0 ? 1 : -1); x0 = null; });
+  })();
+
   // 点击视频封面才加载 YouTube 播放器，页面打开时不加载任何视频脚本
   document.querySelectorAll('.about [data-yt]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -249,6 +296,19 @@ const WHY_ICONS = [
   .about h1, .about h2, .about h3 { overflow-wrap: break-word; hyphens: auto; }
   .app svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .cta { padding-block: 56px 0; }
+  .gal { padding: 0; border: 0; cursor: zoom-in; width: 100%; }
+  .ph .gal-cap { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: end; gap: 8px; padding: 22px 12px 10px; background: linear-gradient(transparent, rgba(0,0,0,.6)); color: #fff; font-size: 13px; text-align: left; }
+  .ph .gal-cap em { font-style: normal; font: 600 12px var(--mono); background: rgba(255,255,255,.2); padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .lb { position: fixed; inset: 0; z-index: 100; background: rgba(10,14,13,.96); display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; padding: 16px 8px; }
+  .lb[hidden] { display: none; }
+  .lb figure { margin: 0; display: grid; gap: 10px; justify-items: center; }
+  .lb img { max-width: 100%; max-height: 78vh; object-fit: contain; border-radius: 8px; }
+  .lb figcaption { color: #e6ecea; font-size: 14px; text-align: center; }
+  .lb figcaption em { font-style: normal; color: #a9b8b4; margin-left: 6px; }
+  .lb-nav { width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 28px; line-height: 1; cursor: pointer; justify-self: center; }
+  .lb-nav[hidden] { visibility: hidden; display: block; }
+  .lb-x { position: absolute; top: 12px; right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 26px; cursor: pointer; }
+  @media (max-width: 640px) { .lb { grid-template-columns: 40px minmax(0, 1fr) 40px; padding: 8px 2px; } .lb-nav { width: 36px; height: 36px; font-size: 22px; } }
   .yt, .yt-frame { display: block; margin-top: 10px; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; }
   .yt { position: relative; padding: 0; border: 0; cursor: pointer; background: #000; }
   .yt img { width: 100%; height: 100%; object-fit: cover; opacity: .92; transition: opacity .2s; }

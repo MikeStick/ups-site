@@ -132,8 +132,14 @@ async function fetchSite() {
     for (const [slot, urls] of Object.entries(raw.assets || {})) {
       if (!/^[A-Za-z0-9_-]+$/.test(slot)) continue;
       const saved = [];
-      for (const [i, url] of (urls || []).entries()) {
-        try { const im = await saveDetailImage(url, '_site', i, `${slot}-`); if (im) saved.push(im); }
+      for (const [i, it] of (urls || []).entries()) {
+        // 新格式 { url, caption:{en,es,ru} }；旧格式直接是 url 字符串
+        const url = typeof it === 'string' ? it : it && it.url;
+        if (!url) continue;
+        try {
+          const im = await saveDetailImage(url, '_site', i, `${slot}-`);
+          if (im) saved.push({ ...im, caption: (it && it.caption) || {} });
+        }
         catch (e) { console.warn(`[fetch-data] 网站图片处理失败 ${slot}：${e.message}`); }
       }
       if (saved.length) assets[slot] = saved;
