@@ -23,6 +23,7 @@ const lite = products.map((p) => ({
   slug: p.slug,
   model: p.model,
   thumb: (p.images && p.images[0] && (p.images[0].thumb || p.images[0].src)) || null,
+  img: (p.images && p.images[0] && p.images[0].src) || null,
   w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
   chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
   mah: totalMah(p) || null,
@@ -214,7 +215,10 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
             <div class="cz-two">
               <div class="cz-field"><label class="cz-label" for="oem-model">{T.oemModel}</label>
                 <div class="cz-oem-pick">
-                  <div class="cz-thumb" data-oem-thumb><span>?</span></div>
+                  <div class="cz-thumb-wrap">
+                    <button type="button" class="cz-thumb" data-oem-thumb aria-label={T.oemModel} disabled><span>?</span></button>
+                    <div class="cz-thumb-pop" data-oem-pop aria-hidden="true"></div>
+                  </div>
                   <select id="oem-model" data-oem-model>
                     <option value="">{T.oemPick}</option>
                     {products.map((p) => <option value={p.slug}>{p.model}</option>)}
@@ -260,6 +264,11 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
         </aside>
       </div>
     </section>
+
+    <div class="cz-lightbox" data-lightbox hidden role="dialog" aria-modal="true">
+      <button type="button" class="cz-lb-close" data-lb-close aria-label="×">×</button>
+      <img alt="" data-lb-img />
+    </div>
   </div>
 </Base>
 
@@ -618,8 +627,15 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     if (!(qty >= c.oemMoq)) missing.push(fmt(T.oemMoq, { n: c.oemMoq }));
     var chosen = $$('[data-oem-item]').filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.oemItem; });
     // 缩略图：所选型号的第一张产品图
-    var th = $('[data-oem-thumb]');
-    th.innerHTML = prod && prod.thumb ? '<img src="' + prod.thumb + '" alt="">' : '<span>?</span>';
+    var th = $('[data-oem-thumb]'), pop = $('[data-oem-pop]');
+    var big = prod ? (prod.img || prod.thumb) : null;
+    if (th.dataset.slug !== slug) {
+      th.dataset.slug = slug;
+      th.innerHTML = prod && prod.thumb ? '<img src="' + prod.thumb + '" alt="">' : '<span>?</span>';
+      pop.innerHTML = big ? '<img src="' + big + '" alt="" loading="lazy">' : '';
+      th.disabled = !big;
+      th.dataset.big = big || '';
+    }
     // 认证证书（可选）：勾选后至少选一个证书或手动填写
     $('[data-oem-logo-note]').hidden = chosen.indexOf('logo') < 0;
     var certOn = chosen.indexOf('cert') >= 0;
@@ -647,6 +663,17 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     }).join('\n');
     setLinks($('[data-oem-wa]'), $('[data-oem-mail]'), ok, 'OEM · ' + (prod ? prod.model : '') + ' · ' + (qty || ''), msg);
   }
+  // 缩略图：鼠标悬停显示大图（CSS），点击全屏查看
+  var lb = $('[data-lightbox]');
+  function closeLb() { lb.hidden = true; document.body.style.overflow = ''; }
+  $('[data-oem-thumb]').addEventListener('click', function () {
+    if (!this.dataset.big) return;
+    $('[data-lb-img]').src = this.dataset.big;
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+    $('[data-lb-close]').focus();
+  });
+  lb.addEventListener('click', function (e) { if (e.target === lb || e.target.closest('[data-lb-close]')) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) closeLb(); });
   oemModel.addEventListener('change', updateOem);
   oemQty.addEventListener('input', updateOem);
   $$('[data-oem-item]').forEach(function (x) { x.addEventListener('change', updateOem); });
@@ -750,7 +777,20 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   @media (max-width: 960px) { .cz-pv { display: none; } }
   .cz-oem-pick { display: flex; gap: 12px; align-items: center; }
   .cz-oem-pick select { flex: 1; }
-  .cz-thumb { width: 72px; height: 72px; flex: none; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 20px; }
+  .cz-thumb-wrap { position: relative; flex: none; }
+  .cz-thumb { width: 72px; height: 72px; padding: 0; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 20px; cursor: zoom-in; }
+  .cz-thumb:disabled { cursor: default; }
+  .cz-thumb:not(:disabled):hover { border-color: var(--accent); }
+  /* 悬停大图：只在有鼠标的设备上出现，手机上点击看全屏 */
+  .cz-thumb-pop { display: none; position: absolute; left: 0; top: calc(100% + 8px); z-index: 20; width: 300px; height: 300px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 8px; pointer-events: none; }
+  .cz-thumb-pop img { width: 100%; height: 100%; object-fit: contain; }
+  @media (hover: hover) and (pointer: fine) {
+    .cz-thumb-wrap:hover .cz-thumb:not(:disabled) + .cz-thumb-pop:not(:empty) { display: block; }
+  }
+  .cz-lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(10,14,13,.86); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+  .cz-lightbox[hidden] { display: none; }
+  .cz-lightbox img { max-width: min(92vw, 1100px); max-height: 88vh; object-fit: contain; background: #fff; border-radius: 10px; }
+  .cz-lb-close { position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.15); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
   .cz-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
   .cz-opt { font-style: normal; color: var(--muted); }
   .cz-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); cursor: pointer; }
