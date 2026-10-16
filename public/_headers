@@ -1,0 +1,9 @@
+# 正式域名上线后，ups-site.pages.dev 这个测试地址不让搜索引擎收录，避免和正式域名重复
+https://ups-site.pages.dev/*
+  X-Robots-Tag: noindex
+https://:version.ups-site.pages.dev/*
+  X-Robots-Tag: noindex
+
+# 构建产物里的图片、脚本文件名不变时可以长期缓存
+/media/*
+  Cache-Control: public, max-age=86400
