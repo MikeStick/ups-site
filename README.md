@@ -1,5 +1,7 @@
 # SKE Power 网站（Astro 静态站）
 
+正式地址：https://ups-china.com （DNS 在 Cloudflare；www 自动跳转到主域名；测试地址 ups-site.pages.dev 不被搜索引擎收录）
+
 产品数据来自客户档案系统（b2b.google-helper.com）的 `/api/public/products`。
 每次构建时自动拉取已发布的产品，图片转成 WebP 后随网站发布到 Cloudflare 全球节点。
 
@@ -7,6 +9,10 @@
 
 - `/es/` `/en/` `/ru/`：产品列表（根路径 `/` 跳转到英语）
 - `/<语言>/p/<型号>/`：产品详情（6 图 + YouTube 视频、阶梯价、规格表、卖点）
+- `/<语言>/custom/`：定制（ODM 完全定制配置器 + 实时预览 / OEM 贴牌）
+- `/sitemap.xml`、`/robots.txt`：自动生成
+
+邮箱 sales@ups-china.com 在华为云企业邮箱，Cloudflare DNS 里的 MX / SPF 记录不要删。
 
 ## Cloudflare Pages 设置
 
@@ -22,7 +28,7 @@
 |---|---|
 | `CRM_API_BASE` | `https://b2b.google-helper.com` |
 | `SITE_BUILD_KEY` | VPS 上 `/opt/customer-crm/server/site-config.json` 里的 `SITE_BUILD_KEY`（设为加密 Secret） |
-| `SITE_URL` | 网站正式域名，例如 `https://ske-ups.pages.dev` |
+| `SITE_URL` | `https://ups-china.com` |
 | `NODE_VERSION` | `20` |
 
 ## 更新流程
