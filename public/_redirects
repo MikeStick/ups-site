@@ -1,1 +1,9 @@
 / /en/ 302
+
+# 旧网站（Hostinger 建站）的页面：搜索引擎已收录，301 跳到新网站，避免客户点进来看到 404
+/products /en/ 301
+/huawei-ups-wholesale /en/ 301
+/eaton-ups /en/ 301
+/apc-ups /en/ 301
+/about /en/ 301
+/contact /en/ 301
