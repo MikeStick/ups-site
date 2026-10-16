@@ -1,0 +1,584 @@
+---
+// 定制页：ODM 完全定制（重点，默认打开）/ OEM 标准款贴牌。提交方式：生成规格单 → WhatsApp / 邮件。
+// 链接参数：?from=<产品slug> 用该产品的输出口、功率、电池作为 ODM 起点；?tab=oem&model=<slug> 直接打开 OEM 并选好型号。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { CT, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
+import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
+import products from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const T = CT[lang];
+
+// 从产品输出口文字里解析出 ODM 起点（解析不了的项留空，客户自己选）
+const num = (s) => { const m = String(s || '').replace(',', '.').match(/\d+(?:\.\d+)?/); return m ? +m[0] : null; };
+const portType = (s) => { const x = String(s || '').toUpperCase(); return /USB-?C|TYPE-?C/.test(x) ? 'USBC' : x.includes('USB') ? 'USBA' : x.includes('POE') ? 'POE' : 'DC'; };
+const amps = (s) => { const t = String(s || ''); const n = num(t); if (n === null) return null; return /mA/i.test(t) ? n / 1000 : n; };
+const lite = products.map((p) => ({
+  slug: p.slug,
+  model: p.model,
+  w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
+  chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
+  mah: totalMah(p) || null,
+  ports: (Array.isArray(p.outputPorts) ? p.outputPorts : []).slice(0, MAX_PORTS)
+    .map((o) => ({ t: portType(o.type), v: num(o.voltage), a: amps(o.current) })),
+}));
+
+const cfg = {
+  T, PORT_TYPES, CHEM, maxW: MAX_RATED_W, maxPorts: MAX_PORTS, oemMoq: OEM_MOQ, fee: SAMPLE_FEE, eff: EFFICIENCY,
+  wa: SITE.whatsapp, email: SITE.email, products: lite,
+};
+const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.lead} path="custom/">
+  <div class="cz" data-cz>
+    <script type="application/json" data-cz-cfg set:html={JSON.stringify(cfg)} />
+
+    <header class="cz-head">
+      <h1>{T.title}</h1>
+      <p>{T.lead}</p>
+    </header>
+
+    <div class="cz-tabs" role="tablist">
+      <button type="button" role="tab" class="on" data-tab="odm" aria-selected="true">{T.tabOdm}</button>
+      <button type="button" role="tab" data-tab="oem" aria-selected="false">{T.tabOem}</button>
+    </div>
+
+    <!-- ===================== ODM ===================== -->
+    <section class="cz-panel" data-panel="odm">
+      <p class="cz-sub">{T.odmSub}</p>
+      <p class="cz-from" data-from hidden></p>
+
+      <div class="cz-grid">
+        <div class="cz-main">
+          <div class="cz-card">
+            <h2><span>1</span>{T.s1}</h2>
+            <div class="cz-locked"><b class="num">{T.inputFixed}</b><span>🔒</span></div>
+            <p class="cz-hint">{T.inputNote}</p>
+          </div>
+
+          <div class="cz-card">
+            <h2><span>2</span>{T.s2}</h2>
+            <p class="cz-hint">{tpl(T.s2Hint, { max: MAX_RATED_W })}</p>
+            <div class="cz-chips" data-power-chips>
+              {POWER_PRESETS.map((w) => <button type="button" data-w={w}><span class="num">{w}</span> {T.w}</button>)}
+            </div>
+            <div class="cz-inline">
+              <input type="number" inputmode="decimal" min="1" max={MAX_RATED_W} step="1" data-rated aria-label={T.s2} />
+              <span>{T.w}</span>
+            </div>
+            <p class="cz-err" data-rated-err hidden></p>
+            <p class="cz-hint">{T.s2Share}</p>
+          </div>
+
+          <div class="cz-card">
+            <h2><span>3</span>{T.s3}</h2>
+            <label class="cz-inline">
+              <span>{T.count}</span>
+              <select data-count>
+                {Array.from({ length: MAX_PORTS }, (_, i) => <option value={i + 1} selected={i === 1}>{i + 1}</option>)}
+              </select>
+            </label>
+            <div class="cz-ports" data-ports></div>
+            <div class="cz-portsum" data-portsum hidden></div>
+          </div>
+
+          <div class="cz-card">
+            <h2><span>4</span>{T.s4}</h2>
+            <div class="cz-field">
+              <span class="cz-label">{T.chem}</span>
+              <div class="cz-seg">
+                <label><input type="radio" name="chem" value="LI" checked /> {T.chemLi}</label>
+                <label><input type="radio" name="chem" value="LFP" /> {T.chemLfp}</label>
+              </div>
+            </div>
+            <div class="cz-field">
+              <span class="cz-label">{T.cap}</span>
+              <div class="cz-chips" data-cap-chips>
+                {CAP_PRESETS.map((m) => <button type="button" data-mah={m}><span class="num">{m}</span> {T.mah}</button>)}
+              </div>
+              <div class="cz-inline">
+                <input type="number" inputmode="numeric" min="500" max="200000" step="100" data-mah-input aria-label={T.cap} />
+                <span>{T.mah}</span>
+                <b class="num cz-wh" data-wh></b>
+              </div>
+              <p class="cz-run num" data-run hidden></p>
+            </div>
+            <details class="cz-helper">
+              <summary>{T.helper}</summary>
+              <div class="cz-inline wrap">
+                <span>{T.myLoad}</span>
+                <input type="number" inputmode="decimal" min="1" max="200" step="1" value="16" data-h-load aria-label={T.myLoad} /> <span>{T.w}</span>
+                <span>{T.hours}</span>
+                <input type="number" inputmode="decimal" min="0.5" max="48" step="0.5" value="4" data-h-hours aria-label={T.hoursUnit} /> <span>{T.hoursUnit}</span>
+                <button type="button" class="cz-btn small" data-h-apply></button>
+              </div>
+            </details>
+          </div>
+
+          <div class="cz-card">
+            <h2><span>5</span>{T.s5} <em>· {T.s5Opt}</em></h2>
+            <div class="cz-checks">
+              <label><input type="checkbox" data-odm-item="logo" /> {T.logo}</label>
+              <label><input type="checkbox" data-odm-item="box" /> {T.box}</label>
+              <label><input type="checkbox" data-odm-item="manual" /> {T.manual}</label>
+            </div>
+            <div class="cz-two">
+              <label class="cz-field"><span class="cz-label">{T.material}</span>
+                <select data-odm-material><option value="plastic">{T.plastic}</option><option value="metal">{T.metal}</option></select>
+              </label>
+              <label class="cz-field"><span class="cz-label">{T.color}</span>
+                <select data-odm-color>{Object.entries(T.colors).map(([k, v]) => <option value={k}>{v}</option>)}</select>
+              </label>
+            </div>
+            <input type="text" maxlength="60" placeholder={T.colorPh} data-odm-color-other hidden aria-label={T.color} />
+          </div>
+
+          <div class="cz-card">
+            <h2><span>6</span>{T.s6}</h2>
+            <div class="cz-two">
+              <label class="cz-field"><span class="cz-label">{T.qty}</span>
+                <span class="cz-inline"><input type="number" inputmode="numeric" min="1" step="100" data-odm-qty /> <span>{T.pcs}</span></span>
+                <span class="cz-hint">{T.qtyHint}</span>
+              </label>
+              <label class="cz-field"><span class="cz-label">{T.target} <em>· {T.optional}</em></span>
+                <input type="number" inputmode="decimal" min="0" step="0.1" data-odm-target />
+              </label>
+              <label class="cz-field"><span class="cz-label">{T.country} <em>· {T.optional}</em></span>
+                <input type="text" maxlength="40" data-odm-country />
+              </label>
+            </div>
+            <label class="cz-field"><span class="cz-label">{T.notes} <em>· {T.optional}</em></span>
+              <textarea rows="3" maxlength="600" placeholder={T.notesPh} data-odm-notes></textarea>
+            </label>
+          </div>
+        </div>
+
+        <aside class="cz-side">
+          <div class="cz-card cz-summary">
+            <div class="cz-fee">
+              <b>{T.feeTitle}</b>
+              <span>{T.feeText}</span>
+            </div>
+            <ul class="cz-spec num" data-odm-spec></ul>
+            <p class="cz-missing" data-odm-missing hidden></p>
+            <div class="cz-cta">
+              {SITE.whatsapp && <a class="cz-btn primary" data-odm-wa href="#" target="_blank" rel="noopener">{T.send}</a>}
+              {SITE.email && <a class="cz-btn" data-odm-mail href="#">{T.sendMail}</a>}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===================== OEM ===================== -->
+    <section class="cz-panel" data-panel="oem" hidden>
+      <p class="cz-sub">{T.oemSub}</p>
+      <div class="cz-grid">
+        <div class="cz-main">
+          <div class="cz-card">
+            <div class="cz-two">
+              <label class="cz-field"><span class="cz-label">{T.oemModel}</span>
+                <select data-oem-model>
+                  <option value="">{T.oemPick}</option>
+                  {products.map((p) => <option value={p.slug}>{p.model}</option>)}
+                </select>
+              </label>
+              <label class="cz-field"><span class="cz-label">{T.oemQty}</span>
+                <span class="cz-inline"><input type="number" inputmode="numeric" min={OEM_MOQ} step="100" value={OEM_MOQ} data-oem-qty /> <span>{T.pcs}</span></span>
+                <span class="cz-hint strong">{tpl(T.oemMoq, { n: OEM_MOQ })}</span>
+              </label>
+            </div>
+          </div>
+          <div class="cz-card">
+            <h2>{T.oemWhat}</h2>
+            <div class="cz-checks">
+              <label><input type="checkbox" data-oem-item="logo" checked /> {T.logo}</label>
+              <label><input type="checkbox" data-oem-item="box" /> {T.box}</label>
+              <label><input type="checkbox" data-oem-item="manual" /> {T.manual}</label>
+              <label><input type="checkbox" data-oem-item="material" /> {T.material}</label>
+              <label><input type="checkbox" data-oem-item="color" /> {T.color}</label>
+            </div>
+            <div class="cz-two">
+              <label class="cz-field" data-oem-material-box hidden><span class="cz-label">{T.material}</span>
+                <select data-oem-material><option value="plastic">{T.plastic}</option><option value="metal">{T.metal}</option></select>
+              </label>
+              <label class="cz-field" data-oem-color-box hidden><span class="cz-label">{T.color}</span>
+                <select data-oem-color>{Object.entries(T.colors).map(([k, v]) => <option value={k}>{v}</option>)}</select>
+              </label>
+            </div>
+            <input type="text" maxlength="60" placeholder={T.colorPh} data-oem-color-other hidden aria-label={T.color} />
+            <p class="cz-hint">{T.oemLogoNote}</p>
+            <label class="cz-field"><span class="cz-label">{T.notes} <em>· {T.optional}</em></span>
+              <textarea rows="3" maxlength="600" data-oem-notes></textarea>
+            </label>
+          </div>
+        </div>
+        <aside class="cz-side">
+          <div class="cz-card cz-summary">
+            <ul class="cz-spec num" data-oem-spec></ul>
+            <p class="cz-missing" data-oem-missing hidden></p>
+            <div class="cz-cta">
+              {SITE.whatsapp && <a class="cz-btn primary" data-oem-wa href="#" target="_blank" rel="noopener">{T.send}</a>}
+              {SITE.email && <a class="cz-btn" data-oem-mail href="#">{T.sendMail}</a>}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-cz]');
+  if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-cz-cfg]').textContent);
+  var T = c.T;
+  var $ = function (s, el) { return (el || root).querySelector(s); };
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || root).querySelectorAll(s)); };
+  var fmt = function (s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o[k] != null ? o[k] : ''; }); };
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
+  var parseNum = function (s) { var n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : null; };
+  var hm = function (hours) {
+    if (!(hours > 0)) return '—';
+    var m = Math.round(hours * 60), h = Math.floor(m / 60), mm = m % 60;
+    return h ? (h + ' ' + T.h + (mm ? ' ' + mm + ' ' + T.min : '')) : (mm + ' ' + T.min);
+  };
+  var setLinks = function (wa, mail, ok, subject, msg) {
+    [wa, mail].forEach(function (a) { if (a) { a.classList.toggle('disabled', !ok); a.setAttribute('aria-disabled', ok ? 'false' : 'true'); } });
+    if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
+    if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+  };
+  root.addEventListener('click', function (e) { if (e.target.closest('.cz-btn.disabled')) e.preventDefault(); });
+
+  /* ---------- tabs ---------- */
+  function showTab(name) {
+    $$('[data-tab]').forEach(function (b) { var on = b.dataset.tab === name; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    $$('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== name; });
+  }
+  $$('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { showTab(b.dataset.tab); }); });
+
+  /* ---------- ODM ---------- */
+  var ratedEl = $('[data-rated]'), countEl = $('[data-count]'), portsEl = $('[data-ports]');
+  var mahEl = $('[data-mah-input]');
+
+  function optionList(values, unit) {
+    return '<option value="">' + T.choose + '</option>' +
+      values.map(function (v) { return '<option value="' + v + '">' + String(v).replace('.', lang === 'en' ? '.' : ',') + ' ' + unit + '</option>'; }).join('') +
+      '<option value="other">' + T.other + '</option>';
+  }
+  var lang = document.documentElement.lang || 'en';
+
+  function buildRow(i) {
+    var row = document.createElement('div');
+    row.className = 'cz-port';
+    row.dataset.port = i;
+    row.innerHTML =
+      '<div class="cz-port-head"><b>' + fmt(T.port, { n: i + 1 }) + '</b><span class="num cz-port-w" data-pw></span></div>' +
+      '<div class="cz-port-body">' +
+        '<label class="cz-field"><span class="cz-label">' + T.type + '</span><select data-pt><option value="">' + T.choose + '</option>' +
+          Object.keys(c.PORT_TYPES).map(function (k) { return '<option value="' + k + '">' + T.types[k] + '</option>'; }).join('') + '</select></label>' +
+        '<label class="cz-field" data-vbox hidden><span class="cz-label">' + T.voltage + '</span><select data-pv></select>' +
+          '<input type="number" inputmode="decimal" min="1" max="60" step="0.1" placeholder="' + T.ph.v + '" data-pvo hidden></label>' +
+        '<label class="cz-field" data-abox hidden><span class="cz-label">' + T.current + '</span><select data-pa></select>' +
+          '<input type="number" inputmode="decimal" min="0.1" max="20" step="0.1" placeholder="' + T.ph.a + '" data-pao hidden></label>' +
+      '</div>' +
+      '<p class="cz-err" data-perr hidden></p>';
+    var pt = $('[data-pt]', row), pv = $('[data-pv]', row), pa = $('[data-pa]', row);
+    pt.addEventListener('change', function () { fillType(row, pt.value); update(); });
+    pv.addEventListener('change', function () { $('[data-pvo]', row).hidden = pv.value !== 'other'; if (pv.value === 'other') $('[data-pvo]', row).focus(); revealA(row); update(); });
+    pa.addEventListener('change', function () { $('[data-pao]', row).hidden = pa.value !== 'other'; if (pa.value === 'other') $('[data-pao]', row).focus(); update(); });
+    $('[data-pvo]', row).addEventListener('input', function () { revealA(row); update(); });
+    $('[data-pao]', row).addEventListener('input', update);
+    return row;
+  }
+  // 选了接口类型 → 出现电压；USB-A 只有 5V，直接选好
+  function fillType(row, type) {
+    var def = c.PORT_TYPES[type];
+    var vbox = $('[data-vbox]', row), abox = $('[data-abox]', row), pv = $('[data-pv]', row), pa = $('[data-pa]', row);
+    $('[data-pvo]', row).hidden = true; $('[data-pvo]', row).value = '';
+    $('[data-pao]', row).hidden = true; $('[data-pao]', row).value = '';
+    if (!def) { vbox.hidden = true; abox.hidden = true; return; }
+    pv.innerHTML = def.otherV ? optionList(def.v, 'V') : def.v.map(function (v) { return '<option value="' + v + '">' + v + ' V</option>'; }).join('');
+    pa.innerHTML = optionList(def.a, 'A');
+    vbox.hidden = false;
+    abox.hidden = true;
+    revealA(row);
+  }
+  // 选好电压 → 出现电流
+  function revealA(row) { $('[data-abox]', row).hidden = portV(row) === null; }
+  function portV(row) {
+    var pv = $('[data-pv]', row);
+    if ($('[data-vbox]', row).hidden) return null;
+    if (pv.value === 'other') { var n = parseNum($('[data-pvo]', row).value); return n; }
+    return parseNum(pv.value);
+  }
+  function portA(row) {
+    var pa = $('[data-pa]', row);
+    if ($('[data-abox]', row).hidden) return null;
+    if (pa.value === 'other') return parseNum($('[data-pao]', row).value);
+    return parseNum(pa.value);
+  }
+  function setPort(row, p) {
+    if (!p || !c.PORT_TYPES[p.t]) return;
+    var def = c.PORT_TYPES[p.t];
+    $('[data-pt]', row).value = p.t; fillType(row, p.t);
+    if (p.v != null) {
+      var pv = $('[data-pv]', row);
+      if (def.v.indexOf(p.v) >= 0) pv.value = String(p.v);
+      else if (def.otherV) { pv.value = 'other'; $('[data-pvo]', row).hidden = false; $('[data-pvo]', row).value = p.v; }
+      revealA(row);
+    }
+    if (p.a != null && !$('[data-abox]', row).hidden) {
+      var pa = $('[data-pa]', row);
+      if (def.a.indexOf(p.a) >= 0) pa.value = String(p.a);
+      else { pa.value = 'other'; $('[data-pao]', row).hidden = false; $('[data-pao]', row).value = p.a; }
+    }
+  }
+  function syncRows() {
+    var n = +countEl.value, rows = $$('[data-port]', portsEl);
+    for (var i = rows.length; i < n; i++) portsEl.appendChild(buildRow(i));
+    rows.slice(n).forEach(function (r) { r.remove(); });
+  }
+
+  function chips(sel, attr, val) { $$(sel + ' button').forEach(function (b) { b.classList.toggle('on', +b.dataset[attr] === val); }); }
+  $$('[data-power-chips] button').forEach(function (b) { b.addEventListener('click', function () { ratedEl.value = b.dataset.w; update(); }); });
+  $$('[data-cap-chips] button').forEach(function (b) { b.addEventListener('click', function () { mahEl.value = b.dataset.mah; update(); }); });
+  ratedEl.addEventListener('input', update);
+  mahEl.addEventListener('input', update);
+  countEl.addEventListener('change', function () { syncRows(); update(); });
+  $$('input[name="chem"]').forEach(function (r) { r.addEventListener('change', update); });
+  ['[data-odm-qty]', '[data-odm-target]', '[data-odm-country]', '[data-odm-notes]', '[data-odm-color-other]'].forEach(function (s) { $(s).addEventListener('input', update); });
+  $$('[data-odm-item]').forEach(function (x) { x.addEventListener('change', update); });
+  $('[data-odm-material]').addEventListener('change', update);
+  $('[data-odm-color]').addEventListener('change', function () { $('[data-odm-color-other]').hidden = this.value !== 'other'; update(); });
+
+  // 续航反推容量：负载 W × 小时 ÷ 效率 ÷ 单体电压 → mAh，向上取到 1000
+  function helperMah() {
+    var load = parseNum($('[data-h-load]').value), hrs = parseNum($('[data-h-hours]').value);
+    if (!(load > 0) || !(hrs > 0)) return null;
+    var cellV = c.CHEM[$('input[name="chem"]:checked').value];
+    return Math.ceil(load * hrs / c.eff / cellV * 1000 / 1000) * 1000;
+  }
+  function updHelper() { var m = helperMah(); var b = $('[data-h-apply]'); b.disabled = !m; b.textContent = fmt(T.apply, { mah: m || '—' }); }
+  $('[data-h-load]').addEventListener('input', updHelper);
+  $('[data-h-hours]').addEventListener('input', updHelper);
+  $('[data-h-apply]').addEventListener('click', function () { var m = helperMah(); if (m) { mahEl.value = m; update(); } });
+
+  function update() {
+    var missing = [];
+    var rated = parseNum(ratedEl.value);
+    var ratedOk = rated !== null && rated > 0 && rated <= c.maxW;
+    chips('[data-power-chips]', 'w', rated);
+    var rErr = $('[data-rated-err]');
+    rErr.hidden = ratedEl.value === '' || ratedOk;
+    rErr.textContent = '≤ ' + c.maxW + ' ' + T.w;
+    if (!ratedOk) missing.push(T.mPower);
+
+    // 输出口：每一个都必须填完整；单个口功率不能超过额定功率
+    var portsOk = true, sumW = 0, portLines = [];
+    $$('[data-port]', portsEl).forEach(function (row, i) {
+      var type = $('[data-pt]', row).value, v = portV(row), a = portA(row), err = '';
+      if (!type || v === null || a === null) err = T.errIncomplete;
+      else if (!(v >= 1 && v <= 60)) err = T.errV;
+      else if (!(a >= 0.1 && a <= 20)) err = T.errA;
+      var w = (!err) ? r1(v * a) : null;
+      if (!err && ratedOk && w > rated) err = fmt(T.errOver, { w: rated });
+      var touched = !!type;
+      var e = $('[data-perr]', row);
+      e.hidden = !err || !touched; e.textContent = err;
+      row.classList.toggle('bad', !!err && touched);
+      row.classList.toggle('ok', !err);
+      $('[data-pw]', row).textContent = w !== null ? fmt(T.portPower, { w: w }) : '';
+      if (err) portsOk = false;
+      else { sumW += w; portLines.push((i + 1) + '. ' + T.types[type] + ' ' + v + 'V ' + a + 'A (' + w + 'W)'); }
+    });
+    if (!portsOk) missing.push(T.mPorts);
+    var ps = $('[data-portsum]');
+    ps.hidden = !(portsOk && ratedOk);
+    if (portsOk && ratedOk) {
+      sumW = r1(sumW);
+      ps.innerHTML = '<b class="num">' + fmt(T.sumPorts, { w: sumW }) + '</b><span>' + (sumW > rated ? fmt(T.sumShare, { r: rated }) : T.sumFit) + '</span>';
+      ps.className = 'cz-portsum ' + (sumW > rated ? 'share' : 'fit');
+    }
+
+    // 电池
+    var chem = $('input[name="chem"]:checked').value, mah = parseNum(mahEl.value);
+    var mahOk = mah !== null && mah >= 500 && mah <= 200000;
+    chips('[data-cap-chips]', 'mah', mah);
+    var wh = mahOk ? r1(mah / 1000 * c.CHEM[chem]) : null;
+    $('[data-wh]').textContent = wh ? fmt(T.energy, { wh: wh }) : '';
+    var run = $('[data-run]');
+    run.hidden = !(wh && ratedOk);
+    if (wh && ratedOk) run.textContent = fmt(T.runFull, { r: rated, t: hm(wh * c.eff / rated) });
+    if (!mahOk) missing.push(T.mBattery);
+    updHelper();
+
+    var qty = parseNum($('[data-odm-qty]').value);
+    if (!(qty > 0)) missing.push(T.mQty);
+
+    // 外观与品牌
+    var items = $$('[data-odm-item]').filter(function (x) { return x.checked; }).map(function (x) { return T.short[x.dataset.odmItem]; });
+    var mat = $('[data-odm-material]').value === 'metal' ? T.metal : T.plastic;
+    var colK = $('[data-odm-color]').value, colTxt = colK === 'other' ? ($('[data-odm-color-other]').value.trim() || T.colors.other) : T.colors[colK];
+    var target = parseNum($('[data-odm-target]').value), country = $('[data-odm-country]').value.trim(), notes = $('[data-odm-notes]').value.trim();
+
+    var chemName = chem === 'LFP' ? 'LiFePO4' : (lang === 'es' ? 'Litio-ion' : lang === 'ru' ? 'Li-ion' : 'Li-ion');
+    var spec = [
+      [T.lInput, T.inputFixed],
+      [T.lRated, ratedOk ? rated + ' ' + T.w : '—'],
+      [T.lOutputs, portsOk ? portLines.join('\n') : '—'],
+      [T.lBattery, mahOk ? chemName + ', ' + mah + ' mAh (' + wh + ' Wh)' : '—'],
+      [T.lLook, mat + ', ' + colTxt],
+    ];
+    if (items.length) spec.push([T.lBrand, items.join(', ')]);
+    spec.push([T.lQty, qty > 0 ? qty + ' ' + T.pcs : '—']);
+    if (target > 0) spec.push([T.lTarget, '$' + target]);
+    if (country) spec.push([T.lCountry, country]);
+    if (notes) spec.push([T.lNotes, notes]);
+
+    $('[data-odm-spec]').innerHTML = spec.map(function (s) {
+      return '<li><span>' + s[0] + '</span><b>' + String(s[1]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</b></li>';
+    }).join('');
+    var ok = missing.length === 0;
+    var miss = $('[data-odm-missing]');
+    miss.hidden = ok; miss.textContent = fmt(T.missing, { list: missing.join(', ') });
+
+    var msg = T.msgOdm + '\n' + spec.map(function (s) {
+      return '• ' + s[0] + ': ' + (String(s[1]).indexOf('\n') >= 0 ? '\n   ' + String(s[1]).split('\n').join('\n   ') : s[1]);
+    }).join('\n') + '\n\n' + T.msgFee;
+    setLinks($('[data-odm-wa]'), $('[data-odm-mail]'), ok, 'ODM · ' + (ratedOk ? rated + 'W' : '') + ' · ' + (qty || '') , msg);
+  }
+
+  /* ---------- OEM ---------- */
+  var oemModel = $('[data-oem-model]'), oemQty = $('[data-oem-qty]');
+  function updateOem() {
+    var missing = [];
+    var slug = oemModel.value, prod = c.products.filter(function (p) { return p.slug === slug; })[0];
+    if (!prod) missing.push(T.mModel);
+    var qty = parseNum(oemQty.value);
+    if (!(qty >= c.oemMoq)) missing.push(fmt(T.oemMoq, { n: c.oemMoq }));
+    var chosen = $$('[data-oem-item]').filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.oemItem; });
+    $('[data-oem-material-box]').hidden = chosen.indexOf('material') < 0;
+    $('[data-oem-color-box]').hidden = chosen.indexOf('color') < 0;
+    var colK = $('[data-oem-color]').value;
+    $('[data-oem-color-other]').hidden = chosen.indexOf('color') < 0 || colK !== 'other';
+    if (!chosen.length) missing.push(T.mItems);
+    var labels = chosen.map(function (k) {
+      if (k === 'material') return T.material + ': ' + ($('[data-oem-material]').value === 'metal' ? T.metal : T.plastic);
+      if (k === 'color') return T.color + ': ' + (colK === 'other' ? ($('[data-oem-color-other]').value.trim() || T.colors.other) : T.colors[colK]);
+      return T.short[k];
+    });
+    var notes = $('[data-oem-notes]').value.trim();
+    var spec = [[T.lModel, prod ? prod.model : '—'], [T.oemQty, qty > 0 ? qty + ' ' + T.pcs : '—'], [T.lCustom, labels.length ? labels.join('\n') : '—']];
+    if (notes) spec.push([T.lNotes, notes]);
+    $('[data-oem-spec]').innerHTML = spec.map(function (s) {
+      return '<li><span>' + s[0] + '</span><b>' + String(s[1]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</b></li>';
+    }).join('');
+    var ok = missing.length === 0, miss = $('[data-oem-missing]');
+    miss.hidden = ok; miss.textContent = fmt(T.missing, { list: missing.join(', ') });
+    var msg = T.msgOem + '\n' + spec.map(function (s) {
+      return '• ' + s[0] + ': ' + (String(s[1]).indexOf('\n') >= 0 ? '\n   ' + String(s[1]).split('\n').join('\n   ') : s[1]);
+    }).join('\n');
+    setLinks($('[data-oem-wa]'), $('[data-oem-mail]'), ok, 'OEM · ' + (prod ? prod.model : '') + ' · ' + (qty || ''), msg);
+  }
+  oemModel.addEventListener('change', updateOem);
+  oemQty.addEventListener('input', updateOem);
+  $$('[data-oem-item]').forEach(function (x) { x.addEventListener('change', updateOem); });
+  ['[data-oem-material]', '[data-oem-color]'].forEach(function (s) { $(s).addEventListener('change', updateOem); });
+  ['[data-oem-color-other]', '[data-oem-notes]'].forEach(function (s) { $(s).addEventListener('input', updateOem); });
+
+  /* ---------- 起点：?from=产品 / ?tab=oem&model=产品 ---------- */
+  var q = new URLSearchParams(location.search);
+  var from = c.products.filter(function (p) { return p.slug === q.get('from'); })[0];
+  if (from) {
+    if (from.w) ratedEl.value = from.w;
+    if (from.ports.length) countEl.value = String(from.ports.length);
+    syncRows();
+    $$('[data-port]', portsEl).forEach(function (row, i) { setPort(row, from.ports[i]); });
+    if (from.mah) mahEl.value = from.mah;
+    var chemInput = $('input[name="chem"][value="' + from.chem + '"]'); if (chemInput) chemInput.checked = true;
+    var f = $('[data-from]'); f.hidden = false; f.textContent = fmt(T.fromProduct, { m: from.model });
+  } else {
+    syncRows();
+  }
+  if (q.get('model')) oemModel.value = q.get('model');
+  if (q.get('tab') === 'oem') showTab('oem');
+  update();
+  updateOem();
+})();
+</script>
+
+<style is:global>
+  /* 全局样式：输出口行和规格清单是脚本动态生成的，Astro 的局部样式作用不到它们；类名都带 cz- 前缀，不会影响其他页面 */
+  .cz-head { margin: 28px 0 8px; }
+  .cz-head h1 { font-size: clamp(34px, 5vw, 52px); margin: 0 0 6px; }
+  .cz-head p { margin: 0; color: var(--muted); max-width: 640px; }
+  .cz-tabs { display: flex; gap: 6px; margin: 22px 0 14px; flex-wrap: wrap; }
+  .cz-tabs button { font: 600 15px var(--body); padding: 11px 16px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .cz-tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .cz-sub { margin: 0 0 14px; color: var(--muted); }
+  .cz-from { margin: -6px 0 14px; font-size: 14px; background: var(--charge-soft); border-radius: 8px; padding: 9px 12px; }
+  .cz-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 961px) { .cz-grid { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } .cz-side { position: sticky; top: 16px; } }
+  .cz-main { display: grid; gap: 16px; min-width: 0; }
+  .cz-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 12px; min-width: 0; }
+  .cz-card h2 { font-size: 22px; margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+  .cz-card h2 span { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 16px; }
+  .cz-card h2 em { font: 400 14px var(--body); text-transform: none; color: var(--muted); }
+  .cz-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .cz-hint.strong { color: var(--warn); font-weight: 600; }
+  .cz-label { font-size: 13px; font-weight: 600; }
+  .cz-label em { font-style: normal; font-weight: 400; color: var(--muted); }
+  .cz-field { display: grid; gap: 6px; min-width: 0; }
+  .cz-two { display: grid; gap: 12px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .cz-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+  .cz input[type="number"], .cz input[type="text"], .cz select, .cz textarea {
+    font: 15px var(--body); padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0;
+  }
+  .cz input[type="number"] { width: 130px; font-family: var(--mono); }
+  .cz textarea { width: 100%; resize: vertical; }
+  .cz-locked { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); color: var(--muted); }
+  .cz-locked b { color: var(--ink); }
+  .cz-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cz-chips button { font: 14px var(--body); padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .cz-chips button.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .cz-err { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--warn); }
+  .cz-ports { display: grid; gap: 10px; }
+  .cz-port { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+  .cz-port.ok { border-color: var(--accent); }
+  .cz-port.bad { border-color: var(--warn); }
+  .cz-port-head { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+  .cz-port-w { color: var(--accent); font-weight: 600; }
+  .cz-port-body { display: grid; gap: 10px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .cz-port-body input { width: 100% !important; }
+  .cz-portsum { display: grid; gap: 4px; font-size: 13.5px; border-radius: 8px; padding: 10px 12px; }
+  .cz-portsum.fit { background: var(--ok-soft); }
+  .cz-portsum.share { background: var(--charge-soft); }
+  .cz-seg { display: grid; gap: 6px; }
+  .cz-seg label, .cz-checks label { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+  .cz-checks { display: grid; gap: 8px; }
+  .cz-wh { color: var(--accent); }
+  .cz-run { margin: 0; font-size: 13.5px; color: var(--ok); font-weight: 600; }
+  .cz-helper summary { cursor: pointer; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .cz-helper .cz-inline { margin-top: 10px; }
+  .cz-helper input[type="number"] { width: 84px; }
+  .cz-summary { gap: 14px; }
+  .cz-fee { display: grid; gap: 4px; background: var(--charge-soft); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
+  .cz-fee b { font-size: 15px; }
+  .cz-spec { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+  .cz-spec li { display: grid; gap: 2px; border-bottom: 1px dashed var(--line); padding-bottom: 7px; }
+  .cz-spec span { color: var(--muted); font-family: var(--body); }
+  .cz-spec b { font-weight: 500; overflow-wrap: anywhere; }
+  .cz-missing { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--warn); }
+  .cz-cta { display: grid; gap: 8px; }
+  .cz-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font: 600 15px var(--body); cursor: pointer; }
+  .cz-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .cz-btn.small { min-height: 36px; font-size: 13.5px; }
+  .cz-btn.disabled, .cz-btn:disabled { opacity: .45; cursor: not-allowed; }
+</style>

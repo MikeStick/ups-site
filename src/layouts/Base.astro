@@ -1,6 +1,7 @@
 ---
 import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
+import { CT } from '../lib/custom-i18n.mjs';
 
 const { lang, title, description = '', path = '' } = Astro.props;
 const t = UI[lang];
@@ -49,6 +50,9 @@ const altHref = (l) => `/${l}/${path}`;
     .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; flex-wrap: wrap; }
     .brand { color: #fff; text-decoration: none; font-family: var(--display); font-size: 24px; text-transform: uppercase; letter-spacing: .03em; }
     .brand small { display: block; font-family: var(--body); font-size: 12px; text-transform: none; letter-spacing: 0; color: #a9b8b4; }
+    .top-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .nav-custom { color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 6px; background: var(--accent); }
+    .nav-custom[aria-current="page"] { background: transparent; box-shadow: inset 0 0 0 1px var(--accent); }
     .langs { display: flex; gap: 4px; }
     .langs a { color: #cfd9d6; text-decoration: none; font-size: 13px; padding: 4px 10px; border-radius: 5px; border: 1px solid transparent; }
     .langs a[aria-current="true"] { border-color: #4b5f5b; color: #fff; }
@@ -61,9 +65,12 @@ const altHref = (l) => `/${l}/${path}`;
   <header class="top">
     <div class="wrap">
       <a class="brand" href={`/${lang}/`}>{SITE.name}<small>{SITE.tagline[lang]}</small></a>
+      <div class="top-right">
+      <a class="nav-custom" href={`/${lang}/custom/`} aria-current={path === 'custom/' ? 'page' : undefined}>{CT[lang].nav}</a>
       <nav class="langs" aria-label="Language">
         {LANGS.map((l) => <a href={altHref(l)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : 'false'}>{UI[l].langName}</a>)}
       </nav>
+      </div>
     </div>
   </header>
   <main class="wrap">

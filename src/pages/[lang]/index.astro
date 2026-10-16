@@ -4,6 +4,7 @@ import DevicePicker from '../../components/DevicePicker.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { UI, term, tiersOf } from '../../i18n.mjs';
 import { batteryWh, totalMah, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
+import { CT } from '../../lib/custom-i18n.mjs';
 import products from '../../data/products.json';
 
 export function getStaticPaths() {
@@ -110,7 +111,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
             );
           })}
         </ul>
-        <p class="empty" data-nomatch hidden>{C.noMatch}</p>
+        <p class="empty" data-nomatch hidden>{C.noMatch} <a href={`/${lang}/custom/`}>{CT[lang].emptyCta} →</a></p>
       </div>
     </div>
   )}

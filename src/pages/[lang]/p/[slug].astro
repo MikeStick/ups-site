@@ -5,6 +5,7 @@ import OrderConsole from '../../../components/OrderConsole.astro';
 import RuntimeCalc from '../../../components/RuntimeCalc.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
+import { CT } from '../../../lib/custom-i18n.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -63,6 +64,9 @@ const jsonLd = {
         </div>
       )}
 
+      <a class="custom-banner" href={`/${lang}/custom/?from=${p.slug}`}>
+        <span>{CT[lang].banner}</span><b>{CT[lang].bannerCta} →</b>
+      </a>
     </section>
 
     {tiers.length > 0 ? (
@@ -125,6 +129,9 @@ const jsonLd = {
   .desc { margin: 0; max-width: 62ch; }
   .highlights { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
   .highlights li { font-size: 14px; font-weight: 500; padding: 5px 12px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .custom-banner { display: flex; justify-content: space-between; align-items: center; gap: 6px 14px; flex-wrap: wrap; padding: 11px 14px; border-radius: 10px; border: 1px dashed var(--accent); text-decoration: none; color: var(--ink); font-size: 14px; }
+  .custom-banner b { color: var(--accent); white-space: nowrap; }
+  .custom-banner:hover { background: var(--surface); }
   .sale { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
   .sale p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
   .sale-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
