@@ -1,0 +1,402 @@
+---
+// About Us（B 版）。内容在 src/lib/about-i18n.mjs；照片放 public/about/ 并在 PHOTOS 里填文件名，没填的位置自动隐藏。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { AT, PHOTOS, STATS, FAMILIES, SERIES, NEWS } from '../../lib/about-i18n.mjs';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const T = AT[lang];
+const ph = (k) => (PHOTOS[k] ? `/about/${PHOTOS[k]}` : null);
+const introPhotos = ['line', 'rd', 'warehouse'].filter((k) => ph(k));
+const facPhotos = ['smt', 'assembly', 'aging', 'qc'].filter((k) => ph(k));
+const certPhotos = ['cert_iso9001', 'cert_iso14001', 'cert_iso45001', 'cert_cqc', 'cert_tlc', 'cert_hitech'].filter((k) => ph(k));
+const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+// 产品家族图标（没有照片时显示）
+const ICONS = {
+  dc: '<rect x="10" y="16" width="36" height="24" rx="4"/><path d="M46 24h4v8h-4M16 22v12M22 22v12M28 22v12"/>',
+  backup: '<rect x="14" y="10" width="28" height="36" rx="3"/><circle cx="28" cy="20" r="3"/><path d="M20 32h16M20 38h16"/>',
+  hf: '<rect x="12" y="8" width="32" height="40" rx="3"/><path d="M18 30c3-8 5-8 8 0s5 8 8 0 4-6 5-4"/>',
+  if: '<rect x="8" y="12" width="40" height="32" rx="3"/><path d="M18 20v16M24 20v16M32 20v16M38 20v16M18 28h20"/>',
+  modular: '<rect x="12" y="8" width="32" height="10" rx="2"/><rect x="12" y="23" width="32" height="10" rx="2"/><rect x="12" y="38" width="32" height="10" rx="2"/><path d="M18 13h8M18 28h8M18 43h8"/>',
+  rack: '<rect x="8" y="20" width="40" height="16" rx="2"/><path d="M14 28h12M40 26v4M4 20v16M52 20v16"/>',
+  inverter: '<circle cx="28" cy="24" r="7"/><path d="M28 8v5M28 35v5M12 24h5M39 24h5M17 13l3 3M36 32l3 3M39 13l-3 3M20 32l-3 3M14 48h28"/>',
+  battery: '<rect x="12" y="14" width="32" height="34" rx="3"/><path d="M22 10h12v4H22zM30 22l-6 10h8l-6 10"/>',
+};
+const APP_ICONS = [
+  '<path d="M4 12l12-7 12 7M6 12v12M12 12v12M20 12v12M26 12v12M3 26h26"/>',
+  '<rect x="7" y="4" width="18" height="24" rx="2"/><path d="M11 10h10M11 15h10M11 20h10"/>',
+  '<path d="M16 4v8M10 9l6 3 6-3M8 28l8-16 8 16M11 22h10"/>',
+  '<path d="M18 3L8 18h7l-2 11 11-16h-7z"/>',
+  '<path d="M16 4c5 6 7 10 7 14a7 7 0 01-14 0c0-4 2-8 7-14z"/>',
+  '<path d="M4 26V14l7 4v-4l7 4v-4l7 4V6h3v20z"/>',
+  '<path d="M4 22h24l-3 6H7zM8 22V12h10v10M18 16h6l2 6"/>',
+  '<path d="M5 15l11-9 11 9v12H5zM13 27v-7h6v7"/>',
+];
+const WHY_ICONS = [
+  ['#dcf1e2', '#0f6b5c', '<path d="M12 30V18l10-6 10 6v12H12zM19 30v-7h6v7"/>'],
+  ['#fbefc6', '#7a5a00', '<path d="M14 29l8-14 8 14z"/>'],
+  ['#dcf1e2', '#0f6b5c', '<circle cx="22" cy="22" r="8"/><path d="M22 10v4M22 30v4M10 22h4M30 22h4"/>'],
+];
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="about/" full>
+<div class="about">
+  <section class:list={['hero', { nophoto: !ph('hero') }]}>
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href={`/${lang}/`}>{T.ctaMini}</a>
+          <a class="btn ghost" href={`/${lang}/custom/`}>{T.ctaCustom}</a>
+        </div>
+      </div>
+      {ph('hero') && <div class="ph"><img src={ph('hero')} alt="" loading="eager" /></div>}
+    </div>
+  </section>
+
+  <div class="wrap stats">
+    <div class="stats-grid">
+      {STATS.map((s) => <div class="stat"><b class="num">{s.n}{s.u && <small>{s.u}</small>}</b><span>{T.stats[s.k]}</span></div>)}
+    </div>
+  </div>
+
+  <nav class="toc wrap" aria-label="On this page">
+    {Object.entries(T.toc).map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
+  </nav>
+
+  <section class="block wrap" id="who">
+    <div class:list={['intro', { solo: !introPhotos.length }]}>
+      <div>
+        <div class="head"><span class="eyebrow">{T.whoEyebrow}</span><h2>{T.whoH}</h2></div>
+        <p class="lead">{T.whoLead}</p>
+        <p>{T.whoP1}</p>
+        <p>{T.whoP2}</p>
+      </div>
+      {introPhotos.length > 0 && (
+        <div class:list={['intro-photos', `n${introPhotos.length}`]}>
+          {introPhotos.map((k) => <div class="ph"><img src={ph(k)} alt={T.photo[k]} loading="lazy" /></div>)}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="block wrap" id="range">
+    <div class="head"><span class="eyebrow">{T.rangeEyebrow}</span><h2>{T.rangeH}</h2><p>{T.rangeP}</p></div>
+    <div class="range-grid">
+      {FAMILIES.map((f) => (
+        <article class:list={['rcard', { focus: f.online }]}>
+          {ph(`fam_${f.key}`)
+            ? <div class="ph light"><img src={ph(`fam_${f.key}`)} alt={T.fam[f.key][0]} loading="lazy" /></div>
+            : <div class="ricon"><svg viewBox="0 0 56 56" aria-hidden="true" set:html={ICONS[f.key]} /></div>}
+          <div class="rbody">
+            {f.online && <span class="tag">{T.orderOnline}</span>}
+            <h3>{T.fam[f.key][0]}</h3>
+            <span class="range num">{f.key === 'backup' ? T.rangeHome : f.key === 'rack' ? `19" ${T.rangeRack}` : f.key === 'inverter' ? T.rangeInv : f.range}</span>
+            <p>{T.fam[f.key][1]}</p>
+            {f.online
+              ? <a href={`/${lang}/`}>{T.browse}</a>
+              : <a href={wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)} target="_blank" rel="noopener">{T.quote}</a>}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="series">
+      <h3>{T.seriesH}</h3>
+      <div class="series-table" role="table">
+        <div role="row" class="th">{T.seriesCols.map((c) => <span role="columnheader">{c}</span>)}</div>
+        {SERIES.map((r) => (
+          <div role="row"><b role="cell">{r.s}</b><span role="cell">{T.series[r.k][0]}</span><span role="cell" class="num">{r.p}</span><span role="cell">{T.series[r.k][1]}</span></div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="apps">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">
+      {T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 32 32" aria-hidden="true" set:html={APP_ICONS[i]} /><b>{a}</b></div>)}
+    </div>
+  </section>
+
+  <section class="block wrap" id="factory">
+    <div class="head"><span class="eyebrow">{T.facEyebrow}</span><h2>{T.facH}</h2></div>
+    {facPhotos.length > 0 && (
+      <div class="factory">
+        {facPhotos.map((k) => <figure><div class="ph light"><img src={ph(k)} alt={T.facPhotos[k]} loading="lazy" /></div><figcaption>{T.facPhotos[k]}</figcaption></figure>)}
+      </div>
+    )}
+    <ol class="flow">
+      {T.flow.map(([h, d], i) => <li><b>{String(i + 1).padStart(2, '0')}</b><strong>{h}</strong><span>{d}</span></li>)}
+    </ol>
+  </section>
+
+  <section class="block wrap" id="honors">
+    <div class="head"><span class="eyebrow">{T.honEyebrow}</span><h2>{T.honH}</h2></div>
+    <div class="honor-grid">
+      <div class="honor"><h3>{T.honMgmt}</h3><div class="badges">{['ISO 9001', 'ISO 14001', 'ISO 45001'].map((b) => <span class="badge">{b}</span>)}</div></div>
+      <div class="honor"><h3>{T.honProd}</h3><div class="badges">{['CE', 'RoHS', 'UL', 'FCC', 'PSE', 'IEC'].map((b) => <span class="badge">{b}</span>)}</div></div>
+      <div class="honor"><h3>{T.honCn}</h3><ul class="ticks">{T.honCnList.map((x) => <li>{x}</li>)}</ul></div>
+      <div class="honor"><h3>{T.honSw}</h3><p><b class="big num">10</b>{T.honSwText}</p></div>
+    </div>
+    {certPhotos.length > 0 && (
+      <div class="cert-strip">{certPhotos.map((k) => <div class="ph light"><img src={ph(k)} alt="" loading="lazy" /></div>)}</div>
+    )}
+  </section>
+
+  <section class="block wrap" id="service">
+    <div class="head"><span class="eyebrow">{T.svcEyebrow}</span><h2>{T.svcH}</h2></div>
+    <div class="service">
+      {T.svc.map(([h, d], i) => <div class="svc"><b class="num">0{i + 1}</b><h3>{h}</h3><p>{d}</p></div>)}
+    </div>
+  </section>
+
+  <section class="block wrap">
+    <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
+    <div class="why">
+      {T.why.map(([h, d], i) => (
+        <div class="why-item">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="10" fill={WHY_ICONS[i][0]} /><g fill="none" stroke={WHY_ICONS[i][1]} stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" set:html={WHY_ICONS[i][2]} /></svg>
+          <div><h3>{h}</h3><p>{d}</p></div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="values" id="culture">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">{T.culEyebrow}</span>
+        <h2>{T.culHa}<em>{T.culHb}</em>{T.culHc}</h2>
+        <dl class="vm">{T.vm.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      </div>
+      <div class="value-list">{T.values.map(([k, v]) => <div><b>{k}</b><span>{v}</span></div>)}</div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="news">
+    <div class="head"><span class="eyebrow">{T.newsEyebrow}</span><h2>{T.newsH}</h2></div>
+    <ol class="timeline">
+      {NEWS.map((n) => <li><time class="num">{n.d}</time><div><b>{T.news[n.k][0]}</b><span>{T.news[n.k][1]}</span></div></li>)}
+    </ol>
+  </section>
+
+  <section class="wrap cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+</div>
+</Base>
+
+<style>
+  .about .ph img { position: relative; width: 100%; height: 100%; object-fit: cover; }
+  .hero.nophoto .wrap { grid-template-columns: minmax(0, 1fr); }
+  .hero.nophoto .wrap > div { max-width: 820px; }
+  .intro.solo { grid-template-columns: minmax(0, 1fr); }
+  .intro.solo > div { max-width: 820px; }
+  .intro-photos.n1, .intro-photos.n2 { grid-template-rows: auto; }
+  .intro-photos.n1 .ph:first-child, .intro-photos.n2 .ph:first-child { grid-row: auto; aspect-ratio: 4 / 3; }
+  .ricon { aspect-ratio: 16 / 9; display: grid; place-items: center; background: linear-gradient(135deg, #eef3f1, #e1e9e6); }
+  .ricon svg { width: 56px; height: 56px; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .rcard.focus .ricon { background: linear-gradient(135deg, #dcf1e2, #c9e8d3); }
+  .app { min-width: 0; }
+  .value-list div { min-width: 0; }
+  .value-list b { overflow-wrap: anywhere; hyphens: auto; font-size: clamp(17px, 4.6vw, 22px) !important; }
+  .app b { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+  .about h1, .about h2, .about h3 { overflow-wrap: break-word; hyphens: auto; }
+  .app svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .cta { padding-block: 56px 0; }
+/* —— About 页面 —— */
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; inset: 0; background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 1; display: grid; gap: 32px; padding-block: 56px 64px; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; }
+  @media (max-width: 860px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 36px 40px; } }
+  .eyebrow { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+  .hero h1 { font-size: clamp(40px, 6.5vw, 72px); margin: 10px 0 18px; }
+  .hero h1 em { font-style: normal; color: var(--charge); }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 560px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+
+  /* 占位图：等你换成真实照片 */
+  .ph { position: relative; border-radius: 12px; overflow: hidden; background:
+      linear-gradient(135deg, #22302d, #2e403c); aspect-ratio: 4 / 3; display: grid; place-items: center; }
+  .ph::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 10px, transparent 10px 20px); }
+  .ph span { position: relative; font: 500 13px var(--mono); color: #a9b8b4; text-align: center; padding: 0 16px; }
+  .ph.light { background: linear-gradient(135deg, #e3e9e7, #d3dcd9); }
+  .ph.light::before { background: repeating-linear-gradient(45deg, rgba(0,0,0,.035) 0 10px, transparent 10px 20px); }
+  .ph.light span { color: var(--muted); }
+  .hero .ph { aspect-ratio: 5 / 4; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+
+  /* 数字条 */
+  .stats { margin-top: -34px; position: relative; z-index: 2; }
+  .stats-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(21,33,31,.08); }
+  .stat { padding: 20px 18px; border-left: 1px solid var(--line); }
+  .stat:first-child { border-left: 0; }
+  .stat b { display: block; font: 700 clamp(30px, 3.6vw, 40px)/1 var(--display); color: var(--accent); }
+  .stat b small { font-size: .55em; color: var(--ink); margin-left: 2px; }
+  .stat span { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.35; }
+  @media (max-width: 960px) { .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stat:nth-child(4) { border-left: 0; } .stat:nth-child(n+4) { border-top: 1px solid var(--line); } }
+  @media (max-width: 520px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat { border-left: 1px solid var(--line) !important; border-top: 1px solid var(--line); } .stat:nth-child(odd) { border-left: 0 !important; } .stat:nth-child(-n+2) { border-top: 0; } }
+
+  section.block { padding-block: 64px 0; }
+  .head { display: grid; gap: 10px; margin-bottom: 26px; max-width: 720px; }
+  .head h2 { font-size: clamp(30px, 4.4vw, 44px); }
+  .head p { margin: 0; color: var(--muted); }
+
+  /* 公司介绍 */
+  .intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: center; }
+  @media (max-width: 860px) { .intro { grid-template-columns: minmax(0, 1fr); } }
+  .intro p { margin: 0 0 14px; }
+  .intro .lead { font-size: 19px; line-height: 1.5; }
+  .intro-photos { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; }
+  .intro-photos .ph:first-child { grid-row: span 2; aspect-ratio: auto; }
+
+  /* 产品线 */
+  .lines { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .line-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+  .line-card.focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .line-card h3 { font-size: 22px; }
+  .line-card p { margin: 0; font-size: 14px; color: var(--muted); }
+  .line-card .range { font: 500 13px var(--mono); color: var(--ink); }
+  .tag { justify-self: start; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  .line-card a { font-weight: 600; font-size: 14px; text-decoration: none; margin-top: 4px; }
+
+  /* 工厂与质量 */
+  .factory { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .factory { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .factory figure { margin: 0; display: grid; gap: 8px; }
+  .factory figcaption { font-size: 13px; color: var(--muted); }
+  .flow { margin-top: 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .flow li { list-style: none; padding: 16px; border-left: 1px solid var(--line); position: relative; }
+  .flow li:first-child { border-left: 0; }
+  .flow b { display: block; font: 600 12px var(--mono); color: var(--accent); }
+  .flow strong { display: block; margin: 4px 0 2px; font-size: 15px; }
+  .flow span { font-size: 13px; color: var(--muted); line-height: 1.4; display: block; }
+  .flow { padding: 0; margin-left: 0; }
+  @media (max-width: 860px) { .flow { grid-template-columns: minmax(0, 1fr); } .flow li { border-left: 0; border-top: 1px solid var(--line); } .flow li:first-child { border-top: 0; } }
+
+  /* 认证 */
+  .certs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 28px; align-items: start; }
+  @media (max-width: 860px) { .certs { grid-template-columns: minmax(0, 1fr); } }
+  .cert-group { display: grid; gap: 10px; margin-bottom: 18px; }
+  .cert-group h3 { font-size: 18px; color: var(--muted); }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge { font: 600 15px var(--mono); padding: 9px 14px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
+  .cert-imgs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .cert-imgs .ph { aspect-ratio: 3 / 4; }
+
+  /* 为什么选择我们 */
+  .why { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .why-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; }
+  .why-item svg { width: 44px; height: 44px; }
+  .why-item h3 { font-size: 21px; margin-bottom: 4px; }
+  .why-item p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  /* 市场 */
+  .markets { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .market { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .market b { display: block; font-size: 15px; }
+  .market span { font-size: 13px; color: var(--muted); }
+
+  /* 价值观 */
+  .values { background: var(--ink); color: #fff; margin-top: 64px; }
+  .values .wrap { padding-block: 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 36px; align-items: center; }
+  @media (max-width: 860px) { .values .wrap { grid-template-columns: minmax(0, 1fr); } }
+  .values h2 { font-size: clamp(32px, 4.6vw, 50px); }
+  .values h2 em { font-style: normal; color: var(--charge); }
+  .values p { color: #c9d4d1; margin: 14px 0 0; }
+  .value-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 520px) { .value-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .value-list div { border: 1px solid #33443f; border-radius: 10px; padding: 14px; }
+  .value-list b { display: block; font: 700 22px var(--display); text-transform: uppercase; color: #fff; }
+  .value-list span { font-size: 13px; color: #a9b8b4; }
+
+  /* 联系 CTA */
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 32px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 22px; } }
+  .cta-box h2 { font-size: clamp(28px, 4vw, 40px); }
+  .cta-box p { margin: 8px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  /* —— B 版新增 —— */
+  .toc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 22px; }
+  .toc a { font-size: 13px; text-decoration: none; color: var(--ink); padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+  section[id] { scroll-margin-top: 16px; }
+
+  .range-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 960px) { .range-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .range-grid { grid-template-columns: minmax(0, 1fr); } }
+  .rcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .rcard.focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .rcard .ph { border-radius: 0; aspect-ratio: 16 / 10; }
+  .rbody { padding: 14px 16px 16px; display: grid; gap: 6px; align-content: start; }
+  .rbody h3 { font-size: 21px; }
+  .rbody p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .rbody a { font-weight: 600; font-size: 14px; text-decoration: none; }
+
+  .series { margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .series h3 { font-size: 20px; margin-bottom: 10px; }
+  .series-table { display: grid; font-size: 14px; }
+  .series-table > div { display: grid; grid-template-columns: 130px minmax(0, 1.3fr) 120px minmax(0, 1.4fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); align-items: baseline; }
+  .series-table > .th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); padding-top: 0; }
+  .series-table b { font-family: var(--mono); color: var(--accent); }
+  @media (max-width: 760px) { .series-table > div { grid-template-columns: minmax(0, 1fr) auto; } .series-table > div > :nth-child(2), .series-table > div > :nth-child(4) { grid-column: 1 / -1; } .series-table > .th { display: none; } .series-table > div > :nth-child(4) { color: var(--muted); font-size: 13px; } }
+
+  .apps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 760px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .app { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 14px; }
+  .app svg { width: 32px; height: 32px; flex: none; color: var(--accent); }
+
+  .honor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 960px) { .honor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .honor-grid { grid-template-columns: minmax(0, 1fr); } }
+  .honor { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+  .honor h3 { font-size: 18px; color: var(--muted); }
+  .honor p { margin: 0; font-size: 14px; color: var(--muted); }
+  .honor .big { display: block; font: 700 40px/1 var(--display); color: var(--accent); margin-bottom: 4px; }
+  .ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+  .ticks li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 8px; }
+  .cert-strip { margin-top: 14px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  .cert-strip .ph { aspect-ratio: 3 / 4; }
+  @media (max-width: 760px) { .cert-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  .service { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .service { grid-template-columns: minmax(0, 1fr); } }
+  .svc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; border-top: 4px solid var(--accent); }
+  .svc b { color: var(--charge); font-size: 13px; }
+  .svc h3 { font-size: 24px; margin: 6px 0; }
+  .svc p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .vm { margin: 22px 0 0; display: grid; gap: 12px; }
+  .vm div { border-left: 3px solid var(--charge); padding-left: 12px; }
+  .vm dt { font: 600 12px var(--mono); text-transform: uppercase; color: var(--charge); }
+  .vm dd { margin: 2px 0 0; color: #dfe7e4; }
+
+  .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .timeline li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 16px 20px; border-top: 1px solid var(--line); }
+  .timeline li:first-child { border-top: 0; }
+  .timeline time { color: var(--accent); font-weight: 600; }
+  .timeline b { display: block; }
+  .timeline span { font-size: 14px; color: var(--muted); }
+  @media (max-width: 520px) { .timeline li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+  .why { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 860px) { .why { grid-template-columns: minmax(0, 1fr); } }
+</style>

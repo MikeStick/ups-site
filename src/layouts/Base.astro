@@ -2,8 +2,10 @@
 import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
 import { CT } from '../lib/custom-i18n.mjs';
+import { AT } from '../lib/about-i18n.mjs';
 
-const { lang, title, description = '', path = '' } = Astro.props;
+// full：页面自己控制宽度（About 页有通栏区块），不套 .wrap
+const { lang, title, description = '', path = '', full = false } = Astro.props;
 const t = UI[lang];
 const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
 // path：不含语言前缀的路径，例如 "p/poe-36e-lfp-48v/"，用来生成其他语言版本的链接
@@ -53,9 +55,25 @@ const altHref = (l) => `/${l}/${path}`;
     .top-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .nav-custom { color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 6px; background: var(--accent); }
     .nav-custom[aria-current="page"] { background: transparent; box-shadow: inset 0 0 0 1px var(--accent); }
-    .langs { display: flex; gap: 4px; }
-    .langs a { color: #cfd9d6; text-decoration: none; font-size: 13px; padding: 4px 10px; border-radius: 5px; border: 1px solid transparent; }
-    .langs a[aria-current="true"] { border-color: #4b5f5b; color: #fff; }
+    .nav { display: flex; gap: 2px; }
+    .nav a { color: #cfd9d6; text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 6px; }
+    .nav a:hover { color: #fff; }
+    .nav a[aria-current="page"] { color: #fff; box-shadow: inset 0 0 0 1px #4b5f5b; }
+    /* 语言：一个下拉菜单 */
+    .lang-menu { position: relative; }
+    .lang-menu summary { list-style: none; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff; font: 600 13px var(--body); padding: 6px 10px; border-radius: 6px; border: 1px solid #4b5f5b; user-select: none; }
+    .lang-menu summary::-webkit-details-marker { display: none; }
+    .lang-menu summary svg { width: 16px; height: 16px; }
+    .lang-menu summary i { font-style: normal; font-size: 10px; color: #a9b8b4; }
+    .lang-menu[open] summary { background: #22302d; }
+    .lang-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 170px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 6px; display: grid; }
+    /* 手机上语言按钮会换到第二行左侧，菜单改为向右展开，避免超出屏幕 */
+    @media (max-width: 640px) { .lang-list { right: auto; left: 0; } }
+    .lang-list a { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 7px; color: var(--ink); text-decoration: none; font-size: 14px; }
+    .lang-list a b { font: 600 12px var(--mono); color: var(--muted); width: 22px; }
+    .lang-list a:hover { background: var(--bg); }
+    .lang-list a[aria-current="true"] { background: var(--ok-soft); }
+    .lang-list a[aria-current="true"]::after { content: "✓"; margin-left: auto; color: var(--accent); font-weight: 700; }
     .contact { display: flex; flex-wrap: wrap; gap: 6px 20px; }
     .contact a { color: var(--muted); }
     footer { border-top: 1px solid var(--line); margin-top: 56px; padding-block: 24px; color: var(--muted); font-size: 13px; }
@@ -66,14 +84,24 @@ const altHref = (l) => `/${l}/${path}`;
     <div class="wrap">
       <a class="brand" href={`/${lang}/`}>{SITE.name}<small>{SITE.tagline[lang]}</small></a>
       <div class="top-right">
-      <a class="nav-custom" href={`/${lang}/custom/`} aria-current={path === 'custom/' ? 'page' : undefined}>{CT[lang].nav}</a>
-      <nav class="langs" aria-label="Language">
-        {LANGS.map((l) => <a href={altHref(l)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : 'false'}>{UI[l].langName}</a>)}
+      <nav class="nav" aria-label="Main">
+        <a href={`/${lang}/`} aria-current={path === '' || path.startsWith('p/') ? 'page' : undefined}>{t.products}</a>
+        <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
       </nav>
+      <a class="nav-custom" href={`/${lang}/custom/`} aria-current={path === 'custom/' ? 'page' : undefined}>{CT[lang].nav}</a>
+      <details class="lang-menu" data-lang-menu>
+        <summary aria-label="Language">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span>{lang.toUpperCase()}</span><i aria-hidden="true">▾</i>
+        </summary>
+        <div class="lang-list">
+          {LANGS.map((l) => <a href={altHref(l)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : 'false'}><b>{l.toUpperCase()}</b> {UI[l].langName}</a>)}
+        </div>
+      </details>
       </div>
     </div>
   </header>
-  <main class="wrap">
+  <main class:list={[{ wrap: !full }]}>
     <slot />
   </main>
   <footer>
@@ -83,5 +111,12 @@ const altHref = (l) => `/${l}/${path}`;
       {SITE.email && <a href={`mailto:${SITE.email}`}>{SITE.email}</a>}
     </div>
   </footer>
+  <script is:inline>
+    (function () {
+      var m = document.querySelector('[data-lang-menu]'); if (!m) return;
+      document.addEventListener('click', function (e) { if (m.open && !m.contains(e.target)) m.open = false; });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') m.open = false; });
+    })();
+  </script>
 </body>
 </html>

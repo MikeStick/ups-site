@@ -1,0 +1,223 @@
+// About Us 页面三语内容（B 版）。数字、认证、文化、动态来自 skepower.com 官网。
+// 照片：放到 public/about/ 目录，然后在下面 PHOTOS 里填文件名；没填的位置自动隐藏或换成图标，不会显示空白占位。
+
+export const PHOTOS = {
+  hero: '',          // 工厂外景
+  line: '',          // 生产线
+  rd: '',            // 研发 / 工程师
+  warehouse: '',     // 仓库 / 出货
+  smt: '',           // SMT 贴片车间
+  assembly: '',      // 组装线
+  aging: '',         // 老化测试
+  qc: '',            // 质检实验室
+  // 产品家族图
+  fam_dc: '', fam_backup: '', fam_hf: '', fam_if: '', fam_modular: '', fam_rack: '', fam_inverter: '', fam_battery: '',
+  // 证书图
+  cert_iso9001: '', cert_iso14001: '', cert_iso45001: '', cert_cqc: '', cert_tlc: '', cert_hitech: '',
+};
+
+export const STATS = [
+  { n: '20', u: '+', k: 'years' }, { n: '30,000', u: 'm²', k: 'area' }, { n: '500', u: '+', k: 'staff' },
+  { n: '50', u: '', k: 'rd' }, { n: '2M', u: '', k: 'capacity' }, { n: '120', u: '+', k: 'countries' },
+];
+
+// 产品家族：key 对应 PHOTOS.fam_<key>；online=true 的可以在网站下单
+export const FAMILIES = [
+  { key: 'dc', online: true, range: 'USB · DC 5–48 V · PoE' },
+  { key: 'backup', range: null },
+  { key: 'hf', range: '1 – 20 kVA · PF 0.9 / 1.0' },
+  { key: 'if', range: '1 – 400 kVA' },
+  { key: 'modular', range: '30 – 1200 kVA' },
+  { key: 'rack', range: '19"' },
+  { key: 'inverter', range: null },
+  { key: 'battery', range: 'LiFePO4 · BESS' },
+];
+
+export const SERIES = [
+  { s: 'GH11 / SR', p: '1 – 10 kVA', k: 'gh11' },
+  { s: 'GH31 / GH33', p: '10 – 30 kVA', k: 'gh3x' },
+  { s: 'SKGH', p: '1 – 200 kVA', k: 'skgh' },
+  { s: 'SHGL33', p: '10 – 400 kVA', k: 'shgl' },
+  { s: 'SKMK33', p: '30 – 1200 kVA', k: 'skmk' },
+];
+
+export const NEWS = [
+  { d: '2025-12', k: 'rail' }, { d: '2025-11', k: 'coop' }, { d: '2022-04', k: 'visit' },
+];
+
+export const AT = {
+  en: {
+    nav: 'About us', title: 'About SKE Power', metaDesc: 'SKE Power is a UPS, inverter and energy-storage manufacturer with a 30,000 m² factory, 50 R&D engineers and exports to 120+ countries.',
+    eyebrow: 'About SKE Power', h1a: 'Reliable energy partner for ', h1b: 'users worldwide',
+    lead: 'SKE Power designs and manufactures UPS systems, hybrid inverters and energy-storage batteries — from a mini DC UPS that keeps a router online to modular UPS systems of up to 1200 kVA for data centres, banks and factories.',
+    ctaMini: 'See our Mini UPS', ctaCustom: 'Build a custom model',
+    stats: { years: 'Years in the power industry', area: 'Manufacturing base', staff: 'Professional staff', rd: 'Senior R&D engineers', capacity: 'UPS units per year', countries: 'Countries & regions' },
+    toc: { who: 'Company', range: 'Product range', apps: 'Applications', factory: 'Factory', honors: 'Certificates', service: 'Service', culture: 'Culture', news: 'News' },
+    whoEyebrow: 'Who we are', whoH: 'Talent and technology, better products',
+    whoLead: 'A national high-tech enterprise providing power protection and energy-storage solutions for residential, commercial and utility-scale users.',
+    whoP1: 'Our 30,000 m² manufacturing base, a 50-engineer R&D team and more than 500 staff build up to 2 million UPS units and 500,000 solar inverters every year. Quality is controlled at every production stage, and our management systems are certified to ISO 9001, ISO 14001 and ISO 45001.',
+    whoP2: 'With more than 20 years in the industry we export to North and South America, Europe, the Middle East and Africa — and design custom models and OEM brands for importers in each market.',
+    photo: { line: 'Production line', rd: 'R&D team', warehouse: 'Warehouse' },
+    rangeEyebrow: 'Product range', rangeH: 'From 5 W to 1200 kVA, one factory',
+    rangeP: 'Eight product families, all designed and built in-house. The Mini DC UPS can be ordered online today; for the other families, ask us for a quote.',
+    orderOnline: 'Order online', browse: 'Browse models →', quote: 'Ask for a quote →',
+    fam: {
+      dc: ['DC UPS (Mini UPS)', 'Backup power for routers, fiber ONTs, IP cameras and Starlink.'],
+      backup: ['Back-up / offline UPS', 'Compact protection for PCs, POS terminals and small servers.'],
+      hf: ['High-frequency online UPS', 'Double conversion, wide input voltage, tower and data-centre types.'],
+      if: ['Industrial-frequency UPS', 'Transformer-based, thyristor rectifier and IGBT inverter for harsh industrial sites.'],
+      modular: ['Modular UPS', 'Hot-swappable power modules with N+X redundancy — single systems up to 1200 kVA.'],
+      rack: ['Rack-mount UPS', 'For network cabinets, telecom rooms and edge computing.'],
+      inverter: ['Hybrid solar inverters', 'Off-grid and hybrid inverters for home and commercial solar — 500,000 units a year.'],
+      battery: ['Energy-storage batteries', 'Battery packs and storage systems from home to utility scale.'],
+    },
+    rangeHome: 'Home & office', rangeRack: 'rack', rangeInv: 'Off-grid · Hybrid',
+    seriesH: 'Representative series', seriesCols: ['Series', 'Type', 'Power', 'Highlights'],
+    series: {
+      gh11: ['High-frequency online, single phase', 'Adjustable input voltage, PF 0.9 / 1.0'],
+      gh3x: ['Online, 3-in / 1-out & 3-in / 3-out', 'For offices, labs and small data rooms'],
+      skgh: ['Industrial-frequency online', 'Thyristor rectifier + IGBT inverter'],
+      shgl: ['Industrial online, three phase', '380 / 400 / 415 Vac, 40–70 Hz input'],
+      skmk: ['Modular UPS', 'Modular redundant design, hot-swappable'],
+    },
+    appsEyebrow: 'Applications', appsH: 'Keeping critical power on, in every industry',
+    apps: ['Banking & finance', 'Data centres', 'Telecom & networks', 'Electric power', 'Oil, gas & petrochemical', 'Steel, metallurgy & machinery', 'Ports & logistics', 'Homes & small offices'],
+    facEyebrow: 'Factory & quality', facH: 'Quality controlled at every stage',
+    facPhotos: { smt: 'SMT & PCB assembly', assembly: 'Final assembly lines', aging: 'Burn-in & aging test', qc: 'QC laboratory' },
+    flow: [['Incoming inspection', 'Cells, boards and parts checked on arrival'], ['Assembly', 'SMT, soldering and final assembly in-house'], ['100% aging test', 'Every unit runs under load before packing'], ['Final QC', 'Output, switchover and protection functions'], ['Traceability', 'Each unit tracked in our product traceability system']],
+    honEyebrow: 'Certificates & honors', honH: 'Certified, tested, recognised',
+    honMgmt: 'Management systems', honProd: 'Product standards', honCn: 'China certifications',
+    honCnList: ['National High-Tech Enterprise', 'CQC energy-saving certification', 'TLC telecom equipment certification'],
+    honSw: 'Software copyrights', honSwText: 'registered systems, including battery performance evaluation, power-product traceability and environmental monitoring.',
+    svcEyebrow: 'Service', svcH: 'One-stop service, before and after the sale',
+    svc: [['Pre-sale', 'Model selection, runtime calculation, custom outputs and samples — answered by our engineers.'], ['In-sale', 'Production photos, your plug fitted, export packing and shipping documents for your forwarder.'], ['After-sale', 'Warranty support, spare parts and technical guidance from our engineering team.']],
+    whyEyebrow: 'For importers & resellers', whyH: 'Factory price without a factory-size order',
+    why: [['Small MOQ', 'In-stock models from 20 pcs, group-buy batches from 100 pcs.'], ['Any plug', 'US, EU, UK, AU, India or others fitted before shipping, mixed in one order.'], ['OEM & ODM', 'Your brand on our models, or a new design with your outputs and battery.']],
+    culEyebrow: 'Culture', culHa: 'Be a ', culHb: 'reliable energy partner', culHc: ' for global users',
+    vm: [['Mission', 'Leading technology and innovative thinking for world-class energy solutions.'], ['Core values', 'Customer-oriented · Innovative & efficient · Pragmatic & win-win'], ['Vision', 'Promoting green energy, building a century-old brand.']],
+    values: [['Integrity', 'Keep promises; facts, not exaggeration'], ['Diligence', 'Own the work, take responsibility'], ['Efficiency', 'Do it right the first time'], ['Innovation', 'Small improvements are innovation too'], ['Gratitude', 'Respect those who help us grow'], ['Cooperation', 'Go a step further, communicate openly']],
+    newsEyebrow: 'Recent milestones', newsH: 'Growing with our partners',
+    news: {
+      rail: ['China Railway Mall partnership', 'SKE and Quanmanronghe join hands to explore a new chapter in the China Railway Mall.'],
+      coop: ['Strategic cooperation & licensing', 'Signing ceremony with Beijing JINYIDA Borui Technology and Beijing JIAHE Xincheng Information Technology.'],
+      visit: ['60+ new-energy merchants visit SKE', 'Partners from new-energy and related industries toured our factory.'],
+    },
+    ctaH: 'Let’s talk about your project', ctaP: 'Tell us your market, devices and quantity — Mini UPS, industrial UPS, inverters or storage.',
+  },
+  es: {
+    nav: 'Nosotros', title: 'Sobre SKE Power', metaDesc: 'SKE Power fabrica UPS, inversores y baterías de almacenamiento: fábrica de 30.000 m², 50 ingenieros de I+D y exportación a más de 120 países.',
+    eyebrow: 'Sobre SKE Power', h1a: 'Su socio energético confiable ', h1b: 'en todo el mundo',
+    lead: 'SKE Power diseña y fabrica sistemas UPS, inversores híbridos y baterías de almacenamiento: desde un mini UPS DC que mantiene el router encendido hasta UPS modulares de hasta 1200 kVA para centros de datos, bancos y fábricas.',
+    ctaMini: 'Ver nuestros Mini UPS', ctaCustom: 'Diseñar un modelo a medida',
+    stats: { years: 'Años en el sector eléctrico', area: 'Base de fabricación', staff: 'Empleados', rd: 'Ingenieros sénior de I+D', capacity: 'UPS al año', countries: 'Países y regiones' },
+    toc: { who: 'Empresa', range: 'Productos', apps: 'Aplicaciones', factory: 'Fábrica', honors: 'Certificados', service: 'Servicio', culture: 'Cultura', news: 'Noticias' },
+    whoEyebrow: 'Quiénes somos', whoH: 'Talento y tecnología, mejores productos',
+    whoLead: 'Empresa nacional de alta tecnología que ofrece soluciones de protección eléctrica y almacenamiento de energía para hogares, comercios y proyectos a gran escala.',
+    whoP1: 'Nuestra base de fabricación de 30.000 m², un equipo de I+D de 50 ingenieros y más de 500 empleados producen hasta 2 millones de UPS y 500.000 inversores solares al año. La calidad se controla en cada etapa de producción y nuestros sistemas de gestión están certificados ISO 9001, ISO 14001 e ISO 45001.',
+    whoP2: 'Con más de 20 años en el sector exportamos a Norte y Sudamérica, Europa, Medio Oriente y África, y diseñamos modelos a medida y marcas OEM para importadores de cada mercado.',
+    photo: { line: 'Línea de producción', rd: 'Equipo de I+D', warehouse: 'Almacén' },
+    rangeEyebrow: 'Gama de productos', rangeH: 'De 5 W a 1200 kVA, una sola fábrica',
+    rangeP: 'Ocho familias de productos, todas diseñadas y fabricadas por nosotros. El Mini UPS DC se puede pedir en línea hoy; para las demás familias, pídanos una cotización.',
+    orderOnline: 'Pedido en línea', browse: 'Ver modelos →', quote: 'Pedir cotización →',
+    fam: {
+      dc: ['UPS DC (Mini UPS)', 'Respaldo para routers, ONT de fibra, cámaras IP y Starlink.'],
+      backup: ['UPS de respaldo / offline', 'Protección compacta para PC, terminales POS y servidores pequeños.'],
+      hf: ['UPS online de alta frecuencia', 'Doble conversión, amplio rango de entrada, tipo torre y centro de datos.'],
+      if: ['UPS de frecuencia industrial', 'Con transformador, rectificador de tiristores e inversor IGBT para entornos industriales exigentes.'],
+      modular: ['UPS modular', 'Módulos de potencia intercambiables en caliente con redundancia N+X; sistemas de hasta 1200 kVA.'],
+      rack: ['UPS para rack', 'Para gabinetes de red, salas de telecomunicaciones y edge computing.'],
+      inverter: ['Inversores solares híbridos', 'Inversores off-grid e híbridos para solar residencial y comercial: 500.000 unidades al año.'],
+      battery: ['Baterías de almacenamiento', 'Packs de baterías y sistemas de almacenamiento, del hogar a la escala de red.'],
+    },
+    rangeHome: 'Hogar y oficina', rangeRack: 'rack', rangeInv: 'Off-grid · Híbridos',
+    seriesH: 'Series representativas', seriesCols: ['Serie', 'Tipo', 'Potencia', 'Características'],
+    series: {
+      gh11: ['Online de alta frecuencia, monofásico', 'Voltaje de entrada ajustable, FP 0,9 / 1,0'],
+      gh3x: ['Online, 3 entradas / 1 salida y 3 / 3', 'Para oficinas, laboratorios y salas de datos pequeñas'],
+      skgh: ['Online de frecuencia industrial', 'Rectificador de tiristores + inversor IGBT'],
+      shgl: ['Online industrial, trifásico', 'Entrada 380 / 400 / 415 Vac, 40–70 Hz'],
+      skmk: ['UPS modular', 'Diseño modular redundante, intercambiable en caliente'],
+    },
+    appsEyebrow: 'Aplicaciones', appsH: 'Energía crítica siempre encendida, en cada industria',
+    apps: ['Banca y finanzas', 'Centros de datos', 'Telecomunicaciones y redes', 'Energía eléctrica', 'Petróleo, gas y petroquímica', 'Acero, metalurgia y maquinaria', 'Puertos y logística', 'Hogares y pequeñas oficinas'],
+    facEyebrow: 'Fábrica y calidad', facH: 'Calidad controlada en cada etapa',
+    facPhotos: { smt: 'SMT y ensamblaje de PCB', assembly: 'Líneas de ensamblaje', aging: 'Prueba de envejecimiento', qc: 'Laboratorio de control de calidad' },
+    flow: [['Inspección de entrada', 'Celdas, placas y piezas revisadas al llegar'], ['Ensamblaje', 'SMT, soldadura y ensamblaje final en planta'], ['Envejecimiento al 100%', 'Cada equipo funciona con carga antes de empacarse'], ['Control final', 'Salida, conmutación y protecciones'], ['Trazabilidad', 'Cada unidad registrada en nuestro sistema de trazabilidad']],
+    honEyebrow: 'Certificados y reconocimientos', honH: 'Certificados, probados, reconocidos',
+    honMgmt: 'Sistemas de gestión', honProd: 'Normas de producto', honCn: 'Certificaciones en China',
+    honCnList: ['Empresa Nacional de Alta Tecnología', 'Certificación de ahorro energético CQC', 'Certificación TLC de equipos de telecomunicaciones'],
+    honSw: 'Derechos de software', honSwText: 'sistemas registrados, entre ellos evaluación de baterías, trazabilidad de productos y monitoreo ambiental.',
+    svcEyebrow: 'Servicio', svcH: 'Servicio integral, antes y después de la venta',
+    svc: [['Preventa', 'Selección de modelo, cálculo de autonomía, salidas a medida y muestras, respondido por nuestros ingenieros.'], ['Durante la venta', 'Fotos de producción, su enchufe instalado, embalaje de exportación y documentos para su agente de carga.'], ['Posventa', 'Soporte de garantía, repuestos y asesoría técnica de nuestro equipo de ingeniería.']],
+    whyEyebrow: 'Para importadores y revendedores', whyH: 'Precio de fábrica sin pedido de fábrica',
+    why: [['Pedido mínimo bajo', 'Modelos en stock desde 20 uds, lotes de compra grupal desde 100 uds.'], ['Cualquier enchufe', 'US, EU, UK, AU, India u otros, instalados antes del envío y combinables en un pedido.'], ['OEM y ODM', 'Su marca en nuestros modelos, o un diseño nuevo con sus salidas y batería.']],
+    culEyebrow: 'Cultura', culHa: 'Ser un ', culHb: 'socio energético confiable', culHc: ' para usuarios de todo el mundo',
+    vm: [['Misión', 'Tecnología de vanguardia y pensamiento innovador para soluciones energéticas de clase mundial.'], ['Valores clave', 'Orientación al cliente · Innovación y eficiencia · Pragmatismo y beneficio mutuo'], ['Visión', 'Impulsar la energía verde y construir una marca centenaria.']],
+    values: [['Integridad', 'Cumplir lo prometido; hechos, no exageraciones'], ['Diligencia', 'Asumir el trabajo y la responsabilidad'], ['Eficiencia', 'Hacerlo bien a la primera'], ['Innovación', 'Las pequeñas mejoras también son innovación'], ['Gratitud', 'Respetar a quienes nos ayudan a crecer'], ['Cooperación', 'Ir un paso más allá, comunicar con franqueza']],
+    newsEyebrow: 'Hitos recientes', newsH: 'Creciendo con nuestros socios',
+    news: {
+      rail: ['Alianza con China Railway Mall', 'SKE y Quanmanronghe se unen para abrir un nuevo capítulo en China Railway Mall.'],
+      coop: ['Cooperación estratégica y licencias', 'Ceremonia de firma con Beijing JINYIDA Borui Technology y Beijing JIAHE Xincheng Information Technology.'],
+      visit: ['Más de 60 empresas de nuevas energías visitan SKE', 'Socios de nuevas energías y sectores afines recorrieron nuestra fábrica.'],
+    },
+    ctaH: 'Hablemos de su proyecto', ctaP: 'Cuéntenos su mercado, sus equipos y la cantidad: Mini UPS, UPS industriales, inversores o almacenamiento.',
+  },
+  ru: {
+    nav: 'О нас', title: 'О компании SKE Power', metaDesc: 'SKE Power — производитель ИБП, инверторов и систем хранения энергии: завод 30 000 м², 50 инженеров R&D, экспорт в 120+ стран.',
+    eyebrow: 'О компании SKE Power', h1a: 'Надёжный энергетический партнёр ', h1b: 'для клиентов по всему миру',
+    lead: 'SKE Power разрабатывает и производит ИБП, гибридные инверторы и аккумуляторы для хранения энергии — от мини-ИБП постоянного тока для роутера до модульных ИБП мощностью до 1200 кВА для ЦОД, банков и заводов.',
+    ctaMini: 'Наши мини-ИБП', ctaCustom: 'Модель на заказ',
+    stats: { years: 'Лет в энергетике', area: 'Производственная площадь', staff: 'Сотрудников', rd: 'Ведущих инженеров R&D', capacity: 'ИБП в год', countries: 'Стран и регионов' },
+    toc: { who: 'Компания', range: 'Продукция', apps: 'Применение', factory: 'Завод', honors: 'Сертификаты', service: 'Сервис', culture: 'Культура', news: 'Новости' },
+    whoEyebrow: 'Кто мы', whoH: 'Люди и технологии — лучшие продукты',
+    whoLead: 'Национальное высокотехнологичное предприятие: решения для защиты электропитания и хранения энергии для дома, бизнеса и крупных объектов.',
+    whoP1: 'Наш завод площадью 30 000 м², команда из 50 инженеров R&D и более 500 сотрудников выпускают до 2 млн ИБП и 500 000 солнечных инверторов в год. Качество контролируется на каждом этапе, системы менеджмента сертифицированы по ISO 9001, ISO 14001 и ISO 45001.',
+    whoP2: 'За 20 с лишним лет работы мы экспортируем в Северную и Южную Америку, Европу, на Ближний Восток и в Африку, а также разрабатываем модели на заказ и OEM-бренды для импортёров на каждом рынке.',
+    photo: { line: 'Производственная линия', rd: 'Команда R&D', warehouse: 'Склад' },
+    rangeEyebrow: 'Продукция', rangeH: 'От 5 Вт до 1200 кВА на одном заводе',
+    rangeP: 'Восемь линеек продукции, все разработаны и произведены у нас. Мини-ИБП постоянного тока можно заказать на сайте уже сейчас, по остальным линейкам запросите предложение.',
+    orderOnline: 'Заказ на сайте', browse: 'Смотреть модели →', quote: 'Запросить цену →',
+    fam: {
+      dc: ['ИБП постоянного тока (мини-ИБП)', 'Резервное питание для роутеров, оптических ONT, IP-камер и Starlink.'],
+      backup: ['Резервные (offline) ИБП', 'Компактная защита для ПК, POS-терминалов и небольших серверов.'],
+      hf: ['Высокочастотные онлайн-ИБП', 'Двойное преобразование, широкий диапазон входа, башенные и для ЦОД.'],
+      if: ['Трансформаторные ИБП', 'Тиристорный выпрямитель и IGBT-инвертор для тяжёлых промышленных условий.'],
+      modular: ['Модульные ИБП', 'Модули с горячей заменой и резервированием N+X — системы до 1200 кВА.'],
+      rack: ['Стоечные ИБП', 'Для сетевых шкафов, телеком-узлов и периферийных вычислений.'],
+      inverter: ['Гибридные солнечные инверторы', 'Автономные и гибридные инверторы для дома и бизнеса — 500 000 шт. в год.'],
+      battery: ['Аккумуляторы для хранения энергии', 'Аккумуляторные блоки и системы хранения — от дома до промышленного масштаба.'],
+    },
+    rangeHome: 'Дом и офис', rangeRack: 'в стойку', rangeInv: 'Автономные · Гибридные',
+    seriesH: 'Основные серии', seriesCols: ['Серия', 'Тип', 'Мощность', 'Особенности'],
+    series: {
+      gh11: ['Высокочастотный онлайн, однофазный', 'Регулируемое входное напряжение, PF 0,9 / 1,0'],
+      gh3x: ['Онлайн, 3 фазы / 1 фаза и 3 / 3', 'Для офисов, лабораторий и небольших серверных'],
+      skgh: ['Трансформаторный онлайн', 'Тиристорный выпрямитель + IGBT-инвертор'],
+      shgl: ['Промышленный онлайн, трёхфазный', 'Вход 380 / 400 / 415 В, 40–70 Гц'],
+      skmk: ['Модульный ИБП', 'Модульная резервированная схема, горячая замена'],
+    },
+    appsEyebrow: 'Применение', appsH: 'Бесперебойное питание в любой отрасли',
+    apps: ['Банки и финансы', 'Центры обработки данных', 'Телеком и сети', 'Электроэнергетика', 'Нефть, газ и нефтехимия', 'Металлургия и машиностроение', 'Порты и логистика', 'Дом и небольшой офис'],
+    facEyebrow: 'Завод и качество', facH: 'Контроль качества на каждом этапе',
+    facPhotos: { smt: 'SMT-монтаж плат', assembly: 'Линии сборки', aging: 'Прогон под нагрузкой', qc: 'Лаборатория ОТК' },
+    flow: [['Входной контроль', 'Проверка ячеек, плат и комплектующих при поступлении'], ['Сборка', 'SMT, пайка и финальная сборка на нашем заводе'], ['100% прогон', 'Каждое устройство работает под нагрузкой до упаковки'], ['Финальный контроль', 'Выход, переключение и защиты'], ['Прослеживаемость', 'Каждое устройство учтено в системе прослеживаемости']],
+    honEyebrow: 'Сертификаты и награды', honH: 'Сертифицировано, проверено, признано',
+    honMgmt: 'Системы менеджмента', honProd: 'Стандарты продукции', honCn: 'Сертификаты Китая',
+    honCnList: ['Национальное высокотехнологичное предприятие', 'Сертификат энергосбережения CQC', 'Сертификат TLC для телеком-оборудования'],
+    honSw: 'Авторские права на ПО', honSwText: 'зарегистрированных систем, в том числе оценка аккумуляторов, прослеживаемость продукции и мониторинг среды.',
+    svcEyebrow: 'Сервис', svcH: 'Полный сервис до и после продажи',
+    svc: [['До продажи', 'Подбор модели, расчёт времени работы, выходы на заказ и образцы — отвечают наши инженеры.'], ['Во время заказа', 'Фото производства, нужная вилка, экспортная упаковка и документы для вашего экспедитора.'], ['После продажи', 'Гарантийная поддержка, запчасти и технические консультации наших инженеров.']],
+    whyEyebrow: 'Для импортёров и дилеров', whyH: 'Заводская цена без заводского объёма',
+    why: [['Малый минимальный заказ', 'Модели в наличии от 20 шт., совместные закупки от 100 шт.'], ['Любая вилка', 'US, EU, UK, AU, India и другие — устанавливаем до отгрузки, можно смешивать в одном заказе.'], ['OEM и ODM', 'Ваш бренд на наших моделях или новая разработка с вашими выходами и батареей.']],
+    culEyebrow: 'Культура', culHa: 'Быть ', culHb: 'надёжным энергетическим партнёром', culHc: ' для клиентов по всему миру',
+    vm: [['Миссия', 'Передовые технологии и инновационное мышление для энергетических решений мирового уровня.'], ['Ключевые ценности', 'Ориентация на клиента · Инновации и эффективность · Прагматизм и взаимная выгода'], ['Видение', 'Развивать зелёную энергетику и построить столетний бренд.']],
+    values: [['Честность', 'Держим слово; факты, а не преувеличения'], ['Усердие', 'Берём ответственность за свою работу'], ['Эффективность', 'Делаем правильно с первого раза'], ['Инновации', 'Небольшие улучшения — тоже инновации'], ['Благодарность', 'Уважаем тех, кто помогает нам расти'], ['Сотрудничество', 'Делаем шаг больше, общаемся открыто']],
+    newsEyebrow: 'Последние события', newsH: 'Растём вместе с партнёрами',
+    news: {
+      rail: ['Партнёрство с China Railway Mall', 'SKE и Quanmanronghe объединяют усилия, чтобы открыть новую главу в China Railway Mall.'],
+      coop: ['Стратегическое сотрудничество и лицензирование', 'Церемония подписания с Beijing JINYIDA Borui Technology и Beijing JIAHE Xincheng Information Technology.'],
+      visit: ['Более 60 компаний новой энергетики посетили SKE', 'Партнёры из сферы новой энергетики и смежных отраслей побывали на нашем заводе.'],
+    },
+    ctaH: 'Обсудим ваш проект', ctaP: 'Расскажите о рынке, устройствах и количестве — мини-ИБП, промышленные ИБП, инверторы или системы хранения.',
+  },
+};
