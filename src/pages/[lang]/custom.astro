@@ -52,6 +52,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     <section class="cz-panel" data-panel="odm">
       <p class="cz-sub">{T.odmSub}</p>
       <p class="cz-from" data-from hidden></p>
+      <div class="cz-pv-mobile" aria-hidden="true"><div class="cz-pv-svg" data-preview></div></div>
 
       <div class="cz-grid">
         <div class="cz-main">
@@ -136,13 +137,20 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
               </label>
             </div>
             <input type="text" maxlength="60" placeholder={T.colorPh} data-odm-color-other hidden aria-label={T.color} />
+            <div class="cz-logo" data-logo-box hidden>
+              <label class="cz-btn small cz-upload">
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" data-logo-file hidden />
+                {T.logoUpload}
+              </label>
+              <p class="cz-hint" data-logo-ok hidden>{T.logoUploaded} <button type="button" class="cz-link" data-logo-remove>{T.logoRemove}</button></p>
+            </div>
           </div>
 
           <div class="cz-card">
             <h2><span>6</span>{T.s6}</h2>
             <div class="cz-two">
               <label class="cz-field"><span class="cz-label">{T.qty}</span>
-                <span class="cz-inline"><input type="number" inputmode="numeric" min="1" step="100" data-odm-qty /> <span>{T.pcs}</span></span>
+                <span class="cz-inline"><input type="number" inputmode="numeric" min="1000" step="100" placeholder="1000" data-odm-qty /> <span>{T.pcs}</span></span>
                 <span class="cz-hint">{T.qtyHint}</span>
               </label>
               <label class="cz-field"><span class="cz-label">{T.target} <em>· {T.optional}</em></span>
@@ -159,6 +167,12 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
         </div>
 
         <aside class="cz-side">
+          <div class="cz-card cz-pv">
+            <span class="cz-label">{T.pvTitle}</span>
+            <div class="cz-pv-svg" data-preview role="img" aria-label={T.pvTitle}></div>
+            <div class="cz-pv-tags" data-pv-tags></div>
+            <p class="cz-hint">{T.pvNote}</p>
+          </div>
           <div class="cz-card cz-summary">
             <div class="cz-fee">
               <b>{T.feeTitle}</b>
@@ -358,6 +372,100 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   $('[data-odm-material]').addEventListener('change', update);
   $('[data-odm-color]').addEventListener('change', function () { $('[data-odm-color-other]').hidden = this.value !== 'other'; update(); });
 
+  // 客户的 logo 只在浏览器里显示到预览上，不会上传到任何地方
+  var logoData = null;
+  $('[data-logo-file]').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f || f.size > 5 * 1024 * 1024) return;
+    var rd = new FileReader();
+    rd.onload = function () { logoData = rd.result; $('[data-logo-ok]').hidden = false; update(); };
+    rd.readAsDataURL(f);
+  });
+  $('[data-logo-remove]').addEventListener('click', function () { logoData = null; $('[data-logo-file]').value = ''; $('[data-logo-ok]').hidden = true; update(); });
+
+  /* ---------- 实时预览：根据选择画出机器的示意图 ---------- */
+  var COLORS = { black: '#23292a', white: '#eef1f0', gray: '#8c9593' };
+  function shade(hex, k) {
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    var f = function (x) { return Math.max(0, Math.min(255, Math.round(k < 0 ? x * (1 + k) : x + (255 - x) * k))); };
+    return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+  }
+  function toHex(css) {
+    var cv = document.createElement('canvas').getContext('2d');
+    cv.fillStyle = '#000'; cv.fillStyle = css;
+    var v = cv.fillStyle;
+    return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+  }
+  var esc = function (t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
+  function portIcon(t, cx, cy, ink, hole) {
+    if (t === 'DC') return '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="' + hole + '" stroke="' + ink + '" stroke-width="1.2"/><circle cx="' + cx + '" cy="' + cy + '" r="2" fill="' + ink + '"/>';
+    if (t === 'USBA') return '<rect x="' + (cx - 9) + '" y="' + (cy - 4.5) + '" width="18" height="9" rx="1" fill="' + hole + '" stroke="' + ink + '" stroke-width="1.2"/><rect x="' + (cx - 6) + '" y="' + (cy - 3) + '" width="12" height="3" fill="' + ink + '"/>';
+    if (t === 'USBC') return '<rect x="' + (cx - 7.5) + '" y="' + (cy - 3.5) + '" width="15" height="7" rx="3.5" fill="' + hole + '" stroke="' + ink + '" stroke-width="1.2"/><rect x="' + (cx - 4) + '" y="' + (cy - 1) + '" width="8" height="2" rx="1" fill="' + ink + '"/>';
+    if (t === 'POE') return '<path d="M' + (cx - 9) + ' ' + (cy - 7) + 'h18v10h-4v4h-10v-4h-4z" fill="' + hole + '" stroke="' + ink + '" stroke-width="1.2"/><path d="M' + (cx - 6) + ' ' + (cy - 5) + 'v3M' + (cx - 3) + ' ' + (cy - 5) + 'v3M' + cx + ' ' + (cy - 5) + 'v3M' + (cx + 3) + ' ' + (cy - 5) + 'v3M' + (cx + 6) + ' ' + (cy - 5) + 'v3" stroke="#c9a227" stroke-width="1"/>';
+    return '<rect x="' + (cx - 9) + '" y="' + (cy - 7) + '" width="18" height="14" rx="3" fill="none" stroke="' + ink + '" stroke-width="1" stroke-dasharray="3 2"/>';
+  }
+  function renderPreview(st) {
+    var n = st.ports.length;
+    var W = Math.max(230, Math.min(420, 70 + n * 46));
+    var mahK = Math.min(1, (st.mah || 10000) / 40000);
+    var D = Math.round(52 + 48 * mahK);        // 顶面深度：电池越大机器越"厚实"
+    var H = Math.round(54 + 16 * mahK);        // 正面高度
+    var dx = Math.round(D * 0.55), x0 = 14, y0 = 14;
+    var base = st.color, metal = st.metal;
+    var top = shade(base, metal ? 0.18 : 0.1), front = base, side = shade(base, -0.25);
+    var light = (function () { var v = parseInt(base.slice(1), 16); return ((v >> 16) * 0.3 + ((v >> 8) & 255) * 0.59 + (v & 255) * 0.11) > 150; })();
+    var ink = light ? '#2b3331' : '#e9eeec', hole = light ? '#cfd6d4' : '#0d1110';
+    var fy = y0 + D;                            // 正面上边
+    var o = [];
+    o.push('<defs>');
+    o.push('<linearGradient id="pvTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + shade(top, 0.08) + '"/><stop offset="1" stop-color="' + shade(top, -0.06) + '"/></linearGradient>');
+    o.push('<linearGradient id="pvFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + shade(front, 0.05) + '"/><stop offset="1" stop-color="' + shade(front, -0.12) + '"/></linearGradient>');
+    if (metal) o.push('<pattern id="pvBrush" width="6" height="2" patternUnits="userSpaceOnUse"><rect width="6" height="1" fill="#fff" opacity=".07"/></pattern>');
+    o.push('</defs>');
+    // 阴影
+    o.push('<ellipse cx="' + (x0 + (W + dx) / 2) + '" cy="' + (fy + H + 10) + '" rx="' + ((W + dx) / 2) + '" ry="7" fill="#000" opacity=".12"/>');
+    // 顶面、侧面、正面
+    var topPts = [[x0, fy], [x0 + W, fy], [x0 + W + dx, y0], [x0 + dx, y0]];
+    var sidePts = [[x0 + W, fy], [x0 + W + dx, y0], [x0 + W + dx, y0 + H], [x0 + W, fy + H]];
+    var pts = function (a) { return a.map(function (p) { return p.join(','); }).join(' '); };
+    o.push('<polygon points="' + pts(topPts) + '" fill="url(#pvTop)" stroke="' + shade(base, -0.35) + '" stroke-width="1" stroke-linejoin="round"/>');
+    if (metal) o.push('<polygon points="' + pts(topPts) + '" fill="url(#pvBrush)"/>');
+    o.push('<polygon points="' + pts(sidePts) + '" fill="' + side + '" stroke="' + shade(base, -0.4) + '" stroke-width="1" stroke-linejoin="round"/>');
+    o.push('<rect x="' + x0 + '" y="' + fy + '" width="' + W + '" height="' + H + '" rx="' + (metal ? 2 : 7) + '" fill="url(#pvFront)" stroke="' + shade(base, -0.35) + '" stroke-width="1"/>');
+    if (metal) o.push('<rect x="' + x0 + '" y="' + fy + '" width="' + W + '" height="' + H + '" rx="2" fill="url(#pvBrush)"/>');
+    // 顶面内容：logo、电量灯、容量
+    var skew = 'matrix(1,0,' + (-dx / D).toFixed(3) + ',1,' + (x0 + dx) + ',' + y0 + ')';
+    o.push('<g transform="' + skew + '">');
+    if (st.logoData) {
+      o.push('<image href="' + st.logoData + '" x="' + (W * 0.2) + '" y="' + (D * 0.18) + '" width="' + (W * 0.6) + '" height="' + (D * 0.5) + '" preserveAspectRatio="xMidYMid meet"/>');
+    } else if (st.logo) {
+      o.push('<rect x="' + (W * 0.25) + '" y="' + (D * 0.2) + '" width="' + (W * 0.5) + '" height="' + (D * 0.42) + '" rx="4" fill="none" stroke="' + ink + '" stroke-width="1" stroke-dasharray="4 3" opacity=".7"/>');
+      o.push('<text x="' + (W / 2) + '" y="' + (D * 0.41 + 5) + '" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="16" fill="' + ink + '" opacity=".8">' + esc(T.logoText) + '</text>');
+    }
+    for (var i = 0; i < 4; i++) o.push('<rect x="' + (14 + i * 9) + '" y="' + (D - 14) + '" width="6" height="4" rx="1" fill="' + (i < 3 ? '#3ccf7a' : (light ? '#b9c2bf' : '#3d4644')) + '"/>');
+    if (st.mah) o.push('<text x="' + (W - 12) + '" y="' + (D - 9) + '" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="' + ink + '" opacity=".75">' + st.mah + 'mAh' + (st.chem === 'LFP' ? ' LiFePO4' : '') + '</text>');
+    o.push('</g>');
+    // 正面：额定功率、电源键、输出口
+    o.push('<text x="' + (x0 + 10) + '" y="' + (fy + 15) + '" font-family="IBM Plex Mono, monospace" font-size="9" fill="' + ink + '" opacity=".8">' + (st.rated ? 'MAX ' + st.rated + 'W' : 'MINI UPS') + '</text>');
+    o.push('<circle cx="' + (x0 + W - 16) + '" cy="' + (fy + 15) + '" r="5" fill="none" stroke="' + ink + '" stroke-width="1.2"/><path d="M' + (x0 + W - 16) + ' ' + (fy + 11) + 'v4" stroke="' + ink + '" stroke-width="1.2"/>');
+    var gap = W / (n + 1), py = fy + H * 0.55;
+    st.ports.forEach(function (p, k) {
+      var cx = x0 + gap * (k + 1);
+      o.push(portIcon(p.t, cx, py, ink, hole));
+      var lab = p.t ? (p.v != null ? p.v + 'V' : '') + (p.a != null ? ' ' + p.a + 'A' : '') : '';
+      if (lab) o.push('<text x="' + cx + '" y="' + (py + 17) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="' + (n > 6 ? 7 : 8) + '" fill="' + ink + '">' + esc(lab.trim()) + '</text>');
+    });
+    var vbW = x0 + W + dx + 14, vbH = fy + H + 22;
+    var svg = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg">' + o.join('') + '</svg>';
+    // 页面上有两份预览（手机顶部 / 电脑侧栏），渐变的 id 必须各不相同，否则隐藏的那份会让另一份的渐变失效
+    $$('[data-preview]').forEach(function (el, i) { el.innerHTML = svg.replace(/pv(Top|Front|Brush)/g, 'pv$1' + i); });
+    var tags = [];
+    tags.push(st.metal ? T.metal : T.plastic);
+    if (st.box) tags.push(T.pvBox);
+    if (st.manual) tags.push(T.pvManual);
+    $('[data-pv-tags]').innerHTML = tags.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
+  }
+
   // 续航反推容量：负载 W × 小时 ÷ 效率 ÷ 单体电压 → mAh，向上取到 1000
   function helperMah() {
     var load = parseNum($('[data-h-load]').value), hrs = parseNum($('[data-h-hours]').value);
@@ -420,13 +528,24 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     updHelper();
 
     var qty = parseNum($('[data-odm-qty]').value);
-    if (!(qty > 0)) missing.push(T.mQty);
+    if (!(qty >= 1000)) missing.push(T.qtyMin); // 量产起订量 1000 台
 
     // 外观与品牌
     var items = $$('[data-odm-item]').filter(function (x) { return x.checked; }).map(function (x) { return T.short[x.dataset.odmItem]; });
     var mat = $('[data-odm-material]').value === 'metal' ? T.metal : T.plastic;
     var colK = $('[data-odm-color]').value, colTxt = colK === 'other' ? ($('[data-odm-color-other]').value.trim() || T.colors.other) : T.colors[colK];
     var target = parseNum($('[data-odm-target]').value), country = $('[data-odm-country]').value.trim(), notes = $('[data-odm-notes]').value.trim();
+
+    // 预览用的数据：没填完的输出口也画出来（虚线或只显示类型），客户边选边看
+    $('[data-logo-box]').hidden = !$('[data-odm-item="logo"]').checked;
+    var colorHex = colK === 'other' ? (toHex($('[data-odm-color-other]').value.trim()) || '#4a6fa5') : COLORS[colK];
+    renderPreview({
+      ports: $$('[data-port]', portsEl).map(function (row) { var t = $('[data-pt]', row).value; return { t: t, v: t ? portV(row) : null, a: t ? portA(row) : null }; }),
+      rated: ratedOk ? rated : null, mah: mahOk ? mah : null, chem: chem,
+      color: colorHex, metal: $('[data-odm-material]').value === 'metal',
+      logo: $('[data-odm-item="logo"]').checked, logoData: $('[data-odm-item="logo"]').checked ? logoData : null,
+      box: $('[data-odm-item="box"]').checked, manual: $('[data-odm-item="manual"]').checked,
+    });
 
     var chemName = chem === 'LFP' ? 'LiFePO4' : (lang === 'es' ? 'Litio-ion' : lang === 'ru' ? 'Li-ion' : 'Li-ion');
     var spec = [
@@ -569,6 +688,21 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   .cz-helper .cz-inline { margin-top: 10px; }
   .cz-helper input[type="number"] { width: 84px; }
   .cz-summary { gap: 14px; }
+  .cz-side { display: grid; gap: 16px; }
+  .cz-pv { gap: 10px; }
+  .cz-pv-svg svg { width: 100%; height: auto; display: block; }
+  .cz-pv .cz-pv-svg { background: linear-gradient(180deg, #f7f9f8, #e9eeec); border-radius: 10px; padding: 14px 10px 6px; }
+  .cz-pv-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cz-pv-tags span { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
+  /* 手机：预览固定在屏幕顶部，边往下填边能看到变化；电脑上在右侧栏 */
+  .cz-pv-mobile { position: sticky; top: 0; z-index: 5; margin: 0 -16px 14px; padding: 8px 16px; background: rgba(243,245,244,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  .cz-pv-mobile .cz-pv-svg { max-width: 340px; margin: 0 auto; }
+  .cz-pv-mobile .cz-pv-svg svg { max-height: 150px; }
+  @media (min-width: 961px) { .cz-pv-mobile { display: none; } }
+  @media (max-width: 960px) { .cz-pv { display: none; } }
+  .cz-logo { display: grid; gap: 6px; justify-items: start; }
+  .cz-upload { cursor: pointer; border-style: dashed; }
+  .cz-link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
   .cz-fee { display: grid; gap: 4px; background: var(--charge-soft); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
   .cz-fee b { font-size: 15px; }
   .cz-spec { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
