@@ -1,27 +1,13 @@
 // About Us 页面三语内容（B 版）。数字、认证、文化、动态来自 skepower.com 官网。
-// 照片：放到 public/about/ 目录，然后在下面 PHOTOS 里填文件名；没填的位置自动隐藏或换成图标，不会显示空白占位。
-
-export const PHOTOS = {
-  hero: '',          // 工厂外景
-  line: '',          // 生产线
-  rd: '',            // 研发 / 工程师
-  warehouse: '',     // 仓库 / 出货
-  smt: '',           // SMT 贴片车间
-  assembly: '',      // 组装线
-  aging: '',         // 老化测试
-  qc: '',            // 质检实验室
-  // 产品家族图
-  fam_dc: '', fam_backup: '', fam_hf: '', fam_if: '', fam_modular: '', fam_rack: '', fam_inverter: '', fam_battery: '',
-  // 证书图
-  cert_iso9001: '', cert_iso14001: '', cert_iso45001: '', cert_cqc: '', cert_tlc: '', cert_hitech: '',
-};
+// 照片和近期动态：在客户档案系统「网站管理」里上传和编辑（图片位 id 与那边的清单一致）。
+// 下面的 NEWS 是网站管理里还没有任何动态时显示的默认 3 条（来自官网新闻）。
 
 export const STATS = [
   { n: '20', u: '+', k: 'years' }, { n: '30,000', u: 'm²', k: 'area' }, { n: '500', u: '+', k: 'staff' },
   { n: '50', u: '', k: 'rd' }, { n: '2M', u: '', k: 'capacity' }, { n: '120', u: '+', k: 'countries' },
 ];
 
-// 产品家族：key 对应 PHOTOS.fam_<key>；online=true 的可以在网站下单
+// 产品家族：key 对应网站管理里的图片位 fam_<key>；online=true 的可以在网站下单
 export const FAMILIES = [
   { key: 'dc', online: true, range: 'USB · DC 5–48 V · PoE' },
   { key: 'backup', range: null },

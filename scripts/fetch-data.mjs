@@ -12,6 +12,7 @@ import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const OUT_JSON = path.join(ROOT, 'src/data/products.json');
+const SITE_JSON = path.join(ROOT, 'src/data/site.json'); // 网站管理：图片位 + 近期动态
 const MEDIA_DIR = path.join(ROOT, 'public/media');
 const API = (process.env.CRM_API_BASE || '').replace(/\/$/, '');
 const KEY = process.env.SITE_BUILD_KEY || '';
@@ -76,6 +77,7 @@ async function main() {
     console.warn('[fetch-data] 未设置 CRM_API_BASE / SITE_BUILD_KEY，使用示例数据');
     const sample = await fs.readFile(path.join(ROOT, 'src/data/sample-products.json'), 'utf8');
     await fs.writeFile(OUT_JSON, sample);
+    await fs.writeFile(SITE_JSON, JSON.stringify({ assets: {}, news: [] }));
     return;
   }
 
@@ -118,6 +120,30 @@ async function main() {
     p.templateImages = tpl;
   }
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
+  await fetchSite();
+}
+
+// 网站管理的图片和动态。接口不可用时（比如 CRM 还没更新）不让构建失败，页面按"没上传图片、默认动态"显示。
+async function fetchSite() {
+  let site = { assets: {}, news: [] };
+  try {
+    const raw = await getJson(`${API}/api/public/site`);
+    const assets = {};
+    for (const [slot, urls] of Object.entries(raw.assets || {})) {
+      if (!/^[A-Za-z0-9_-]+$/.test(slot)) continue;
+      const saved = [];
+      for (const [i, url] of (urls || []).entries()) {
+        try { const im = await saveDetailImage(url, '_site', i, `${slot}-`); if (im) saved.push(im); }
+        catch (e) { console.warn(`[fetch-data] 网站图片处理失败 ${slot}：${e.message}`); }
+      }
+      if (saved.length) assets[slot] = saved;
+    }
+    site = { assets, news: Array.isArray(raw.news) ? raw.news : [] };
+    console.log(`[fetch-data] 网站管理：${Object.keys(assets).length} 个图片位，${site.news.length} 条动态`);
+  } catch (e) {
+    console.warn('[fetch-data] 网站管理数据拉取失败（按默认内容构建）：', e.message);
+  }
+  await fs.writeFile(SITE_JSON, JSON.stringify(site, null, 2));
 }
 
 main().catch((e) => {
