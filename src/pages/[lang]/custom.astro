@@ -3,7 +3,7 @@
 // 链接参数：?from=<产品slug> 用该产品的输出口、功率、电池作为 ODM 起点；?tab=oem&model=<slug> 直接打开 OEM 并选好型号。
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
-import { CT, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
+import { CT, CERTS, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
 import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
 import products from '../../data/products.json';
 import { PLUGS, PLUG_ICON } from '../../lib/plugs.mjs';
@@ -22,6 +22,7 @@ const amps = (s) => { const t = String(s || ''); const n = num(t); if (n === nul
 const lite = products.map((p) => ({
   slug: p.slug,
   model: p.model,
+  thumb: (p.images && p.images[0] && (p.images[0].thumb || p.images[0].src)) || null,
   w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
   chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
   mah: totalMah(p) || null,
@@ -211,12 +212,15 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
         <div class="cz-main">
           <div class="cz-card">
             <div class="cz-two">
-              <label class="cz-field"><span class="cz-label">{T.oemModel}</span>
-                <select data-oem-model>
-                  <option value="">{T.oemPick}</option>
-                  {products.map((p) => <option value={p.slug}>{p.model}</option>)}
-                </select>
-              </label>
+              <div class="cz-field"><label class="cz-label" for="oem-model">{T.oemModel}</label>
+                <div class="cz-oem-pick">
+                  <div class="cz-thumb" data-oem-thumb><span>?</span></div>
+                  <select id="oem-model" data-oem-model>
+                    <option value="">{T.oemPick}</option>
+                    {products.map((p) => <option value={p.slug}>{p.model}</option>)}
+                  </select>
+                </div>
+              </div>
               <label class="cz-field"><span class="cz-label">{T.oemQty}</span>
                 <span class="cz-inline"><input type="number" inputmode="numeric" min={OEM_MOQ} step="100" value={OEM_MOQ} data-oem-qty /> <span>{T.pcs}</span></span>
                 <span class="cz-hint strong">{tpl(T.oemMoq, { n: OEM_MOQ })}</span>
@@ -229,19 +233,16 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
               <label><input type="checkbox" data-oem-item="logo" checked /> {T.logo}</label>
               <label><input type="checkbox" data-oem-item="box" /> {T.box}</label>
               <label><input type="checkbox" data-oem-item="manual" /> {T.manual}</label>
-              <label><input type="checkbox" data-oem-item="material" /> {T.material}</label>
-              <label><input type="checkbox" data-oem-item="color" /> {T.color}</label>
+              <label><input type="checkbox" data-oem-item="cert" /> {T.cert} <em class="cz-opt">· {T.optional}</em></label>
             </div>
-            <div class="cz-two">
-              <label class="cz-field" data-oem-material-box hidden><span class="cz-label">{T.material}</span>
-                <select data-oem-material><option value="plastic">{T.plastic}</option><option value="metal">{T.metal}</option></select>
-              </label>
-              <label class="cz-field" data-oem-color-box hidden><span class="cz-label">{T.color}</span>
-                <select data-oem-color>{Object.entries(T.colors).map(([k, v]) => <option value={k}>{v}</option>)}</select>
-              </label>
+            <div class="cz-field" data-oem-cert-box hidden>
+              <span class="cz-hint">{T.certHint}</span>
+              <div class="cz-chips" data-oem-certs>
+                {CERTS.map((x) => <label class="cz-chip"><input type="checkbox" value={x} /> {x}</label>)}
+              </div>
+              <input type="text" maxlength="80" placeholder={T.certOtherPh} data-oem-cert-other aria-label={T.cert} />
             </div>
-            <input type="text" maxlength="60" placeholder={T.colorPh} data-oem-color-other hidden aria-label={T.color} />
-            <p class="cz-hint">{T.oemLogoNote}</p>
+            <p class="cz-hint" data-oem-logo-note>{T.oemLogoNote}</p>
             <label class="cz-field"><span class="cz-label">{T.notes} <em>· {T.optional}</em></span>
               <textarea rows="3" maxlength="600" data-oem-notes></textarea>
             </label>
@@ -616,14 +617,21 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     var qty = parseNum(oemQty.value);
     if (!(qty >= c.oemMoq)) missing.push(fmt(T.oemMoq, { n: c.oemMoq }));
     var chosen = $$('[data-oem-item]').filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.oemItem; });
-    $('[data-oem-material-box]').hidden = chosen.indexOf('material') < 0;
-    $('[data-oem-color-box]').hidden = chosen.indexOf('color') < 0;
-    var colK = $('[data-oem-color]').value;
-    $('[data-oem-color-other]').hidden = chosen.indexOf('color') < 0 || colK !== 'other';
-    if (!chosen.length) missing.push(T.mItems);
+    // 缩略图：所选型号的第一张产品图
+    var th = $('[data-oem-thumb]');
+    th.innerHTML = prod && prod.thumb ? '<img src="' + prod.thumb + '" alt="">' : '<span>?</span>';
+    // 认证证书（可选）：勾选后至少选一个证书或手动填写
+    $('[data-oem-logo-note]').hidden = chosen.indexOf('logo') < 0;
+    var certOn = chosen.indexOf('cert') >= 0;
+    $('[data-oem-cert-box]').hidden = !certOn;
+    var certs = $$('[data-oem-certs] input').filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+    var certOther = $('[data-oem-cert-other]').value.trim();
+    if (certOther) certs.push(certOther);
+    if (certOn && !certs.length) missing.push(T.mCert);
+    // 认证本身不算"定制项"：至少还要选 logo / 包装盒 / 说明书 之一
+    if (!chosen.filter(function (k) { return k !== 'cert'; }).length) missing.push(T.mItems);
     var labels = chosen.map(function (k) {
-      if (k === 'material') return T.material + ': ' + ($('[data-oem-material]').value === 'metal' ? T.metal : T.plastic);
-      if (k === 'color') return T.color + ': ' + (colK === 'other' ? ($('[data-oem-color-other]').value.trim() || T.colors.other) : T.colors[colK]);
+      if (k === 'cert') return T.short.cert + ': ' + (certs.length ? certs.join(', ') : '—');
       return T.short[k];
     });
     var notes = $('[data-oem-notes]').value.trim();
@@ -642,8 +650,8 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   oemModel.addEventListener('change', updateOem);
   oemQty.addEventListener('input', updateOem);
   $$('[data-oem-item]').forEach(function (x) { x.addEventListener('change', updateOem); });
-  ['[data-oem-material]', '[data-oem-color]'].forEach(function (s) { $(s).addEventListener('change', updateOem); });
-  ['[data-oem-color-other]', '[data-oem-notes]'].forEach(function (s) { $(s).addEventListener('input', updateOem); });
+  $$('[data-oem-certs] input').forEach(function (x) { x.addEventListener('change', updateOem); });
+  ['[data-oem-cert-other]', '[data-oem-notes]'].forEach(function (s) { $(s).addEventListener('input', updateOem); });
 
   /* ---------- 起点：?from=产品 / ?tab=oem&model=产品 ---------- */
   var q = new URLSearchParams(location.search);
@@ -740,6 +748,13 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   .cz-pv-mobile .cz-pv-svg svg { max-height: 150px; }
   @media (min-width: 961px) { .cz-pv-mobile { display: none; } }
   @media (max-width: 960px) { .cz-pv { display: none; } }
+  .cz-oem-pick { display: flex; gap: 12px; align-items: center; }
+  .cz-oem-pick select { flex: 1; }
+  .cz-thumb { width: 72px; height: 72px; flex: none; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 20px; }
+  .cz-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .cz-opt { font-style: normal; color: var(--muted); }
+  .cz-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); cursor: pointer; }
+  .cz-chip:has(input:checked) { border-color: var(--accent); background: var(--ok-soft); }
   .cz-logo { display: grid; gap: 6px; justify-items: start; }
   .cz-upload { cursor: pointer; border-style: dashed; }
   .cz-link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }

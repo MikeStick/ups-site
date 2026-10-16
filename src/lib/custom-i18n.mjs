@@ -10,6 +10,8 @@ export const MAX_RATED_W = 200;
 export const SAMPLE_FEE = 2000;
 export const OEM_MOQ = 1000;
 export const MAX_PORTS = 8;
+// OEM 可选的认证证书（也可以手动填其他）
+export const CERTS = ['CE', 'FCC', 'RoHS', 'UKCA', 'PSE', 'KC'];
 
 // 输出口类型：电压、电流的可选项（都可以选"其他"手动填写，USB-A 固定 5V）
 export const PORT_TYPES = {
@@ -57,7 +59,8 @@ export const CT = {
     helper: 'Not sure? Calculate it', myLoad: 'My devices use', hours: 'for', hoursUnit: 'hours', apply: 'Use {mah} mAh',
     h: 'h', min: 'min',
     s5: 'Look & branding', s5Opt: 'optional',
-    short: { logo: 'Logo', box: 'Packaging box', manual: 'User manual' },
+    short: { logo: 'Logo', box: 'Packaging box', manual: 'User manual', cert: 'Certification' },
+    cert: 'Certification', certHint: 'Choose the certificates your market needs, or type another one.', certOtherPh: 'Other certificate, e.g. NOM (Mexico)', mCert: 'certificate type',
     logo: 'Your logo on the unit', box: 'Custom packaging box', manual: 'Custom user manual',
     material: 'Housing material', plastic: 'Plastic (ABS)', metal: 'Metal (aluminium)',
     color: 'Housing color', colors: { black: 'Black', white: 'White', gray: 'Gray', other: 'Other' }, colorPh: 'e.g. blue, Pantone 286C',
@@ -116,7 +119,8 @@ export const CT = {
     helper: '¿No está seguro? Calcúlelo', myLoad: 'Mis equipos consumen', hours: 'durante', hoursUnit: 'horas', apply: 'Usar {mah} mAh',
     h: 'h', min: 'min',
     s5: 'Apariencia y marca', s5Opt: 'opcional',
-    short: { logo: 'Logo', box: 'Caja de empaque', manual: 'Manual de usuario' },
+    short: { logo: 'Logo', box: 'Caja de empaque', manual: 'Manual de usuario', cert: 'Certificación' },
+    cert: 'Certificación', certHint: 'Elija los certificados que pide su mercado o escriba otro.', certOtherPh: 'Otro certificado, ej.: NOM (México)', mCert: 'tipo de certificado',
     logo: 'Su logo en el equipo', box: 'Caja de empaque personalizada', manual: 'Manual de usuario personalizado',
     material: 'Material de la carcasa', plastic: 'Plástico (ABS)', metal: 'Metal (aluminio)',
     color: 'Color de la carcasa', colors: { black: 'Negro', white: 'Blanco', gray: 'Gris', other: 'Otro' }, colorPh: 'Ej.: azul, Pantone 286C',
@@ -175,7 +179,8 @@ export const CT = {
     helper: 'Не уверены? Рассчитайте', myLoad: 'Мои устройства потребляют', hours: 'в течение', hoursUnit: 'ч', apply: 'Выбрать {mah} мАч',
     h: 'ч', min: 'мин',
     s5: 'Внешний вид и бренд', s5Opt: 'необязательно',
-    short: { logo: 'Логотип', box: 'Коробка', manual: 'Инструкция' },
+    short: { logo: 'Логотип', box: 'Коробка', manual: 'Инструкция', cert: 'Сертификация' },
+    cert: 'Сертификация', certHint: 'Выберите сертификаты, которые нужны на вашем рынке, или впишите другой.', certOtherPh: 'Другой сертификат, напр. ЕАС', mCert: 'тип сертификата',
     logo: 'Ваш логотип на корпусе', box: 'Фирменная коробка', manual: 'Фирменная инструкция',
     material: 'Материал корпуса', plastic: 'Пластик (ABS)', metal: 'Металл (алюминий)',
     color: 'Цвет корпуса', colors: { black: 'Чёрный', white: 'Белый', gray: 'Серый', other: 'Другой' }, colorPh: 'Напр.: синий, Pantone 286C',
