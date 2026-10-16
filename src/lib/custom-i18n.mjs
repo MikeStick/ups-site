@@ -21,7 +21,7 @@ export const PORT_TYPES = {
 
 // 电池：标称单体电压用于算 Wh（与 src/lib/power.mjs 一致）
 export const CHEM = { LI: 3.7, LFP: 3.2 };
-export const CAP_PRESETS = [5000, 10000, 15000, 20000, 30000, 40000];
+export const CAP_PRESETS = [5000, 8800, 10000, 20000, 30000, 60000];
 export const POWER_PRESETS = [18, 36, 60, 100, 150, 200];
 
 export const CT = {
@@ -32,13 +32,16 @@ export const CT = {
     tabOdm: 'Full custom design (ODM)', tabOem: 'Your brand on a standard model (OEM)',
     odmSub: 'We design a new model around your devices: outputs, voltages, currents and battery.',
     oemSub: 'Pick one of our models and we make it with your logo and packaging.',
+    plugTitle: 'Power cord plug', plugHint: 'Choose one or more. For several types, tell us the split in the notes.',
+    plugWhere: { US: 'Venezuela, Colombia, Mexico, USA', EU: 'Europe, Russia, CIS, Middle East', UK: 'UK, Nigeria, UAE, Malaysia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka', OT: 'Type J, L, M, N or another standard' },
+    plugOther: 'Other type', plugOtherPh: 'e.g. Type L (Chile)', typeWord: 'Type', mPlug: 'plug type', lPlug: 'Plug',
     s1: 'Input', inputFixed: '100–240 Vac · 50/60 Hz', inputNote: 'Universal input, works in every country. Fixed on all our models.',
     s2: 'Rated output power', s2Hint: 'The maximum power when several outputs are used at the same time. Up to {max} W.',
     s2Share: 'Each output can use up to this power. The outputs share it, so they don’t all have to run at full load together.',
     w: 'W',
     s3: 'Outputs', count: 'Number of outputs', port: 'Output {n}',
     type: 'Type', voltage: 'Voltage', current: 'Current', other: 'Other…', choose: 'Choose…',
-    types: { DC: 'DC jack', USBA: 'USB-A', USBC: 'USB-C', POE: 'PoE (passive)' },
+    types: { DC: 'DC jack', USBA: 'USB', USBC: 'Type-C', POE: 'PoE (passive)' },
     ph: { v: 'Volts', a: 'Amps' },
     portPower: '{w} W',
     errIncomplete: 'Complete type, voltage and current',
@@ -88,13 +91,16 @@ export const CT = {
     tabOdm: 'Diseño 100% a medida (ODM)', tabOem: 'Su marca en un modelo estándar (OEM)',
     odmSub: 'Diseñamos un modelo nuevo para sus equipos: salidas, voltajes, corrientes y batería.',
     oemSub: 'Elija uno de nuestros modelos y lo fabricamos con su logo y su empaque.',
+    plugTitle: 'Enchufe del cable de alimentación', plugHint: 'Elija uno o varios. Si son varios, indique el reparto en las notas.',
+    plugWhere: { US: 'Venezuela, Colombia, México, EE. UU.', EU: 'Europa, Rusia, CEI, Medio Oriente', UK: 'Reino Unido, Nigeria, Emiratos, Malasia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka', OT: 'Tipo J, L, M, N u otro estándar' },
+    plugOther: 'Otro tipo', plugOtherPh: 'Ej.: Tipo L (Chile)', typeWord: 'Tipo', mPlug: 'tipo de enchufe', lPlug: 'Enchufe',
     s1: 'Entrada', inputFixed: '100–240 Vac · 50/60 Hz', inputNote: 'Entrada universal, funciona en cualquier país. Es fija en todos nuestros modelos.',
     s2: 'Potencia nominal de salida', s2Hint: 'La potencia máxima cuando se usan varias salidas a la vez. Hasta {max} W.',
     s2Share: 'Cada salida puede usar hasta esta potencia. Las salidas la comparten, así que no tienen que funcionar todas a plena carga al mismo tiempo.',
     w: 'W',
     s3: 'Salidas', count: 'Número de salidas', port: 'Salida {n}',
     type: 'Tipo', voltage: 'Voltaje', current: 'Corriente', other: 'Otro…', choose: 'Elegir…',
-    types: { DC: 'Conector DC', USBA: 'USB-A', USBC: 'USB-C', POE: 'PoE (pasivo)' },
+    types: { DC: 'Conector DC', USBA: 'USB', USBC: 'Type-C', POE: 'PoE (pasivo)' },
     ph: { v: 'Voltios', a: 'Amperios' },
     portPower: '{w} W',
     errIncomplete: 'Complete tipo, voltaje y corriente',
@@ -144,13 +150,16 @@ export const CT = {
     tabOdm: 'Полностью новая модель (ODM)', tabOem: 'Ваш бренд на стандартной модели (OEM)',
     odmSub: 'Разработаем модель под ваши устройства: выходы, напряжения, токи и батарея.',
     oemSub: 'Выберите нашу модель — сделаем её с вашим логотипом и упаковкой.',
+    plugTitle: 'Вилка сетевого кабеля', plugHint: 'Выберите одну или несколько. Если несколько — укажите распределение в примечаниях.',
+    plugWhere: { US: 'Венесуэла, Колумбия, Мексика, США', EU: 'Европа, Россия, СНГ, Ближний Восток', UK: 'Великобритания, Нигерия, ОАЭ, Малайзия', AU: 'Австралия, Аргентина, Китай', IN: 'Индия, Непал, Шри-Ланка', OT: 'Тип J, L, M, N или другой стандарт' },
+    plugOther: 'Другой тип', plugOtherPh: 'Напр.: Тип L (Чили)', typeWord: 'Тип', mPlug: 'тип вилки', lPlug: 'Вилка',
     s1: 'Вход', inputFixed: '100–240 В~ · 50/60 Гц', inputNote: 'Универсальный вход, подходит для любой страны. Одинаков на всех наших моделях.',
     s2: 'Номинальная выходная мощность', s2Hint: 'Максимальная мощность при одновременной работе нескольких выходов. До {max} Вт.',
     s2Share: 'Каждый выход может использовать всю эту мощность. Выходы делят её между собой, поэтому не обязаны работать на полную одновременно.',
     w: 'Вт',
     s3: 'Выходы', count: 'Количество выходов', port: 'Выход {n}',
     type: 'Тип', voltage: 'Напряжение', current: 'Ток', other: 'Другое…', choose: 'Выбрать…',
-    types: { DC: 'Разъём DC', USBA: 'USB-A', USBC: 'USB-C', POE: 'PoE (пассивный)' },
+    types: { DC: 'Разъём DC', USBA: 'USB', USBC: 'Type-C', POE: 'PoE (пассивный)' },
     ph: { v: 'Вольты', a: 'Амперы' },
     portPower: '{w} Вт',
     errIncomplete: 'Укажите тип, напряжение и ток',

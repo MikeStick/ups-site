@@ -6,6 +6,7 @@ import { LANGS, SITE } from '../../config.mjs';
 import { CT, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
 import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
 import products from '../../data/products.json';
+import { PLUGS, PLUG_ICON } from '../../lib/plugs.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -60,6 +61,20 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
             <h2><span>1</span>{T.s1}</h2>
             <div class="cz-locked"><b class="num">{T.inputFixed}</b><span>🔒</span></div>
             <p class="cz-hint">{T.inputNote}</p>
+            <div class="cz-field">
+              <span class="cz-label">{T.plugTitle}</span>
+              <span class="cz-hint">{T.plugHint}</span>
+              <div class="cz-plugs">
+                {PLUGS.map(([k, name, type]) => (
+                  <label class="cz-plug">
+                    <input type="checkbox" data-plug={k} checked={k === 'US'} />
+                    <span class="cz-plug-ico" set:html={PLUG_ICON[k]} />
+                    <span class="cz-plug-name"><b>{k === 'OT' ? T.plugOther : `${name} · ${T.typeWord} ${type}`}</b><small>{T.plugWhere[k]}</small></span>
+                  </label>
+                ))}
+              </div>
+              <input type="text" maxlength="60" placeholder={T.plugOtherPh} data-plug-other hidden aria-label={T.plugOther} />
+            </div>
           </div>
 
           <div class="cz-card">
@@ -407,7 +422,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   function renderPreview(st) {
     var n = st.ports.length;
     var W = Math.max(230, Math.min(420, 70 + n * 46));
-    var mahK = Math.min(1, (st.mah || 10000) / 40000);
+    var mahK = Math.min(1, (st.mah || 10000) / 60000);
     var D = Math.round(52 + 48 * mahK);        // 顶面深度：电池越大机器越"厚实"
     var H = Math.round(54 + 16 * mahK);        // 正面高度
     var dx = Math.round(D * 0.55), x0 = 14, y0 = 14;
@@ -455,7 +470,12 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
       var lab = p.t ? (p.v != null ? p.v + 'V' : '') + (p.a != null ? ' ' + p.a + 'A' : '') : '';
       if (lab) o.push('<text x="' + cx + '" y="' + (py + 17) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="' + (n > 6 ? 7 : 8) + '" fill="' + ink + '">' + esc(lab.trim()) + '</text>');
     });
-    var vbW = x0 + W + dx + 14, vbH = fy + H + 22;
+    // 电源线：从侧面引出，末端标插头规格
+    var cx0 = x0 + W + dx * 0.5, cy0 = fy - D * 0.5 + H * 0.7, cordEnd = cx0 + 46;
+    o.push('<path d="M' + cx0 + ' ' + cy0 + ' C ' + (cx0 + 22) + ' ' + cy0 + ', ' + (cx0 + 12) + ' ' + (cy0 + 34) + ', ' + cordEnd + ' ' + (cy0 + 34) + '" fill="none" stroke="#2b3331" stroke-width="3" stroke-linecap="round"/>');
+    o.push('<rect x="' + cordEnd + '" y="' + (cy0 + 27) + '" width="18" height="14" rx="3" fill="#2b3331"/><rect x="' + (cordEnd + 18) + '" y="' + (cy0 + 29) + '" width="6" height="2" fill="#9aa5a2"/><rect x="' + (cordEnd + 18) + '" y="' + (cy0 + 37) + '" width="6" height="2" fill="#9aa5a2"/>');
+    if (st.plugs && st.plugs.length) o.push('<text x="' + (cordEnd + 9) + '" y="' + (cy0 + 54) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#2b3331">' + esc(st.plugs.join('/')) + '</text>');
+    var vbW = Math.max(x0 + W + dx + 14, cordEnd + 34), vbH = Math.max(fy + H + 22, cy0 + 60);
     var svg = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg">' + o.join('') + '</svg>';
     // 页面上有两份预览（手机顶部 / 电脑侧栏），渐变的 id 必须各不相同，否则隐藏的那份会让另一份的渐变失效
     $$('[data-preview]').forEach(function (el, i) { el.innerHTML = svg.replace(/pv(Top|Front|Brush)/g, 'pv$1' + i); });
@@ -478,8 +498,20 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   $('[data-h-hours]').addEventListener('input', updHelper);
   $('[data-h-apply]').addEventListener('click', function () { var m = helperMah(); if (m) { mahEl.value = m; update(); } });
 
+  function plugState() {
+    var other = $('[data-plug-other]');
+    var on = $$('[data-plug]').filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.plug; });
+    other.hidden = on.indexOf('OT') < 0;
+    var names = on.map(function (k) { return k === 'OT' ? other.value.trim() : (k === 'IN' ? 'India' : k); });
+    return { codes: on, names: names, ok: on.length > 0 && names.every(Boolean) };
+  }
+  $$('[data-plug]').forEach(function (x) { x.addEventListener('change', update); });
+  $('[data-plug-other]').addEventListener('input', update);
+
   function update() {
     var missing = [];
+    var plugs = plugState();
+    if (!plugs.ok) missing.push(T.mPlug);
     var rated = parseNum(ratedEl.value);
     var ratedOk = rated !== null && rated > 0 && rated <= c.maxW;
     chips('[data-power-chips]', 'w', rated);
@@ -541,7 +573,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     var colorHex = colK === 'other' ? (toHex($('[data-odm-color-other]').value.trim()) || '#4a6fa5') : COLORS[colK];
     renderPreview({
       ports: $$('[data-port]', portsEl).map(function (row) { var t = $('[data-pt]', row).value; return { t: t, v: t ? portV(row) : null, a: t ? portA(row) : null }; }),
-      rated: ratedOk ? rated : null, mah: mahOk ? mah : null, chem: chem,
+      rated: ratedOk ? rated : null, mah: mahOk ? mah : null, chem: chem, plugs: plugs.names.filter(Boolean),
       color: colorHex, metal: $('[data-odm-material]').value === 'metal',
       logo: $('[data-odm-item="logo"]').checked, logoData: $('[data-odm-item="logo"]').checked ? logoData : null,
       box: $('[data-odm-item="box"]').checked, manual: $('[data-odm-item="manual"]').checked,
@@ -550,6 +582,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     var chemName = chem === 'LFP' ? 'LiFePO4' : (lang === 'es' ? 'Litio-ion' : lang === 'ru' ? 'Li-ion' : 'Li-ion');
     var spec = [
       [T.lInput, T.inputFixed],
+      [T.lPlug, plugs.ok ? plugs.names.join(', ') : '—'],
       [T.lRated, ratedOk ? rated + ' ' + T.w : '—'],
       [T.lOutputs, portsOk ? portLines.join('\n') : '—'],
       [T.lBattery, mahOk ? chemName + ', ' + mah + ' mAh (' + wh + ' Wh)' : '—'],
@@ -664,6 +697,13 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   .cz textarea { width: 100%; resize: vertical; }
   .cz-locked { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); color: var(--muted); }
   .cz-locked b { color: var(--ink); }
+  .cz-plugs { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .cz-plug { display: grid; grid-template-columns: auto 40px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .cz-plug:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cz-plug-ico { width: 40px; height: 40px; display: block; }
+  .cz-plug-ico svg { width: 100%; height: 100%; display: block; }
+  .cz-plug-name { display: grid; line-height: 1.3; font-size: 14px; min-width: 0; }
+  .cz-plug-name small { color: var(--muted); font-size: 12px; }
   .cz-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .cz-chips button { font: 14px var(--body); padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
   .cz-chips button.on { border-color: var(--accent); background: var(--accent); color: #fff; }
