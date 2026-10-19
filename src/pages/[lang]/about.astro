@@ -22,6 +22,11 @@ const capOf = (im) => (im.caption && (im.caption[lang] || im.caption.en)) || '';
 const gallery = (k) => (site.assets[k] || []).map((im) => ({ src: im.src, cap: capOf(im) }));
 const facPhotos = ['smt', 'assembly', 'aging', 'qc'].filter((k) => ph(k));
 const certPhotos = ['cert_iso9001', 'cert_iso14001', 'cert_iso45001', 'cert_cqc', 'cert_tlc', 'cert_hitech'].filter((k) => ph(k));
+const CERT_NAMES = { cert_iso9001: 'ISO 9001', cert_iso14001: 'ISO 14001', cert_iso45001: 'ISO 45001', cert_cqc: 'CQC', cert_tlc: 'TLC', cert_hitech: T.honCnList[0] };
+const facGallery = facPhotos.map((k) => ({ src: ph(k), cap: T.facPhotos[k] }));
+// 滚动带：照片少于 4 张时重复几遍，保证宽屏上也能铺满、循环不留空
+const facLoop = facPhotos.length ? Array.from({ length: Math.ceil(4 / facPhotos.length) }, () => facPhotos.map((k, i) => [k, i])).flat() : [];
+const certGallery = certPhotos.map((k) => ({ src: ph(k), cap: CERT_NAMES[k] }));
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 // 产品家族图标（没有照片时显示）
 const ICONS = {
@@ -143,8 +148,19 @@ const WHY_ICONS = [
   <section class="block wrap" id="factory">
     <div class="head"><span class="eyebrow">{T.facEyebrow}</span><h2>{T.facH}</h2></div>
     {facPhotos.length > 0 && (
-      <div class="factory">
-        {facPhotos.map((k) => <figure><div class="ph light"><img src={ph(k)} alt={T.facPhotos[k]} loading="lazy" /></div><figcaption>{T.facPhotos[k]}</figcaption></figure>)}
+      <!-- 车间照片自动滚动播放：鼠标悬停 / 手指按住时暂停，点击查看大图 -->
+      <div class="marquee" data-gallery-list={JSON.stringify(facGallery)} data-title={T.facEyebrow}>
+        <div class="marquee-track" style={`--n:${facLoop.length}`}>
+          {[0, 1].map((half) => facLoop.map(([k, i], j) => {
+            const dup = half > 0 || j >= facPhotos.length;
+            return (
+            <figure aria-hidden={dup ? 'true' : undefined}>
+              <button type="button" class="ph light" data-open={i} tabindex={dup ? -1 : 0} aria-label={T.facPhotos[k]}><img src={ph(k)} alt={dup ? '' : T.facPhotos[k]} loading="lazy" /></button>
+              <figcaption>{T.facPhotos[k]}</figcaption>
+            </figure>
+            );
+          }))}
+        </div>
       </div>
     )}
     <ol class="flow">
@@ -161,7 +177,10 @@ const WHY_ICONS = [
       <div class="honor"><h3>{T.honSw}</h3><p><b class="big num">10</b>{T.honSwText}</p></div>
     </div>
     {certPhotos.length > 0 && (
-      <div class="cert-strip">{certPhotos.map((k) => <div class="ph light"><img src={ph(k)} alt="" loading="lazy" /></div>)}</div>
+      <!-- 证书：双击放大（手机上单击） -->
+      <div class="cert-strip" data-gallery-list={JSON.stringify(certGallery)} data-title={T.honEyebrow} data-dbl>
+        {certPhotos.map((k, i) => <button type="button" class="ph light cert" data-open={i} aria-label={CERT_NAMES[k]}><img src={ph(k)} alt={CERT_NAMES[k]} loading="lazy" /></button>)}
+      </div>
     )}
   </section>
 
@@ -246,11 +265,20 @@ const WHY_ICONS = [
       lb.querySelector('[data-lb-count]').textContent = list.length > 1 ? (i + 1) + ' / ' + list.length : '';
       lb.querySelector('[data-lb-prev]').hidden = lb.querySelector('[data-lb-next]').hidden = list.length < 2;
     }
-    function open(g, t) { list = g; i = 0; title = t; show(); lb.hidden = false; document.body.style.overflow = 'hidden'; }
+    function open(g, t, start) { list = g; i = start || 0; title = t; show(); lb.hidden = false; document.body.style.overflow = 'hidden'; }
     function close() { lb.hidden = true; document.body.style.overflow = ''; }
     function go(d) { i = (i + d + list.length) % list.length; show(); }
     document.querySelectorAll('.about [data-gallery]').forEach(function (b) {
       b.addEventListener('click', function () { open(JSON.parse(b.dataset.gallery), b.dataset.title); });
+    });
+    // 车间滚动图（单击）和证书（双击；触屏设备单击）
+    var touch = window.matchMedia('(hover: none)').matches;
+    document.querySelectorAll('.about [data-gallery-list]').forEach(function (box) {
+      var g = JSON.parse(box.dataset.galleryList), ev = box.hasAttribute('data-dbl') && !touch ? 'dblclick' : 'click';
+      box.addEventListener(ev, function (e) {
+        var b = e.target.closest('[data-open]'); if (!b) return;
+        open(g, box.dataset.title, +b.dataset.open);
+      });
     });
     lb.querySelector('[data-lb-prev]').addEventListener('click', function (e) { e.stopPropagation(); go(-1); });
     lb.querySelector('[data-lb-next]').addEventListener('click', function (e) { e.stopPropagation(); go(1); });
@@ -380,10 +408,18 @@ const WHY_ICONS = [
   .line-card a { font-weight: 600; font-size: 14px; text-decoration: none; margin-top: 4px; }
 
   /* 工厂与质量 */
-  .factory { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  @media (max-width: 860px) { .factory { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .factory figure { margin: 0; display: grid; gap: 8px; }
-  .factory figcaption { font-size: 13px; color: var(--muted); }
+  /* 车间照片滚动播放：两份相同内容首尾相接，平移一份的宽度后无缝循环 */
+  .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+  .marquee-track { --w: clamp(240px, 26vw, 320px); --gap: 12px; display: flex; gap: var(--gap); width: max-content; animation: marquee calc(var(--n) * 7s) linear infinite; }
+  .marquee:hover .marquee-track, .marquee:focus-within .marquee-track, .marquee:active .marquee-track { animation-play-state: paused; }
+  @keyframes marquee { to { transform: translateX(calc(-1 * var(--n) * (var(--w) + var(--gap)))); } }
+  @media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } .marquee { overflow-x: auto; } }
+  .marquee figure { margin: 0; width: var(--w); flex: none; display: grid; gap: 8px; }
+  .marquee figcaption { font-size: 13px; color: var(--muted); }
+  .marquee .ph, .cert-strip .cert { padding: 0; border: 0; width: 100%; cursor: zoom-in; }
+  .cert-strip .ph img { object-fit: contain; background: #fff; }
+  .cert-strip .cert { transition: transform .15s, box-shadow .15s; }
+  .cert-strip .cert:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,33,31,.12); }
   .flow { margin-top: 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .flow li { list-style: none; padding: 16px; border-left: 1px solid var(--line); position: relative; }
   .flow li:first-child { border-left: 0; }
