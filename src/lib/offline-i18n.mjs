@@ -15,7 +15,7 @@ export const SPEC_FIELDS = ['outputPower', 'acInputVoltage', 'inputVoltageRange'
 
 export const OT = {
   en: {
-    nav: 'Offline UPS', navMini: 'Mini DC UPS', navProducts: 'Products',
+    nav: 'Offline & line-interactive UPS', navMini: 'Mini DC UPS', navProducts: 'Products',
     title: 'Offline & line-interactive UPS', metaDesc: 'Offline and line-interactive UPS from 600 VA to 3 kVA with AVR and sockets for every market. Factory direct, OEM from 1000 pcs.',
     crumbs: 'Products',
     eyebrow: 'Offline & line-interactive UPS', h1a: 'Clean backup for ', h1b: 'PCs, POS & networks',
@@ -59,7 +59,7 @@ export const OT = {
     },
   },
   es: {
-    nav: 'UPS offline', navMini: 'Mini UPS DC', navProducts: 'Productos',
+    nav: 'UPS offline e interactivos', navMini: 'Mini UPS DC', navProducts: 'Productos',
     title: 'UPS offline e interactivos', metaDesc: 'UPS offline e interactivos de 600 VA a 3 kVA con AVR y tomas para cada mercado. Directo de fábrica, OEM desde 1000 uds.',
     crumbs: 'Productos',
     eyebrow: 'UPS offline e interactivos', h1a: 'Respaldo confiable para ', h1b: 'PC, POS y redes',
@@ -102,7 +102,7 @@ export const OT = {
     },
   },
   ru: {
-    nav: 'Резервные ИБП', navMini: 'Мини-ИБП DC', navProducts: 'Продукция',
+    nav: 'Резервные и линейно-интерактивные ИБП', navMini: 'Мини-ИБП DC', navProducts: 'Продукция',
     title: 'Резервные и линейно-интерактивные ИБП', metaDesc: 'Резервные и линейно-интерактивные ИБП от 600 ВА до 3 кВА с AVR и розетками для любого рынка. Напрямую с завода, OEM от 1000 шт.',
     crumbs: 'Продукция',
     eyebrow: 'Резервные и линейно-интерактивные ИБП', h1a: 'Надёжное резервное питание для ', h1b: 'ПК, касс и сетей',

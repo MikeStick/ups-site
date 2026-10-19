@@ -41,3 +41,9 @@ export function seriesOf(p, all) {
     .sort((a, b) => a.k.n - b.k.n).map((o) => o.x);
   return list.length >= 2 ? list : [];
 }
+
+// 列表默认排序用的系列名：GF400 → "GF|"，同系列排在一起；型号不是"字母+数字"格式的按型号本身
+export function seriesName(p) {
+  const k = seriesKey(p);
+  return k ? k.key.slice(2) : String(p.model || '').toUpperCase();
+}

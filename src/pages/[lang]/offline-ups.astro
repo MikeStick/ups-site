@@ -4,7 +4,7 @@ import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { OT, DEVICES, SPEC_FIELDS, specValue } from '../../lib/offline-i18n.mjs';
 import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_WHERE, socketsText } from '../../lib/sockets.mjs';
-import { isOffline, isLineInteractive, capacityOf, fmtCap } from '../../lib/category.mjs';
+import { isOffline, isLineInteractive, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import { batteryWh } from '../../lib/power.mjs';
 import { term } from '../../i18n.mjs';
 import all from '../../data/products.json';
@@ -16,8 +16,8 @@ const { lang } = Astro.params;
 const T = OT[lang];
 const list = all.filter(isOffline).map((p) => {
   const c = capacityOf(p);
-  return { p, va: c.va, w: c.w, li: isLineInteractive(p), wh: Math.round(batteryWh(p)) };
-}).sort((a, b) => a.va - b.va || a.w - b.w);
+  return { p, va: c.va, w: c.w, li: isLineInteractive(p), wh: Math.round(batteryWh(p)), s: seriesName(p) };
+}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va || a.w - b.w); // 默认：按系列分组（GF 全部在前，GS 在后），系列内容量从小到大
 const fmtVA = (x) => fmtCap(x);
 const vaMin = list.length ? Math.min(...list.map((x) => x.va).filter(Boolean)) : 600;
 const vaMax = list.length ? Math.max(...list.map((x) => x.va).filter(Boolean)) : 3000;
@@ -111,7 +111,7 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
             const p = x.p, img = p.images && p.images[0];
             const sock = socketsText(p.sockets);
             return (
-              <article class="pcard" data-t={x.li ? 'li' : 'off'} data-va={x.va}>
+              <article class="pcard" data-t={x.li ? 'li' : 'off'} data-va={x.va} data-w={x.w}>
                 <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                   {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={UPS_SVG} />}
                   <span class:list={['tag', { li: x.li }]}>{x.li ? T.fLi : T.fOff}</span>
@@ -206,7 +206,17 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
   var c = JSON.parse(root.querySelector('[data-off-cfg]').textContent);
   // 筛选
   var f = { type: '', cap: '' };
+  // 默认按系列排序；客户选了容量区间后改为按容量从小到大，取消后恢复系列顺序
+  var grid = root.querySelector('.grid');
+  var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('.pcard')) : [];
+  cards.forEach(function (el, i) { el.dataset.ord = i; });
+  function reorder() {
+    var list = cards.slice();
+    if (f.cap) list.sort(function (a, b) { return (a.dataset.va - b.dataset.va) || (a.dataset.w - b.dataset.w) || (a.dataset.ord - b.dataset.ord); });
+    list.forEach(function (el) { grid.appendChild(el); });
+  }
   function filter() {
+    if (grid) reorder();
     var n = 0;
     root.querySelectorAll('.pcard').forEach(function (el) {
       var va = +el.dataset.va;
