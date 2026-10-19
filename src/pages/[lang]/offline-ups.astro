@@ -315,7 +315,7 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
   @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
   .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
   .pcard[hidden] { display: none; }
-  .pimg { aspect-ratio: 5 / 4; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
   .pimg svg { width: 70%; }
   .pimg .tag { position: absolute; left: 10px; top: 10px; }
   .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
@@ -378,7 +378,7 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
   .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
   footer { margin-top: 0; }
   .note { margin-top: 10px; }
-  .pimg img { width: 100%; height: 100%; object-fit: contain; padding: 6%; }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
   .pimg :global(svg) { width: 70%; }
   .pbody h3 a { color: inherit; text-decoration: none; }
   .tbl-wrap a { color: var(--ink); }

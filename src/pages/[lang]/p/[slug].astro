@@ -7,7 +7,7 @@ import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
-import { isOffline, capacityOf, fmtCap } from '../../../lib/category.mjs';
+import { isOffline, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import products from '../../../data/products.json';
@@ -22,6 +22,8 @@ const t = UI[lang];
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
 const offline = isOffline(p);
 const O = OT[lang];
+const series = seriesOf(p, products);
+const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = offline
   ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
      ...(socketsText(p.sockets) ? [[O.spec.sockets, socketsText(p.sockets)]] : [])]
@@ -65,6 +67,14 @@ const jsonLd = {
     <section class="summary">
       {typeName && <span class="type">{typeName}</span>}
       <h1>{p.model}</h1>
+      {series.length > 0 && (
+        <nav class="series" aria-label={seriesLabel}>
+          <span>{seriesLabel}</span>
+          {series.map((s) => s.slug === p.slug
+            ? <b aria-current="page">{s.model}</b>
+            : <a href={`/${lang}/p/${s.slug}/`}>{s.model}</a>)}
+        </nav>
+      )}
       {highlights.length > 0 && <ul class="highlights">{highlights.map((h) => <li>{h}</li>)}</ul>}
       {desc && <p class="desc">{desc}</p>}
 
@@ -134,6 +144,11 @@ const jsonLd = {
 </Base>
 
 <style>
+  .series { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; font-size: 13px; }
+  .series span { color: var(--muted); margin-right: 2px; }
+  .series a, .series b { padding: 4px 11px; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; color: var(--ink); background: var(--surface); font-weight: 500; }
+  .series a:hover { border-color: var(--ink); }
+  .series b { background: var(--ink); color: var(--surface); border-color: var(--ink); }
   .crumbs { font-size: 13px; color: var(--muted); margin: 20px 0 14px; }
   .crumbs a { color: var(--muted); }
   /* 桌面：左 图片（与右侧顶部对齐，随页面正常滚动）| 右 型号信息 + 价格数量；下方通栏：插头；再下：发货 | 结算 */
