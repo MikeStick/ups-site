@@ -7,6 +7,7 @@ import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
+import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { isOffline, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
@@ -138,6 +139,9 @@ const jsonLd = {
         </div>
       </section>
     )}
+    {(Array.isArray(p.templateHtml) ? p.templateHtml : []).map((tp) => (
+      <SeriesHtml html={(tp.html && (tp.html[lang] || tp.html.en)) || ''} model={p.model} lang={lang} />
+    ))}
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />

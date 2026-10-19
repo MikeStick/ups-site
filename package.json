@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "astro": "5.18.1",
+    "node-html-parser": "^6.1.13",
     "sharp": "0.33.5"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

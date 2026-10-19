@@ -1,0 +1,111 @@
+---
+// HTML 详情模板（系列参数表等）：内容块由 lib/tpl-html.mjs 解析，统一用网站样式渲染；当前型号整列高亮
+import { tplHtmlBlocks, modelKey } from '../lib/tpl-html.mjs';
+interface Props { html: string; model: string; lang: string }
+const { html, model, lang } = Astro.props;
+const blocks = tplHtmlBlocks(html);
+const me = modelKey(model);
+const L = {
+  en: { series: 'Series specifications', swipe: '← Swipe to see all models →' },
+  es: { series: 'Especificaciones de la serie', swipe: '← Deslice para ver todos los modelos →' },
+  ru: { series: 'Характеристики серии', swipe: '← Проведите, чтобы увидеть все модели →' },
+}[lang] || { series: 'Series specifications', swipe: '' };
+const hasTable = blocks.some((b) => b.t === 'table' || b.t === 'grid');
+const firstTitle = blocks.find((b) => b.t === 'title');
+const heading = hasTable ? L.series : (firstTitle ? firstTitle.text : L.series);
+const shown = hasTable ? blocks : blocks.filter((b) => b !== firstTitle);
+---
+{blocks.length > 0 && (
+  <section class="card series-html">
+    <h2>{heading}</h2>
+    {shown.map((b) => {
+      if (b.t === 'title') return <p class="sh-title">{b.text}</p>;
+      if (b.t === 'h') return <h3>{b.text}</h3>;
+      if (b.t === 'p') return <p class="sh-p">{b.text}</p>;
+      if (b.t === 'hi') return <div class="sh-hi">{b.items.map((x) => <span>{x}</span>)}</div>;
+      if (b.t === 'chips') return <ul class="sh-apps">{b.items.map((x) => <li>{x}</li>)}</ul>;
+      if (b.t === 'list') return <ul class="sh-list">{b.items.map((x) => <li>{x}</li>)}</ul>;
+      if (b.t === 'grid') return (
+        <div class="tbl-scroll"><table class="plain"><tbody>
+          {b.rows.map((cells) => <tr>{cells.map((c) => c.th
+            ? <th colspan={c.cs > 1 ? c.cs : undefined} rowspan={c.rs > 1 ? c.rs : undefined}>{c.text}</th>
+            : <td colspan={c.cs > 1 ? c.cs : undefined} rowspan={c.rs > 1 ? c.rs : undefined}>{c.text}</td>)}</tr>)}
+        </tbody></table></div>
+      );
+      // 型号表
+      const cur = b.models.findIndex((m) => me && modelKey(m) === me);
+      const n = b.models.length;
+      return (
+        <>
+          {n > 3 && <p class="scroll-hint">{L.swipe}</p>}
+          <div class="tbl-scroll" data-sh-scroll>
+            <table style={`min-width:${Math.max(560, 170 + n * 105)}px`}>
+              <thead><tr>
+                <th class="stk lbl-h">{b.corner}</th>
+                {b.models.map((m, i) => <th class:list={[{ cur: i === cur }]}>{m}</th>)}
+              </tr></thead>
+              <tbody>
+                {b.rows.map((r) => r.sec !== undefined
+                  ? <tr class="sec"><td class="stk">{r.sec}</td><td colspan={n}></td></tr>
+                  : <tr><td class="lbl stk">{r.label}</td>{r.cells.map((c) => (
+                      <td colspan={c.cs > 1 ? c.cs : undefined} rowspan={c.rs > 1 ? c.rs : undefined}
+                        class:list={[{ cur: c.cs === 1 && c.col === cur, span: c.cs > 1 }]}>{c.cs > 1 ? <span class="sv">{c.text}</span> : c.text}</td>
+                    ))}</tr>)}
+              </tbody>
+            </table>
+          </div>
+        </>
+      );
+    })}
+  </section>
+)}
+
+<script is:inline>
+// 手机上表格放不下时，自动滑到当前型号那一列
+(function () {
+  document.querySelectorAll('[data-sh-scroll]').forEach(function (box) {
+    var th = box.querySelector('thead th.cur'), stk = box.querySelector('thead th.stk');
+    if (!th || box.scrollWidth <= box.clientWidth) return;
+    var x = th.offsetLeft - (stk ? stk.offsetWidth : 0) - 8;
+    if (x > 0) box.scrollLeft = x;
+  });
+})();
+</script>
+
+<style>
+  .series-html { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; min-width: 0; }
+  @media (max-width: 700px) { .series-html { padding: 16px; } }
+  .series-html h2 { font-size: 24px; margin: 0 0 14px; }
+  .series-html .sh-title { font: 600 20px var(--display); text-transform: uppercase; letter-spacing: .02em; margin: -4px 0 12px; }
+  .series-html .sh-hi { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+  .series-html .sh-hi span { border: 1px solid var(--line); border-radius: 99px; padding: 4px 11px; font-size: 13px; font-weight: 500; background: #fff; }
+  .series-html .sh-hi span:first-child { background: var(--ink); color: #fff; border-color: var(--ink); font-family: var(--mono); }
+  .series-html h3 { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+  .series-html .sh-apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .series-html .sh-apps li { background: var(--ok-soft); color: var(--ok); border-radius: 6px; padding: 3px 10px; font-size: 13px; }
+  .series-html .sh-list { margin: 0 0 8px; padding-left: 20px; font-size: 14px; }
+  .series-html .sh-p { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .scroll-hint { display: none; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+  .tbl-scroll { position: relative; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; -webkit-overflow-scrolling: touch; }
+  .tbl-scroll table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .tbl-scroll th, .tbl-scroll td { padding: 9px 10px; border-bottom: 1px solid var(--line); border-right: 1px solid #edf1ef; text-align: center; vertical-align: middle; }
+  .tbl-scroll tr:last-child td { border-bottom: 0; }
+  .tbl-scroll thead th { background: var(--ink); color: #fff; font-weight: 600; white-space: nowrap; }
+  .tbl-scroll thead th.cur { background: var(--accent); }
+  .tbl-scroll thead th.lbl-h { text-align: left; }
+  .tbl-scroll tbody tr:nth-child(even) td { background: #f8faf9; }
+  .tbl-scroll td.lbl { text-align: left; color: var(--muted); font-weight: 500; }
+  .tbl-scroll tr.sec td { background: #eef3f1 !important; color: var(--ink); font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; text-align: left; }
+  .tbl-scroll td.cur { background: rgba(15, 107, 92, .07) !important; font-weight: 600; }
+  .tbl-scroll .stk { position: sticky; left: 0; z-index: 2; background: #fff; box-shadow: 1px 0 0 var(--line); min-width: 140px; max-width: 200px; }
+  .tbl-scroll tbody tr:nth-child(even) .stk { background: #f8faf9; }
+  .tbl-scroll thead .stk { z-index: 3; background: var(--ink); }
+  .tbl-scroll table.plain { min-width: 0; }
+  @media (max-width: 700px) {
+    .scroll-hint { display: block; }
+    .tbl-scroll td.span { text-align: left; }
+    /* 合并单元格的文字跟着滑动停在参数名右边，滑到哪一列都能看到 */
+    .tbl-scroll td.span .sv { position: sticky; left: 140px; display: inline-block; max-width: calc(100vw - 230px); }
+    .tbl-scroll .stk { width: 130px; min-width: 130px; max-width: 130px; }
+  }
+</style>
