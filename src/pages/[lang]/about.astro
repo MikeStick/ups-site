@@ -177,8 +177,8 @@ const WHY_ICONS = [
       <div class="honor"><h3>{T.honSw}</h3><p><b class="big num">10</b>{T.honSwText}</p></div>
     </div>
     {certPhotos.length > 0 && (
-      <!-- 证书：双击放大（手机上单击） -->
-      <div class="cert-strip" data-gallery-list={JSON.stringify(certGallery)} data-title={T.honEyebrow} data-dbl>
+      <!-- 证书：单击放大 -->
+      <div class="cert-strip" data-gallery-list={JSON.stringify(certGallery)} data-title={T.honEyebrow}>
         {certPhotos.map((k, i) => <button type="button" class="ph light cert" data-open={i} aria-label={CERT_NAMES[k]}><img src={ph(k)} alt={CERT_NAMES[k]} loading="lazy" /></button>)}
       </div>
     )}
@@ -271,11 +271,10 @@ const WHY_ICONS = [
     document.querySelectorAll('.about [data-gallery]').forEach(function (b) {
       b.addEventListener('click', function () { open(JSON.parse(b.dataset.gallery), b.dataset.title); });
     });
-    // 车间滚动图（单击）和证书（双击；触屏设备单击）
-    var touch = window.matchMedia('(hover: none)').matches;
+    // 车间滚动图和证书：单击放大
     document.querySelectorAll('.about [data-gallery-list]').forEach(function (box) {
-      var g = JSON.parse(box.dataset.galleryList), ev = box.hasAttribute('data-dbl') && !touch ? 'dblclick' : 'click';
-      box.addEventListener(ev, function (e) {
+      var g = JSON.parse(box.dataset.galleryList);
+      box.addEventListener('click', function (e) {
         var b = e.target.closest('[data-open]'); if (!b) return;
         open(g, box.dataset.title, +b.dataset.open);
       });
