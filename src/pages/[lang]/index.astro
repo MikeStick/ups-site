@@ -5,7 +5,10 @@ import { LANGS, SITE } from '../../config.mjs';
 import { UI, term, tiersOf } from '../../i18n.mjs';
 import { batteryWh, totalMah, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
 import { CT } from '../../lib/custom-i18n.mjs';
-import products from '../../data/products.json';
+import allProducts from '../../data/products.json';
+import { isMini } from '../../lib/category.mjs';
+// 这个列表页是 Mini UPS 栏目；离线式 / 在线互动式 UPS 在 /offline-ups/
+const products = allProducts.filter(isMini);
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));

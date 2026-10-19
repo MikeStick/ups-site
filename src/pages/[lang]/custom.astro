@@ -6,6 +6,8 @@ import { LANGS, SITE } from '../../config.mjs';
 import { CT, CERTS, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
 import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
 import products from '../../data/products.json';
+import { isOffline } from '../../lib/category.mjs';
+import { OT } from '../../lib/offline-i18n.mjs';
 import { PLUGS, PLUG_ICON } from '../../lib/plugs.mjs';
 
 export function getStaticPaths() {
@@ -23,6 +25,7 @@ const lite = products.map((p) => ({
   slug: p.slug,
   model: p.model,
   thumb: (p.images && p.images[0] && (p.images[0].thumb || p.images[0].src)) || null,
+  offline: isOffline(p),
   img: (p.images && p.images[0] && p.images[0].src) || null,
   w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
   chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
@@ -32,7 +35,7 @@ const lite = products.map((p) => ({
 }));
 
 const cfg = {
-  T, PORT_TYPES, CHEM, maxW: MAX_RATED_W, maxPorts: MAX_PORTS, oemMoq: OEM_MOQ, fee: SAMPLE_FEE, eff: EFFICIENCY,
+  T, offFee: OT[lang].qOem.split(' · ')[1] || '', PORT_TYPES, CHEM, maxW: MAX_RATED_W, maxPorts: MAX_PORTS, oemMoq: OEM_MOQ, fee: SAMPLE_FEE, eff: EFFICIENCY,
   wa: SITE.whatsapp, email: SITE.email, products: lite,
 };
 const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
@@ -228,6 +231,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
               <label class="cz-field"><span class="cz-label">{T.oemQty}</span>
                 <span class="cz-inline"><input type="number" inputmode="numeric" min={OEM_MOQ} step="100" value={OEM_MOQ} data-oem-qty /> <span>{T.pcs}</span></span>
                 <span class="cz-hint strong">{tpl(T.oemMoq, { n: OEM_MOQ })}</span>
+                <span class="cz-hint strong" data-oem-fee hidden></span>
               </label>
             </div>
           </div>
@@ -652,6 +656,10 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     });
     var notes = $('[data-oem-notes]').value.trim();
     var spec = [[T.lModel, prod ? prod.model : '—'], [T.oemQty, qty > 0 ? qty + ' ' + T.pcs : '—'], [T.lCustom, labels.length ? labels.join('\n') : '—']];
+    // 离线式 UPS 贴牌：样品费 3000 美元，批量订单退还
+    var feeEl = $('[data-oem-fee]');
+    feeEl.hidden = !(prod && prod.offline); feeEl.textContent = c.offFee ? c.offFee.charAt(0).toUpperCase() + c.offFee.slice(1) : '';
+    if (prod && prod.offline && c.offFee) spec.push([T.feeTitle.split(':')[0], c.offFee]);
     if (notes) spec.push([T.lNotes, notes]);
     $('[data-oem-spec]').innerHTML = spec.map(function (s) {
       return '<li><span>' + s[0] + '</span><b>' + String(s[1]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</b></li>';

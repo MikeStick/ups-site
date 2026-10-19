@@ -6,6 +6,10 @@ import RuntimeCalc from '../../../components/RuntimeCalc.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
+import QuoteConsole from '../../../components/QuoteConsole.astro';
+import { isOffline, capacityOf, fmtCap } from '../../../lib/category.mjs';
+import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
+import { socketsText } from '../../../lib/sockets.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -15,7 +19,13 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const { p } = Astro.props;
 const t = UI[lang];
-const rows = specRows(p, lang);
+// 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
+const offline = isOffline(p);
+const O = OT[lang];
+const rows = offline
+  ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
+     ...(socketsText(p.sockets) ? [[O.spec.sockets, socketsText(p.sockets)]] : [])]
+  : specRows(p, lang);
 const tiers = tiersOf(p);
 // 产品自己的详情图在前，引用的详情模板图片（工厂、认证、包装等）接在后面，无缝拼成一整列
 const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []), ...(Array.isArray(p.templateImages) ? p.templateImages : [])];
@@ -28,7 +38,11 @@ const features = ((p.sellingPointsI18n && (p.sellingPointsI18n[lang] || p.sellin
 const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
-const highlights = [
+const cap = capacityOf(p);
+const highlights = offline ? [
+  fmtCap(cap) || specValue(p, 'outputPower', lang),
+  specValue(p, 'transferTime', lang), specValue(p, 'waveform', lang),
+].filter(Boolean) : [
   p.outputPower,
   p.batterySpec && String(p.batterySpec).replace(/\*/g, '×'),
   portTypes.length && portTypes.join(' / '),
@@ -39,11 +53,11 @@ const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
 const jsonLd = {
   '@context': 'https://schema.org', '@type': 'Product', name: p.model, brand: p.brand ? { '@type': 'Brand', name: p.brand } : undefined,
   description: desc || undefined, image: (p.images || []).map((im) => site + im.src),
-  offers: tiers.length ? { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: tiers[tiers.length - 1].price, highPrice: tiers[0].price } : undefined,
+  offers: !offline && tiers.length ? { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: tiers[tiers.length - 1].price, highPrice: tiers[0].price } : undefined,
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs"><a href={`/${lang}/`}>{t.allProducts}</a> / <span>{p.model}</span></nav>
+  <nav class="crumbs">{offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -54,7 +68,7 @@ const jsonLd = {
       {highlights.length > 0 && <ul class="highlights">{highlights.map((h) => <li>{h}</li>)}</ul>}
       {desc && <p class="desc">{desc}</p>}
 
-      {p.sale && (
+      {p.sale && !offline && (
         <div class={`sale ${group ? 'group' : 'stock'}`}>
           <div class="sale-head">
             <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>
@@ -64,12 +78,20 @@ const jsonLd = {
         </div>
       )}
 
-      <a class="custom-banner" href={`/${lang}/custom/?from=${p.slug}`}>
-        <span>{CT[lang].banner}</span><b>{CT[lang].bannerCta} →</b>
-      </a>
+      {offline ? (
+        <a class="custom-banner" href={`/${lang}/custom/?tab=oem&model=${p.slug}`}>
+          <span>{O.banner}</span><b>{O.bannerCta} →</b>
+        </a>
+      ) : (
+        <a class="custom-banner" href={`/${lang}/custom/?from=${p.slug}`}>
+          <span>{CT[lang].banner}</span><b>{CT[lang].bannerCta} →</b>
+        </a>
+      )}
     </section>
 
-    {tiers.length > 0 ? (
+    {offline ? (
+      <QuoteConsole p={p} lang={lang} />
+    ) : tiers.length > 0 ? (
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
@@ -89,7 +111,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    <RuntimeCalc p={p} lang={lang} />
+    {!offline && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">

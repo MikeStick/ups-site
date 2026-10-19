@@ -1,0 +1,108 @@
+---
+// 离线式 UPS 产品页的询价面板：数量 + 插座（类型 / 个数，最多 10 个）+ 备注 → WhatsApp / 邮件。不显示价格。
+import { SITE } from '../config.mjs';
+import { OT, OEM_MOQ_OFFLINE } from '../lib/offline-i18n.mjs';
+import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_MAX } from '../lib/sockets.mjs';
+
+const { p, lang } = Astro.props;
+const T = OT[lang];
+const def = (Array.isArray(p.sockets) ? p.sockets : []).filter((s) => SOCKET_NAME[s.type] && s.count > 0);
+const defType = def[0] ? def[0].type : 'SCHUKO';
+const defCount = Math.min(SOCKET_MAX, def.reduce((n, s) => n + Number(s.count || 0), 0) || 4);
+const cfg = { model: p.model, wa: SITE.whatsapp, email: SITE.email, names: SOCKET_NAME, max: SOCKET_MAX,
+  def: def.map((s) => ({ type: s.type, count: Number(s.count) })), t: { msg: T.qMsg, lQty: T.lQty, lSockets: T.lSockets, lNotes: T.lNotes, pcs: T.pcs } };
+---
+<div class="qc" data-qc>
+  <script type="application/json" data-qc-cfg set:html={JSON.stringify(cfg)} />
+  <div class="qc-card">
+    <div class="qc-head"><b>{T.qTitle}</b><span>{T.qPrice}</span></div>
+
+    <label class="qc-field"><span class="qc-label">{T.qQty}</span>
+      <span class="qc-inline"><input type="number" inputmode="numeric" min="1" step="1" value="100" data-qty /> <span>{T.pcs}</span></span>
+    </label>
+
+    <div class="qc-field">
+      <span class="qc-label">{T.qSockets}</span>
+      <span class="qc-hint">{T.qSocketHint}</span>
+      <div class="qc-socks" role="radiogroup">
+        {SOCKET_IDS.map((k) => (
+          <button type="button" class:list={['qc-sock', { on: k === defType }]} data-sock={k} role="radio" aria-checked={k === defType ? 'true' : 'false'}>
+            <Fragment set:html={SOCKET_ICON[k]} /><span>{SOCKET_NAME[k]}</span>
+          </button>
+        ))}
+      </div>
+      <div class="qc-inline">
+        <span class="qc-label" style="font-weight:500">{T.qCount}</span>
+        <span class="qc-step"><button type="button" data-c="-1" aria-label="−">−</button><output class="num" data-count>{defCount}</output><button type="button" data-c="1" aria-label="+">+</button></span>
+        <span class="qc-hint">/ {SOCKET_MAX}</span>
+      </div>
+    </div>
+
+    <label class="qc-field"><span class="qc-label">{T.qNotes}</span>
+      <textarea rows="2" maxlength="400" placeholder={T.qNotesPh} data-notes></textarea>
+    </label>
+
+    <div class="qc-cta">
+      {SITE.whatsapp && <a class="qc-btn primary" data-wa href="#" target="_blank" rel="noopener">{T.qSend}</a>}
+      {SITE.email && <a class="qc-btn" data-mail href="#">{T.qMail}</a>}
+    </div>
+    <p class="qc-note">{T.qOem.replace('1000', String(OEM_MOQ_OFFLINE))}</p>
+  </div>
+</div>
+
+<script is:inline>
+(function () {
+  document.querySelectorAll('[data-qc]').forEach(function (root) {
+    var c = JSON.parse(root.querySelector('[data-qc-cfg]').textContent);
+    var $ = function (s) { return root.querySelector(s); };
+    var type = (root.querySelector('.qc-sock.on') || {}).dataset ? root.querySelector('.qc-sock.on').dataset.sock : 'SCHUKO';
+    var count = +$('[data-count]').textContent;
+    // 默认是混合插座（如 2 个欧标 + 2 个 IEC）且客户没改动时，消息里按默认配置写
+    var touched = false;
+    function sockText() {
+      if (!touched && c.def.length > 1) return c.def.map(function (s) { return s.count + ' × ' + c.names[s.type]; }).join(' + ');
+      return count + ' × ' + c.names[type];
+    }
+    function render() {
+      $('[data-count]').textContent = count;
+      root.querySelectorAll('.qc-sock').forEach(function (b) { var on = b.dataset.sock === type; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      var qty = Math.max(1, parseInt($('[data-qty]').value, 10) || 1), notes = $('[data-notes]').value.trim();
+      var msg = c.t.msg.replace('{m}', c.model) + '\n• ' + c.t.lQty + ': ' + qty + ' ' + c.t.pcs + '\n• ' + c.t.lSockets + ': ' + sockText() + (notes ? '\n• ' + c.t.lNotes + ': ' + notes : '');
+      var wa = $('[data-wa]'), mail = $('[data-mail]');
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(c.model + ' · ' + qty) + '&body=' + encodeURIComponent(msg);
+    }
+    root.querySelectorAll('.qc-sock').forEach(function (b) { b.addEventListener('click', function () { type = b.dataset.sock; touched = true; render(); }); });
+    root.querySelectorAll('[data-c]').forEach(function (b) { b.addEventListener('click', function () { count = Math.max(1, Math.min(c.max, count + +b.dataset.c)); touched = true; render(); }); });
+    $('[data-qty]').addEventListener('input', render);
+    $('[data-notes]').addEventListener('input', render);
+    render();
+  });
+})();
+</script>
+
+<style>
+  .qc { grid-area: buy; }
+  .qc-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 16px; }
+  .qc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .qc-head b { font: 700 24px var(--display); text-transform: uppercase; }
+  .qc-head span { font-size: 13px; color: var(--muted); }
+  .qc-field { display: grid; gap: 8px; }
+  .qc-label { font-size: 13px; font-weight: 600; }
+  .qc-hint { font-size: 12px; color: var(--muted); }
+  .qc-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+  .qc-inline input { width: 140px; font: 500 17px var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .qc-socks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .qc-sock { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; font: 13px var(--body); color: var(--ink); text-align: left; }
+  .qc-sock :global(svg) { width: 32px; height: 32px; flex: none; }
+  .qc-sock.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--ok-soft); }
+  @media (max-width: 520px) { .qc-socks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .qc-step { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .qc-step button { width: 36px; border: 0; background: var(--bg); font-size: 18px; cursor: pointer; color: var(--ink); }
+  .qc-step output { width: 40px; text-align: center; line-height: 36px; }
+  textarea { font: 14px var(--body); padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; width: 100%; }
+  .qc-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .qc-btn { flex: 1; min-width: 160px; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .qc-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .qc-note { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); }
+</style>

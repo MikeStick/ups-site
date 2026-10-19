@@ -3,6 +3,7 @@ import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
 import { CT } from '../lib/custom-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
+import { OT } from '../lib/offline-i18n.mjs';
 
 // full：页面自己控制宽度（About 页有通栏区块），不套 .wrap
 const { lang, title, description = '', path = '', full = false } = Astro.props;
@@ -59,6 +60,17 @@ const altHref = (l) => `/${l}/${path}`;
     .nav a { color: #cfd9d6; text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 6px; }
     .nav a:hover { color: #fff; }
     .nav a[aria-current="page"] { color: #fff; box-shadow: inset 0 0 0 1px #4b5f5b; }
+    /* 产品：下拉菜单（Mini UPS / 离线式 UPS / 以后的品类） */
+    .nav-menu { position: relative; }
+    .nav-menu summary { list-style: none; cursor: pointer; color: #cfd9d6; font-size: 14px; padding: 6px 10px; border-radius: 6px; user-select: none; }
+    .nav-menu summary::-webkit-details-marker { display: none; }
+    .nav-menu summary i { font-style: normal; font-size: 10px; color: #a9b8b4; }
+    .nav-menu summary:hover, .nav-menu[open] summary { color: #fff; }
+    .nav-menu summary[aria-current="page"] { color: #fff; box-shadow: inset 0 0 0 1px #4b5f5b; }
+    .nav-list { position: absolute; left: 0; top: calc(100% + 6px); z-index: 50; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 6px; display: grid; }
+    .nav-list a { color: var(--ink) !important; text-decoration: none; font-size: 14px; padding: 9px 10px; border-radius: 7px; box-shadow: none !important; }
+    .nav-list a:hover { background: var(--bg); }
+    .nav-list a[aria-current="page"] { background: var(--ok-soft); font-weight: 600; }
     /* 语言：一个下拉菜单 */
     .lang-menu { position: relative; }
     .lang-menu summary { list-style: none; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff; font: 600 13px var(--body); padding: 6px 10px; border-radius: 6px; border: 1px solid #4b5f5b; user-select: none; }
@@ -85,7 +97,13 @@ const altHref = (l) => `/${l}/${path}`;
       <a class="brand" href={`/${lang}/`}>{SITE.name}<small>{SITE.tagline[lang]}</small></a>
       <div class="top-right">
       <nav class="nav" aria-label="Main">
-        <a href={`/${lang}/`} aria-current={path === '' || path.startsWith('p/') ? 'page' : undefined}>{t.products}</a>
+        <details class="nav-menu" data-nav-menu>
+          <summary aria-current={path === '' || path === 'offline-ups/' || path.startsWith('p/') ? 'page' : undefined}>{t.products} <i aria-hidden="true">▾</i></summary>
+          <div class="nav-list">
+            <a href={`/${lang}/`} aria-current={path === '' ? 'page' : undefined}>{OT[lang].navMini}</a>
+            <a href={`/${lang}/offline-ups/`} aria-current={path === 'offline-ups/' ? 'page' : undefined}>{OT[lang].nav}</a>
+          </div>
+        </details>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
       </nav>
       <a class="nav-custom" href={`/${lang}/custom/`} aria-current={path === 'custom/' ? 'page' : undefined}>{CT[lang].nav}</a>
@@ -113,9 +131,10 @@ const altHref = (l) => `/${l}/${path}`;
   </footer>
   <script is:inline>
     (function () {
-      var m = document.querySelector('[data-lang-menu]'); if (!m) return;
-      document.addEventListener('click', function (e) { if (m.open && !m.contains(e.target)) m.open = false; });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') m.open = false; });
+      // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）
+      var ms = document.querySelectorAll('[data-lang-menu], [data-nav-menu]');
+      document.addEventListener('click', function (e) { ms.forEach(function (m) { if (m.open && !m.contains(e.target)) m.open = false; }); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ms.forEach(function (m) { m.open = false; }); });
     })();
   </script>
 </body>
