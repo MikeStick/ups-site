@@ -9,6 +9,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
+// 文件名里带上图片内容的短哈希：换了图片文件名就变，浏览器和 CDN 不会继续显示缓存里的旧图
+const hashOf = (buf) => crypto.createHash('sha1').update(buf).digest('hex').slice(0, 8);
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const OUT_JSON = path.join(ROOT, 'src/data/products.json');
@@ -33,16 +36,17 @@ async function saveImage(url, slug, idx) {
   const dir = path.join(MEDIA_DIR, slug);
   await fs.mkdir(dir, { recursive: true });
   if (sharp) {
-    const name = `${idx + 1}.webp`;
+    const h = hashOf(buf);
+    const name = `${idx + 1}-${h}.webp`;
     await sharp(buf).rotate().resize({ width: 1400, height: 1400, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 }).toFile(path.join(dir, name));
-    const thumb = `${idx + 1}-thumb.webp`;
+    const thumb = `${idx + 1}-${h}-thumb.webp`;
     await sharp(buf).rotate().resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 78 }).toFile(path.join(dir, thumb));
     return { src: `/media/${slug}/${name}`, thumb: `/media/${slug}/${thumb}` };
   }
   const ext = (url.split('.').pop() || 'jpg').split('?')[0].toLowerCase();
-  const name = `${idx + 1}.${ext}`;
+  const name = `${idx + 1}-${hashOf(buf)}.${ext}`;
   await fs.writeFile(path.join(dir, name), buf);
   return { src: `/media/${slug}/${name}`, thumb: `/media/${slug}/${name}` };
 }
@@ -56,7 +60,7 @@ async function saveDetailImage(url, slug, idx, prefix = 'd') {
   const dir = path.join(MEDIA_DIR, slug);
   await fs.mkdir(dir, { recursive: true });
   if (sharp) {
-    const name = `${prefix}${idx + 1}.jpg`;
+    const name = `${prefix}${idx + 1}-${hashOf(buf)}.jpg`;
     const info = await sharp(buf, { limitInputPixels: false }).rotate()
       .resize({ width: 1200, withoutEnlargement: true })
       .flatten({ background: '#ffffff' })
@@ -65,7 +69,7 @@ async function saveDetailImage(url, slug, idx, prefix = 'd') {
     return { src: `/media/${slug}/${name}`, w: info.width, h: info.height };
   }
   const ext = (url.split('.').pop() || 'jpg').split('?')[0].toLowerCase();
-  const name = `${prefix}${idx + 1}.${ext}`;
+  const name = `${prefix}${idx + 1}-${hashOf(buf)}.${ext}`;
   await fs.writeFile(path.join(dir, name), buf);
   return { src: `/media/${slug}/${name}` };
 }

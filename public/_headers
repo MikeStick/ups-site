@@ -4,6 +4,6 @@ https://ups-site.pages.dev/*
 https://:version.ups-site.pages.dev/*
   X-Robots-Tag: noindex
 
-# 构建产物里的图片、脚本文件名不变时可以长期缓存
+# 图片文件名带内容哈希（换图就换名字），可以放心长期缓存
 /media/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=31536000, immutable
