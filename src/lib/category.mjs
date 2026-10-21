@@ -1,7 +1,10 @@
 // 产品品类：客户档案系统里 type 字段（中文）决定产品出现在哪个栏目
-export const OFFLINE_TYPES = ['离线式UPS', '在线互动式UPS'];
+export const OFFLINE_TYPES = ['离线式UPS', '离线式锂电UPS', '在线互动式UPS'];
 export const isOffline = (p) => OFFLINE_TYPES.includes(p.type);
 export const isLineInteractive = (p) => p.type === '在线互动式UPS';
+export const isLithiumOffline = (p) => p.type === '离线式锂电UPS';
+// 列表筛选 / 标签用：off = 离线式，lion = 离线式锂电，li = 在线互动式
+export const offKind = (p) => (isLineInteractive(p) ? 'li' : isLithiumOffline(p) ? 'lion' : 'off');
 // Mini UPS 栏目：除离线式 / 在线互动式以外的已发布产品（以后加品类时在这里分流）
 export const isMini = (p) => !isOffline(p);
 
@@ -29,16 +32,16 @@ export function fmtCap(c) {
   return c.w ? `${va} / ${c.w} W` : va;
 }
 
-// 同系列型号：同一栏目里，字母前缀和后缀相同、只有数字不同的型号（GF400 / GF600 / GF800 / GF1000）
+// 同系列型号：同一栏目里字母前缀相同的型号（GF400 / GF600 / GF1000；Gi600 / Gi1000 / Gi1200 PRO），按容量数字排序
 const seriesKey = (p) => {
   const m = String(p.model || '').trim().toUpperCase().match(/^([A-Z]+)[-\s]?(\d+(?:\.\d+)?)(.*)$/);
-  return m ? { key: `${isOffline(p) ? 'o' : 'm'}|${m[1]}|${m[3].trim()}`, n: parseFloat(m[2]) } : null;
+  return m ? { key: `${isOffline(p) ? 'o' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
 };
 export function seriesOf(p, all) {
   const me = seriesKey(p);
   if (!me) return [];
   const list = all.map((x) => ({ x, k: seriesKey(x) })).filter((o) => o.k && o.k.key === me.key)
-    .sort((a, b) => a.k.n - b.k.n).map((o) => o.x);
+    .sort((a, b) => a.k.n - b.k.n || a.k.sfx.localeCompare(b.k.sfx)).map((o) => o.x);
   return list.length >= 2 ? list : [];
 }
 

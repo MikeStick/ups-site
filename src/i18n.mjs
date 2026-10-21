@@ -112,6 +112,7 @@ const SPEC = {
 const TERMS = {
   '迷你UPS': { es: 'Mini UPS', en: 'Mini UPS', ru: 'Мини-ИБП' },
   '离线式UPS': { es: 'UPS offline', en: 'Offline UPS', ru: 'Резервный ИБП (Offline)' },
+  '离线式锂电UPS': { es: 'UPS offline de litio', en: 'Lithium-ion Offline UPS', ru: 'Резервный ИБП с литий-ионной батареей' },
   '在线互动式UPS': { es: 'UPS interactivo', en: 'Line-interactive UPS', ru: 'Линейно-интерактивный ИБП' },
   '在线式高频UPS': { es: 'UPS online de alta frecuencia', en: 'High-frequency online UPS', ru: 'Высокочастотный онлайн-ИБП' },
   '高频塔式UPS': { es: 'UPS torre de alta frecuencia', en: 'High-frequency tower UPS', ru: 'Высокочастотный ИБП (башня)' },
