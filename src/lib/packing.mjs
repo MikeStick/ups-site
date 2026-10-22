@@ -13,6 +13,9 @@ export function packOf(p) {
 
 export const PK = {
   en: {
+    qty: 'Quantity', copyImg: 'Copy image', dl: 'Download', copiedImg: 'Image copied — paste it in WhatsApp or anywhere', shared: 'Shared', dlDone: 'Image downloaded',
+    cont: 'Containers needed', only20: 'Only 20GP', only40: 'Only 40HQ', nCont: '{n} × {t}', lastFill: 'last one {p}% full', suggest: 'Suggested loading', lcl: 'Under ~15 m³ an LCL (shared container) shipment is usually cheaper.',
+    imgModel: 'Model', imgQty: 'Quantity', imgDate: 'Date',
     title: 'Packing list', sub: 'Calculated for {q} pcs · {per} pcs per carton', copy: 'Copy packing list', copied: 'Copied',
     cartons: 'Cartons', gw: 'Total G.W.', nw: 'Total N.W.', cbm: 'Total volume',
     cols: ['Model', 'QTY (pcs)', 'Pcs / carton', 'Cartons', 'N.W. / carton (kg)', 'G.W. / carton (kg)', 'Total N.W. (kg)', 'Total G.W. (kg)', 'Carton size (mm)', 'Volume (m³)'],
@@ -23,6 +26,9 @@ export const PK = {
     foot: 'Estimated from our standard carton. The final packing list is issued with your shipment.',
   },
   es: {
+    qty: 'Cantidad', copyImg: 'Copiar imagen', dl: 'Descargar', copiedImg: 'Imagen copiada: péguela en WhatsApp o donde quiera', shared: 'Compartido', dlDone: 'Imagen descargada',
+    cont: 'Contenedores necesarios', only20: 'Solo 20GP', only40: 'Solo 40HQ', nCont: '{n} × {t}', lastFill: 'el último al {p}%', suggest: 'Carga sugerida', lcl: 'Con menos de ~15 m³ suele ser más económico un envío LCL (contenedor compartido).',
+    imgModel: 'Modelo', imgQty: 'Cantidad', imgDate: 'Fecha',
     title: 'Lista de empaque', sub: 'Calculada para {q} uds · {per} uds por caja', copy: 'Copiar lista de empaque', copied: 'Copiado',
     cartons: 'Cajas', gw: 'Peso bruto total', nw: 'Peso neto total', cbm: 'Volumen total',
     cols: ['Modelo', 'Cantidad (uds)', 'Uds / caja', 'Cajas', 'P. neto / caja (kg)', 'P. bruto / caja (kg)', 'P. neto total (kg)', 'P. bruto total (kg)', 'Medidas caja (mm)', 'Volumen (m³)'],
@@ -33,6 +39,9 @@ export const PK = {
     foot: 'Estimación según nuestra caja estándar. La lista de empaque definitiva se emite con el envío.',
   },
   ru: {
+    qty: 'Количество', copyImg: 'Скопировать картинку', dl: 'Скачать', copiedImg: 'Картинка скопирована — вставьте её в WhatsApp или куда угодно', shared: 'Отправлено', dlDone: 'Картинка сохранена',
+    cont: 'Нужно контейнеров', only20: 'Только 20GP', only40: 'Только 40HQ', nCont: '{n} × {t}', lastFill: 'последний заполнен на {p}%', suggest: 'Рекомендуемая загрузка', lcl: 'При объёме до ~15 м³ обычно выгоднее сборный груз (LCL).',
+    imgModel: 'Модель', imgQty: 'Количество', imgDate: 'Дата',
     title: 'Упаковочный лист', sub: 'Расчёт для {q} шт. · {per} шт. в коробке', copy: 'Скопировать упаковочный лист', copied: 'Скопировано',
     cartons: 'Коробок', gw: 'Брутто всего', nw: 'Нетто всего', cbm: 'Объём всего',
     cols: ['Модель', 'Кол-во (шт.)', 'Шт. / коробка', 'Коробок', 'Нетто / коробка (кг)', 'Брутто / коробка (кг)', 'Нетто всего (кг)', 'Брутто всего (кг)', 'Размер коробки (мм)', 'Объём (м³)'],
@@ -43,3 +52,6 @@ export const PK = {
     foot: 'Оценка по нашей стандартной коробке. Окончательный упаковочный лист выдаётся с отгрузкой.',
   },
 };
+
+// 集装箱：按体积和载重两个条件算（取更紧的那个）。可用容积 / 载重取常用的保守值。
+export const CONTAINERS = { '20GP': { v: 28, kg: 21000 }, '40HQ': { v: 68, kg: 26000 } };

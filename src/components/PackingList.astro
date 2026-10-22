@@ -1,24 +1,32 @@
 ---
-// 箱单：跟着下单 / 询价面板里的数量实时重算（面板在数量变化时发出 ups:qty 事件）。
-// 不是整箱时，最后一箱单独一行：重量按实际台数算，尺寸按整箱算。
-import { packOf, PK } from '../lib/packing.mjs';
+// 箱单：有自己的数量框（不受下单数量上限限制，几万台都可以），默认跟着下单 / 询价面板的数量走（面板发出 ups:qty 事件）。
+// 不是整箱时最后一箱单独一行：重量按实际台数算，尺寸按整箱算。超过一个集装箱时写清需要几个。
+// "复制图片"：用 canvas 画一张干净的箱单图（带公司联系方式），复制到剪贴板 / 手机上调起分享，客户可以直接发到 WhatsApp。
+import { packOf, PK, CONTAINERS } from '../lib/packing.mjs';
+import { SITE } from '../config.mjs';
 interface Props { p: any; lang: string }
 const { p, lang } = Astro.props;
 const pk = packOf(p);
 const T = PK[lang] || PK.en;
-const cfg = pk ? { pk, model: p.model, t: T } : null;
+const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, wa: SITE.whatsappDisplay, email: SITE.email, site: 'ups-china.com' } : null;
 ---
 {cfg && (
   <section class="card pk" id="packing" data-pack>
     <script type="application/json" data-pack-cfg set:html={JSON.stringify(cfg)} />
     <div class="pk-head">
       <div><h2>{T.title}</h2><p data-pk-sub></p></div>
-      <button type="button" class="pk-btn" data-pk-copy>{T.copy}</button>
+      <div class="pk-tools">
+        <label class="pk-qty"><span>{T.qty}</span><input type="number" inputmode="numeric" min="1" max="10000000" step="1" data-pk-qty /></label>
+        <button type="button" class="pk-btn dark" data-pk-copy>{T.copyImg}</button>
+        <button type="button" class="pk-btn" data-pk-dl>{T.dl}</button>
+      </div>
     </div>
+    <p class="pk-msg" data-pk-msg hidden></p>
     <div class="pk-stats" data-pk-stats></div>
     <div class="pk-scroll"><table data-pk-tbl></table></div>
     <div class="pk-cards" data-pk-cards></div>
     <div class="pk-ship" data-pk-ship></div>
+    <p class="pk-sugg" data-pk-sugg></p>
     <p class="pk-foot">{T.foot}</p>
   </section>
 )}
@@ -28,10 +36,13 @@ const cfg = pk ? { pk, model: p.model, t: T } : null;
   var root = document.querySelector('[data-pack]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-pack-cfg]').textContent), P = c.pk, L = c.t, C = L.cols, hasNW = P.nw > 0;
   var $ = function (s) { return root.querySelector(s); };
-  var f2 = function (n) { return n.toFixed(2); };
-  var vol = function (n) { return n < 1 ? n.toFixed(3) : n.toFixed(2); };
+  var f2 = function (n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var int = function (n) { return n.toLocaleString('en-US'); };
+  var vol = function (n) { return n < 1 ? n.toFixed(3) : f2(n); };
   var fmt = function (s, o) { return s.replace(/\{(\w+)\}/g, function (m, k) { return o[k]; }); };
-  var size = P.l + '×' + P.w + '×' + P.h, box = P.l * P.w * P.h / 1e9, text = '';
+  var size = P.l + '×' + P.w + '×' + P.h, box = P.l * P.w * P.h / 1e9, state = null;
+  var qtyEl = $('[data-pk-qty]');
+
   function calc(q) {
     var unitNW = hasNW ? P.nw / P.per : 0, unitGW = P.gw / P.per, tare = hasNW ? P.gw - P.nw : 0;
     var full = Math.floor(q / P.per), rest = q % P.per, rows = [];
@@ -39,19 +50,35 @@ const cfg = pk ? { pk, model: p.model, t: T } : null;
     if (rest) { var nw = unitNW * rest; rows.push({ part: true, qty: rest, per: rest, ctn: 1, nw: nw, gw: hasNW ? nw + tare : unitGW * rest }); }
     rows.forEach(function (r) { r.tnw = r.nw * r.ctn; r.tgw = r.gw * r.ctn; r.v = box * r.ctn; });
     var t = rows.reduce(function (a, r) { return { qty: a.qty + r.qty, ctn: a.ctn + r.ctn, tnw: a.tnw + r.tnw, tgw: a.tgw + r.tgw, v: a.v + r.v }; }, { qty: 0, ctn: 0, tnw: 0, tgw: 0, v: 0 });
-    return { rows: rows, t: t };
+    return { q: q, rows: rows, t: t };
   }
-  // 没填净重时去掉净重相关的两列
+  // 集装箱：体积、载重哪个先满按哪个算
+  function load(t, k) { var x = c.ct[k]; return Math.max(t.v / x.v, t.tgw / x.kg); }
+  function containers(t) {
+    var out = {};
+    ['20GP', '40HQ'].forEach(function (k) { var u = load(t, k), n = Math.max(1, Math.ceil(u - 1e-9)); out[k] = { n: n, last: Math.round((u - (n - 1)) * 100) }; });
+    // 推荐组合：尽量用 40HQ 装满，剩下的放得进 20GP 就配一个 20GP
+    var u40 = load(t, '40HQ'), n40 = Math.floor(u40 + 1e-9), rem = { v: Math.max(0, t.v - n40 * c.ct['40HQ'].v), tgw: Math.max(0, t.tgw - n40 * c.ct['40HQ'].kg) };
+    var mix = [];
+    if (rem.v > 1e-6 || rem.tgw > 1e-6) {
+      if (rem.v <= c.ct['20GP'].v && rem.tgw <= c.ct['20GP'].kg) { if (n40) mix.push(n40 + ' × 40HQ'); mix.push('1 × 20GP'); }
+      else mix.push((n40 + 1) + ' × 40HQ');
+    } else mix.push(Math.max(1, n40) + ' × 40HQ');
+    out.mix = mix.join(' + ');
+    return out;
+  }
   var COLS = hasNW ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [0, 1, 2, 3, 5, 7, 8, 9];
   function cells(x, total) {
-    var all = [null, x.qty, total ? '' : x.per, x.ctn, total ? '' : f2(x.nw), total ? '' : f2(x.gw), f2(x.tnw), f2(x.tgw), total ? '' : size, vol(x.v)];
+    var all = [null, int(x.qty), total ? '' : int(x.per), int(x.ctn), total ? '' : f2(x.nw), total ? '' : f2(x.gw), f2(x.tnw), f2(x.tgw), total ? '' : size, vol(x.v)];
     return COLS.slice(1).map(function (i) { return all[i]; });
   }
-  function render(q) {
-    q = Math.max(1, Math.floor(+q || 0));
-    var r = calc(q), t = r.t;
-    $('[data-pk-sub]').textContent = fmt(L.sub, { q: q, per: P.per });
-    var stats = [[L.cartons, t.ctn, ''], [L.gw, f2(t.tgw), 'kg']].concat(hasNW ? [[L.nw, f2(t.tnw), 'kg']] : []).concat([[L.cbm, vol(t.v), 'm³']]);
+  function render(q, fromConsole) {
+    q = Math.min(10000000, Math.max(1, Math.floor(+q || 0)));
+    if (fromConsole || document.activeElement !== qtyEl) qtyEl.value = q;
+    var r = calc(q), t = r.t, ct = containers(t);
+    state = { r: r, ct: ct };
+    $('[data-pk-sub]').textContent = fmt(L.sub, { q: int(q), per: P.per });
+    var stats = [[L.cartons, int(t.ctn), ''], [L.gw, f2(t.tgw), 'kg']].concat(hasNW ? [[L.nw, f2(t.tnw), 'kg']] : []).concat([[L.cbm, vol(t.v), 'm³']]);
     $('[data-pk-stats]').style.setProperty('--n', stats.length);
     $('[data-pk-stats]').innerHTML = stats.map(function (s) { return '<div><span>' + s[0] + '</span><b>' + s[1] + '</b><small>' + s[2] + '</small></div>'; }).join('');
     var h = '<thead><tr>' + COLS.map(function (i) { return '<th>' + C[i].replace(' (', '<br>(') + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -66,29 +93,135 @@ const cfg = pk ? { pk, model: p.model, t: T } : null;
       return '<div class="pk-card' + (x.part ? ' part' : '') + '"><h4>' + c.model + ' · ' + (x.part ? L.part : L.full) + '</h4><dl>' +
         keys.map(function (i, j) { return (i === 6 ? '' : '<dt>' + C[i] + '</dt><dd>' + vals[j] + '</dd>'); }).join('') + '</dl></div>';
     }).join('');
-    var volW = t.v * 1e6 / 6000, charge = Math.max(volW, t.tgw), p20 = Math.min(100, t.v / 28 * 100), p40 = Math.min(100, t.v / 68 * 100);
-    var pct = function (p) { return p.toFixed(p < 10 ? 1 : 0); };
+    var volW = t.v * 1e6 / 6000, charge = Math.max(volW, t.tgw);
+    var box2 = function (k, label) {
+      var x = ct[k], one = x.n === 1;
+      return '<div><b>' + label + '</b><i>' + fmt(L.nCont, { n: x.n, t: k }) + '</i><span>' + (one ? fmt(L.fill, { p: x.last }) : fmt(L.lastFill, { p: x.last })) + '</span><em><s style="width:' + Math.min(100, x.last) + '%"></s></em></div>';
+    };
     $('[data-pk-ship]').innerHTML =
       '<div><b>' + L.air + '</b><i>' + f2(charge) + ' kg</i><span>' + fmt(L.airNote, { v: f2(volW), g: f2(t.tgw) }) + '</span></div>' +
-      '<div><b>' + L.c20 + '</b><i>' + fmt(L.fill, { p: pct(p20) }) + '</i><em><s style="width:' + p20 + '%"></s></em></div>' +
-      '<div><b>' + L.c40 + '</b><i>' + fmt(L.fill, { p: pct(p40) }) + '</i><em><s style="width:' + p40 + '%"></s></em></div>';
-    // 下单 / 询价面板里的一行摘要
+      box2('20GP', L.c20) + box2('40HQ', L.c40);
+    $('[data-pk-sugg]').innerHTML = '<b>' + L.cont + ' · ' + L.suggest + ':</b> ' + ct.mix + (t.v < 15 ? ' <span>' + L.lcl + '</span>' : '');
     document.querySelectorAll('[data-pack-mini]').forEach(function (el) {
       el.hidden = false;
-      el.innerHTML = '<span>' + fmt(L.mini, { c: '<b>' + t.ctn + '</b>', g: '<b>' + f2(t.tgw) + '</b>', v: '<b>' + vol(t.v) + '</b>' }) + '</span> <a href="#packing">' + L.see + '</a>';
+      el.innerHTML = '<span>' + fmt(L.mini, { c: '<b>' + int(t.ctn) + '</b>', g: '<b>' + f2(t.tgw) + '</b>', v: '<b>' + vol(t.v) + '</b>' }) + '</span> <a href="#packing">' + L.see + '</a>';
     });
-    text = [COLS.map(function (i) { return C[i]; }).join('\t')]
-      .concat(r.rows.map(function (x) { return [c.model + (x.part ? ' (' + L.part + ')' : '')].concat(cells(x)).join('\t'); }))
-      .concat(r.rows.length > 1 ? [[L.total].concat(cells(t, true)).join('\t')] : []).join('\n');
   }
+
+  // ===== 箱单图片 =====
+  function draw() {
+    var r = state.r, t = r.t, ct = state.ct, S = 2, W = 1240, pad = 40;
+    var font = function (w, s) { return w + ' ' + s + 'px "IBM Plex Sans", "Segoe UI", Arial, sans-serif'; };
+    var mono = function (w, s) { return w + ' ' + s + 'px "IBM Plex Mono", Consolas, monospace'; };
+    var cols = COLS, nC = cols.length, rowH = 40;
+    var widths = cols.map(function (i) { return i === 0 ? 200 : i === 8 ? 140 : 1; });
+    var fixed = widths.reduce(function (a, w) { return a + (w > 1 ? w : 0); }, 0), flex = widths.filter(function (w) { return w === 1; }).length;
+    var fw = (W - pad * 2 - fixed) / flex; widths = widths.map(function (w) { return w === 1 ? fw : w; });
+    var nRows = r.rows.length + (r.rows.length > 1 ? 1 : 0);
+    var H = 90 + 60 + 96 + 30 + 56 + nRows * rowH + 30 + 120 + 70;
+    var cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    var g = cv.getContext('2d'); g.scale(S, S);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    // 顶栏
+    g.fillStyle = '#15211f'; g.fillRect(0, 0, W, 76);
+    g.fillStyle = '#fff'; g.font = font(700, 28); g.textBaseline = 'middle'; g.fillText(c.brand.toUpperCase(), pad, 38);
+    g.textAlign = 'right'; g.font = font(600, 22); g.fillText(L.title.toUpperCase(), W - pad, 30);
+    g.font = font(400, 14); g.fillStyle = '#a9b8b4'; g.fillText(L.imgDate + ': ' + new Date().toISOString().slice(0, 10), W - pad, 54); g.textAlign = 'left';
+    var y = 110;
+    g.fillStyle = '#5d6b68'; g.font = font(400, 15); g.fillText(L.imgModel, pad, y); g.fillText(L.imgQty, pad + 420, y);
+    g.fillStyle = '#15211f'; g.font = font(700, 22); g.fillText(c.model, pad, y + 26); g.fillText(int(r.q) + ' pcs', pad + 420, y + 26);
+    // 汇总
+    y = 168;
+    var stats = [[L.cartons, int(t.ctn), ''], [L.gw, f2(t.tgw), 'kg']].concat(hasNW ? [[L.nw, f2(t.tnw), 'kg']] : []).concat([[L.cbm, vol(t.v), 'm³']]);
+    var sw = (W - pad * 2 - (stats.length - 1) * 12) / stats.length;
+    stats.forEach(function (s, i) {
+      var x = pad + i * (sw + 12);
+      g.fillStyle = '#f3f6f5'; g.strokeStyle = '#d6dedb'; g.lineWidth = 1; rr(g, x, y, sw, 78, 10); g.fill(); g.stroke();
+      g.fillStyle = '#5d6b68'; g.font = font(400, 14); g.fillText(s[0], x + 16, y + 22);
+      g.fillStyle = '#15211f'; g.font = mono(600, 28); g.fillText(s[1], x + 16, y + 54);
+      var bw = g.measureText(s[1]).width; g.fillStyle = '#5d6b68'; g.font = mono(500, 15); g.fillText(s[2], x + 22 + bw, y + 56);
+    });
+    // 表格
+    y = 280;
+    var hdrH = 56, x0 = pad;
+    g.fillStyle = '#15211f'; rr(g, pad, y, W - pad * 2, hdrH, 8, true); g.fill();
+    g.fillStyle = '#fff'; g.font = font(600, 13); g.textAlign = 'center';
+    var x = x0;
+    cols.forEach(function (i, j) {
+      var parts = C[i].split(' (');
+      if (parts.length > 1) { g.fillText(parts[0], x + widths[j] / 2, y + 20); g.fillText('(' + parts[1], x + widths[j] / 2, y + 38); }
+      else g.fillText(C[i], x + widths[j] / 2, y + hdrH / 2);
+      x += widths[j];
+    });
+    y += hdrH;
+    var drawRow = function (vals, first, bg, bold) {
+      g.fillStyle = bg; g.fillRect(pad, y, W - pad * 2, rowH);
+      g.strokeStyle = '#d6dedb'; g.beginPath(); g.moveTo(pad, y + rowH); g.lineTo(W - pad, y + rowH); g.stroke();
+      var xx = x0;
+      g.textAlign = 'left'; g.fillStyle = '#15211f'; g.font = font(bold ? 700 : 500, 15); g.fillText(first, xx + 12, y + rowH / 2);
+      xx += widths[0]; g.textAlign = 'center'; g.font = mono(bold ? 600 : 400, 15);
+      vals.forEach(function (v, j) { g.fillText(v, xx + widths[j + 1] / 2, y + rowH / 2); xx += widths[j + 1]; });
+      y += rowH;
+    };
+    r.rows.forEach(function (row) { drawRow(cells(row), c.model + (row.part ? ' · ' + L.part : ''), row.part ? '#fff8e8' : '#ffffff', false); });
+    if (r.rows.length > 1) drawRow(cells(t, true), L.total, '#eef3f1', true);
+    g.strokeStyle = '#d6dedb'; rr(g, pad, 280, W - pad * 2, y - 280, 8); g.stroke();
+    // 运输
+    y += 34; g.textAlign = 'left';
+    var volW = t.v * 1e6 / 6000;
+    var lines = [
+      [L.air, f2(Math.max(volW, t.tgw)) + ' kg   (' + fmt(L.airNote, { v: f2(volW), g: f2(t.tgw) }) + ')'],
+      [L.c20, fmt(L.nCont, { n: ct['20GP'].n, t: '20GP' }) + '  ·  ' + (ct['20GP'].n === 1 ? fmt(L.fill, { p: ct['20GP'].last }) : fmt(L.lastFill, { p: ct['20GP'].last }))],
+      [L.c40, fmt(L.nCont, { n: ct['40HQ'].n, t: '40HQ' }) + '  ·  ' + (ct['40HQ'].n === 1 ? fmt(L.fill, { p: ct['40HQ'].last }) : fmt(L.lastFill, { p: ct['40HQ'].last }))],
+      [L.suggest, ct.mix],
+    ];
+    lines.forEach(function (ln) {
+      g.fillStyle = '#5d6b68'; g.font = font(400, 15); g.fillText(ln[0], pad, y);
+      g.fillStyle = '#15211f'; g.font = font(600, 15); g.fillText(ln[1], pad + 330, y);
+      y += 28;
+    });
+    // 页脚
+    g.fillStyle = '#0f6b5c'; g.fillRect(0, H - 52, W, 52);
+    g.fillStyle = '#fff'; g.font = font(600, 15); g.fillText(c.site + '   ·   WhatsApp ' + c.wa + '   ·   ' + c.email, pad, H - 26);
+    g.fillStyle = '#5d6b68'; g.font = font(400, 12.5); g.fillText(L.foot, pad, H - 70);
+    return cv;
+  }
+  function rr(g, x, y, w, h, r, topOnly) {
+    g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+    if (topOnly) { g.lineTo(x + w, y + h); g.lineTo(x, y + h); } else { g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r); }
+    g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+  }
+  function blob() { return (document.fonts ? document.fonts.ready : Promise.resolve()).then(function () { return new Promise(function (res) { draw().toBlob(res, 'image/png'); }); }); }
+  function fname() { return (c.model + '-packing-list-' + state.r.q + 'pcs.png').replace(/[^\w.-]+/g, '_'); }
+  function msg(t) { var m = $('[data-pk-msg]'); m.textContent = t; m.hidden = false; clearTimeout(msg.tm); msg.tm = setTimeout(function () { m.hidden = true; }, 4000); }
+  function download(b) { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = fname(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000); msg(L.dlDone); }
   $('[data-pk-copy]').addEventListener('click', function () {
-    var b = this, old = b.textContent;
-    var ok = function () { b.textContent = '✓ ' + L.copied; setTimeout(function () { b.textContent = old; }, 1500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () {}); else ok();
+    var p = blob();
+    var touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    // 手机：优先调起系统分享（可以直接选 WhatsApp）
+    if (touch && navigator.canShare) {
+      p.then(function (b) {
+        var f = new File([b], fname(), { type: 'image/png' });
+        if (navigator.canShare({ files: [f] })) return navigator.share({ files: [f] }).then(function () { msg(L.shared); }, function () {});
+        return copyOrDownload(b);
+      });
+      return;
+    }
+    // 电脑：复制到剪贴板（ClipboardItem 直接收 Promise，Safari 要求这样写）
+    if (navigator.clipboard && window.ClipboardItem) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': p })]).then(function () { msg(L.copiedImg); }, function () { p.then(download); });
+    } else p.then(download);
   });
-  window.addEventListener('ups:qty', function (e) { render(e.detail); });
+  function copyOrDownload(b) {
+    if (navigator.clipboard && window.ClipboardItem) return navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]).then(function () { msg(L.copiedImg); }, function () { download(b); });
+    download(b);
+  }
+  $('[data-pk-dl]').addEventListener('click', function () { blob().then(download); });
+  qtyEl.addEventListener('input', function () { if (qtyEl.value) render(qtyEl.value); });
+  qtyEl.addEventListener('change', function () { render(qtyEl.value || 1); qtyEl.value = state.r.q; });
+  window.addEventListener('ups:qty', function (e) { render(e.detail, true); });
   var q0 = document.querySelector('[data-qty]');
-  render(q0 ? q0.value : P.per * 50);
+  render(q0 ? q0.value : P.per * 50, true);
 })();
 </script>
 
@@ -97,12 +230,18 @@ const cfg = pk ? { pk, model: p.model, t: T } : null;
   .pk-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
   .pk-head h2 { font-size: 24px; margin: 0; }
   .pk-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-  .pk-btn { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; padding: 7px 12px; font: 600 13px var(--body); cursor: pointer; }
+  .pk-tools { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .pk-qty { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+  .pk-qty input { width: 130px; height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font: 600 15px var(--mono); color: var(--ink); background: #fff; }
+  .pk-qty input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pk-btn { height: 36px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; padding: 0 12px; font: 600 13px var(--body); cursor: pointer; }
   .pk-btn:hover { border-color: var(--ink); }
+  .pk-btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pk-msg { margin: -4px 0 12px; font-size: 13px; color: var(--ok, #1d7a3e); font-weight: 600; }
   .pk-stats { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .pk-stats :global(div) { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafbfb; }
+  .pk-stats :global(div) { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafbfb; min-width: 0; }
   .pk-stats :global(span) { display: block; font-size: 12px; color: var(--muted); }
-  .pk-stats :global(b) { font: 600 22px var(--mono); }
+  .pk-stats :global(b) { font: 600 22px var(--mono); overflow-wrap: anywhere; }
   .pk-stats :global(small) { font: 500 12px var(--mono); color: var(--muted); margin-left: 3px; }
   .pk-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
   .pk-scroll :global(table) { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -123,19 +262,25 @@ const cfg = pk ? { pk, model: p.model, t: T } : null;
   .pk-ship { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
   .pk-ship > :global(div) { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; min-width: 0; }
   .pk-ship :global(b) { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 2px; }
-  .pk-ship :global(i) { display: block; font-style: normal; font-family: var(--mono); font-weight: 600; }
+  .pk-ship :global(i) { display: block; font-style: normal; font-family: var(--mono); font-weight: 600; font-size: 15px; }
   .pk-ship :global(span) { display: block; color: var(--muted); font-size: 12.5px; }
   .pk-ship :global(em) { display: block; height: 6px; background: #e6ece9; border-radius: 99px; margin-top: 6px; overflow: hidden; }
   .pk-ship :global(s) { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .pk-sugg { margin: 12px 0 0; font-size: 13.5px; background: #eef3f1; border-radius: 10px; padding: 10px 12px; }
+  .pk-sugg :global(b) { font-weight: 600; }
+  .pk-sugg :global(span) { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
   .pk-foot { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
   @media (max-width: 700px) {
     .pk { padding: 16px; }
+    .pk-tools { width: 100%; }
+    .pk-qty { flex: 1 1 100%; }
+    .pk-qty input { width: 100%; }
+    .pk-btn { flex: 1; }
     .pk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .pk-scroll { display: none; }
     .pk-cards { display: grid; }
     .pk-ship { grid-template-columns: minmax(0, 1fr); }
   }
-  /* 下单 / 询价面板里的摘要行 */
   :global([data-pack-mini]) { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px; font-size: 13px; color: var(--ink); display: flex; flex-wrap: wrap; gap: 4px 12px; }
   :global([data-pack-mini][hidden]) { display: none; }
   :global([data-pack-mini] b) { font-family: var(--mono); }
