@@ -8,7 +8,7 @@ interface Props { p: any; lang: string }
 const { p, lang } = Astro.props;
 const pk = packOf(p);
 const T = PK[lang] || PK.en;
-const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, wa: SITE.whatsappDisplay, email: SITE.email, site: 'ups-china.com' } : null;
+const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name } : null;
 ---
 {cfg && (
   <section class="card pk" id="packing" data-pack>
@@ -76,7 +76,10 @@ const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, w
     q = Math.min(10000000, Math.max(1, Math.floor(+q || 0)));
     if (fromConsole || document.activeElement !== qtyEl) qtyEl.value = q;
     var r = calc(q), t = r.t, ct = containers(t);
-    state = { r: r, ct: ct };
+    // 不到半个 20GP 的小单：不显示空运计费重、集装箱这些运输参考（网页和图片都不显示）
+    var small = load(t, '20GP') < 0.5;
+    state = { r: r, ct: ct, small: small };
+    $('[data-pk-ship]').hidden = small; $('[data-pk-sugg]').hidden = small;
     $('[data-pk-sub]').textContent = fmt(L.sub, { q: int(q), per: P.per });
     var stats = [[L.cartons, int(t.ctn), ''], [L.gw, f2(t.tgw), 'kg']].concat(hasNW ? [[L.nw, f2(t.tnw), 'kg']] : []).concat([[L.cbm, vol(t.v), 'm³']]);
     $('[data-pk-stats]').style.setProperty('--n', stats.length);
@@ -118,7 +121,7 @@ const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, w
     var fixed = widths.reduce(function (a, w) { return a + (w > 1 ? w : 0); }, 0), flex = widths.filter(function (w) { return w === 1; }).length;
     var fw = (W - pad * 2 - fixed) / flex; widths = widths.map(function (w) { return w === 1 ? fw : w; });
     var nRows = r.rows.length + (r.rows.length > 1 ? 1 : 0);
-    var H = 90 + 60 + 96 + 30 + 56 + nRows * rowH + 30 + 120 + 70;
+    var H = 90 + 60 + 96 + 30 + 56 + nRows * rowH + (state.small ? 0 : 30 + 120) + 40;
     var cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
     var g = cv.getContext('2d'); g.scale(S, S);
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
@@ -166,8 +169,9 @@ const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, w
     r.rows.forEach(function (row) { drawRow(cells(row), c.model + (row.part ? ' · ' + L.part : ''), row.part ? '#fff8e8' : '#ffffff', false); });
     if (r.rows.length > 1) drawRow(cells(t, true), L.total, '#eef3f1', true);
     g.strokeStyle = '#d6dedb'; rr(g, pad, 280, W - pad * 2, y - 280, 8); g.stroke();
-    // 运输
+    // 运输（小单不画）
     y += 34; g.textAlign = 'left';
+    if (!state.small) {
     var volW = t.v * 1e6 / 6000;
     var lines = [
       [L.air, f2(Math.max(volW, t.tgw)) + ' kg   (' + fmt(L.airNote, { v: f2(volW), g: f2(t.tgw) }) + ')'],
@@ -180,10 +184,9 @@ const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, w
       g.fillStyle = '#15211f'; g.font = font(600, 15); g.fillText(ln[1], pad + 330, y);
       y += 28;
     });
-    // 页脚
-    g.fillStyle = '#0f6b5c'; g.fillRect(0, H - 52, W, 52);
-    g.fillStyle = '#fff'; g.font = font(600, 15); g.fillText(c.site + '   ·   WhatsApp ' + c.wa + '   ·   ' + c.email, pad, H - 26);
-    g.fillStyle = '#5d6b68'; g.font = font(400, 12.5); g.fillText(L.foot, pad, H - 70);
+    }
+    // 底部说明（不带网址、WhatsApp、邮箱）
+    g.fillStyle = '#5d6b68'; g.font = font(400, 12.5); g.fillText(L.foot, pad, H - 24);
     return cv;
   }
   function rr(g, x, y, w, h, r, topOnly) {
@@ -259,6 +262,7 @@ const cfg = pk ? { pk, model: p.model, t: T, ct: CONTAINERS, brand: SITE.name, w
   .pk-cards :global(dl) { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
   .pk-cards :global(dt) { color: var(--muted); }
   .pk-cards :global(dd) { margin: 0; text-align: right; font-family: var(--mono); overflow-wrap: anywhere; }
+  .pk-ship[hidden], .pk-sugg[hidden] { display: none; }
   .pk-ship { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
   .pk-ship > :global(div) { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; min-width: 0; }
   .pk-ship :global(b) { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 2px; }
