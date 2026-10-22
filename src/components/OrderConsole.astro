@@ -111,6 +111,7 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
     </div>
     <span class="oc-hint">{T.hint}</span>
     <div class="oc-big" data-big hidden>{T.big}</div>
+    <div data-pack-mini hidden></div>
   </div>
   </div>
 
@@ -204,6 +205,7 @@ const msgTpl = T.msg('{m}', '{q}', '{plugs}', '{u}', '{tot}');
 
     function render() {
       qtyEl.value = qty;
+      window.dispatchEvent(new CustomEvent('ups:qty', { detail: qty })); // 箱单跟着数量重算
       $('[data-big]').hidden = qty < c.max;
       var rem = qty - sum();
       plugs.forEach(function (r) {

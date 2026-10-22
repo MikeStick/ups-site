@@ -20,6 +20,7 @@ const cfg = { model: p.model, wa: SITE.whatsapp, email: SITE.email, names: SOCKE
     <label class="qc-field"><span class="qc-label">{T.qQty}</span>
       <span class="qc-inline"><input type="number" inputmode="numeric" min="1" step="1" value="100" data-qty /> <span>{T.pcs}</span></span>
     </label>
+    <div data-pack-mini hidden></div>
 
     <div class="qc-field">
       <span class="qc-label">{T.qSockets}</span>
@@ -68,6 +69,7 @@ const cfg = { model: p.model, wa: SITE.whatsapp, email: SITE.email, names: SOCKE
       root.querySelectorAll('.qc-sock').forEach(function (b) { var on = b.dataset.sock === type; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
       var qty = Math.max(1, parseInt($('[data-qty]').value, 10) || 1), notes = $('[data-notes]').value.trim();
       var msg = c.t.msg.replace('{m}', c.model) + '\n• ' + c.t.lQty + ': ' + qty + ' ' + c.t.pcs + '\n• ' + c.t.lSockets + ': ' + sockText() + (notes ? '\n• ' + c.t.lNotes + ': ' + notes : '');
+      window.dispatchEvent(new CustomEvent('ups:qty', { detail: qty })); // 箱单跟着数量重算
       var wa = $('[data-wa]'), mail = $('[data-mail]');
       if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
       if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(c.model + ' · ' + qty) + '&body=' + encodeURIComponent(msg);

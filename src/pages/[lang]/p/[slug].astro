@@ -8,6 +8,7 @@ import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
+import PackingList from '../../../components/PackingList.astro';
 import { isOffline, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
@@ -129,6 +130,7 @@ const jsonLd = {
         {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
       </dl>
     </section>
+    <PackingList p={p} lang={lang} />
     {detailAll.length > 0 && (
       <section class="card detail-imgs">
         <h2>{t.details}</h2>

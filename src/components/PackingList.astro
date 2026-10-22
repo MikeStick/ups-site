@@ -1,0 +1,143 @@
+---
+// 箱单：跟着下单 / 询价面板里的数量实时重算（面板在数量变化时发出 ups:qty 事件）。
+// 不是整箱时，最后一箱单独一行：重量按实际台数算，尺寸按整箱算。
+import { packOf, PK } from '../lib/packing.mjs';
+interface Props { p: any; lang: string }
+const { p, lang } = Astro.props;
+const pk = packOf(p);
+const T = PK[lang] || PK.en;
+const cfg = pk ? { pk, model: p.model, t: T } : null;
+---
+{cfg && (
+  <section class="card pk" id="packing" data-pack>
+    <script type="application/json" data-pack-cfg set:html={JSON.stringify(cfg)} />
+    <div class="pk-head">
+      <div><h2>{T.title}</h2><p data-pk-sub></p></div>
+      <button type="button" class="pk-btn" data-pk-copy>{T.copy}</button>
+    </div>
+    <div class="pk-stats" data-pk-stats></div>
+    <div class="pk-scroll"><table data-pk-tbl></table></div>
+    <div class="pk-cards" data-pk-cards></div>
+    <div class="pk-ship" data-pk-ship></div>
+    <p class="pk-foot">{T.foot}</p>
+  </section>
+)}
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-pack]'); if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-pack-cfg]').textContent), P = c.pk, L = c.t, C = L.cols, hasNW = P.nw > 0;
+  var $ = function (s) { return root.querySelector(s); };
+  var f2 = function (n) { return n.toFixed(2); };
+  var vol = function (n) { return n < 1 ? n.toFixed(3) : n.toFixed(2); };
+  var fmt = function (s, o) { return s.replace(/\{(\w+)\}/g, function (m, k) { return o[k]; }); };
+  var size = P.l + '×' + P.w + '×' + P.h, box = P.l * P.w * P.h / 1e9, text = '';
+  function calc(q) {
+    var unitNW = hasNW ? P.nw / P.per : 0, unitGW = P.gw / P.per, tare = hasNW ? P.gw - P.nw : 0;
+    var full = Math.floor(q / P.per), rest = q % P.per, rows = [];
+    if (full) rows.push({ part: false, qty: full * P.per, per: P.per, ctn: full, nw: P.nw, gw: P.gw });
+    if (rest) { var nw = unitNW * rest; rows.push({ part: true, qty: rest, per: rest, ctn: 1, nw: nw, gw: hasNW ? nw + tare : unitGW * rest }); }
+    rows.forEach(function (r) { r.tnw = r.nw * r.ctn; r.tgw = r.gw * r.ctn; r.v = box * r.ctn; });
+    var t = rows.reduce(function (a, r) { return { qty: a.qty + r.qty, ctn: a.ctn + r.ctn, tnw: a.tnw + r.tnw, tgw: a.tgw + r.tgw, v: a.v + r.v }; }, { qty: 0, ctn: 0, tnw: 0, tgw: 0, v: 0 });
+    return { rows: rows, t: t };
+  }
+  // 没填净重时去掉净重相关的两列
+  var COLS = hasNW ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [0, 1, 2, 3, 5, 7, 8, 9];
+  function cells(x, total) {
+    var all = [null, x.qty, total ? '' : x.per, x.ctn, total ? '' : f2(x.nw), total ? '' : f2(x.gw), f2(x.tnw), f2(x.tgw), total ? '' : size, vol(x.v)];
+    return COLS.slice(1).map(function (i) { return all[i]; });
+  }
+  function render(q) {
+    q = Math.max(1, Math.floor(+q || 0));
+    var r = calc(q), t = r.t;
+    $('[data-pk-sub]').textContent = fmt(L.sub, { q: q, per: P.per });
+    var stats = [[L.cartons, t.ctn, ''], [L.gw, f2(t.tgw), 'kg']].concat(hasNW ? [[L.nw, f2(t.tnw), 'kg']] : []).concat([[L.cbm, vol(t.v), 'm³']]);
+    $('[data-pk-stats]').style.setProperty('--n', stats.length);
+    $('[data-pk-stats]').innerHTML = stats.map(function (s) { return '<div><span>' + s[0] + '</span><b>' + s[1] + '</b><small>' + s[2] + '</small></div>'; }).join('');
+    var h = '<thead><tr>' + COLS.map(function (i) { return '<th>' + C[i].replace(' (', '<br>(') + '</th>'; }).join('') + '</tr></thead><tbody>';
+    r.rows.forEach(function (x) {
+      h += '<tr' + (x.part ? ' class="part"' : '') + '><td class="l">' + c.model + (x.part ? '<span class="pk-tag">' + L.part + '</span>' : '') + '</td>' + cells(x).map(function (v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    });
+    h += '</tbody>';
+    if (r.rows.length > 1) h += '<tfoot><tr><td class="l">' + L.total + '</td>' + cells(t, true).map(function (v) { return '<td>' + v + '</td>'; }).join('') + '</tr></tfoot>';
+    $('[data-pk-tbl]').innerHTML = h;
+    $('[data-pk-cards]').innerHTML = r.rows.map(function (x) {
+      var vals = cells(x), keys = COLS.slice(1);
+      return '<div class="pk-card' + (x.part ? ' part' : '') + '"><h4>' + c.model + ' · ' + (x.part ? L.part : L.full) + '</h4><dl>' +
+        keys.map(function (i, j) { return (i === 6 ? '' : '<dt>' + C[i] + '</dt><dd>' + vals[j] + '</dd>'); }).join('') + '</dl></div>';
+    }).join('');
+    var volW = t.v * 1e6 / 6000, charge = Math.max(volW, t.tgw), p20 = Math.min(100, t.v / 28 * 100), p40 = Math.min(100, t.v / 68 * 100);
+    var pct = function (p) { return p.toFixed(p < 10 ? 1 : 0); };
+    $('[data-pk-ship]').innerHTML =
+      '<div><b>' + L.air + '</b><i>' + f2(charge) + ' kg</i><span>' + fmt(L.airNote, { v: f2(volW), g: f2(t.tgw) }) + '</span></div>' +
+      '<div><b>' + L.c20 + '</b><i>' + fmt(L.fill, { p: pct(p20) }) + '</i><em><s style="width:' + p20 + '%"></s></em></div>' +
+      '<div><b>' + L.c40 + '</b><i>' + fmt(L.fill, { p: pct(p40) }) + '</i><em><s style="width:' + p40 + '%"></s></em></div>';
+    // 下单 / 询价面板里的一行摘要
+    document.querySelectorAll('[data-pack-mini]').forEach(function (el) {
+      el.hidden = false;
+      el.innerHTML = '<span>' + fmt(L.mini, { c: '<b>' + t.ctn + '</b>', g: '<b>' + f2(t.tgw) + '</b>', v: '<b>' + vol(t.v) + '</b>' }) + '</span> <a href="#packing">' + L.see + '</a>';
+    });
+    text = [COLS.map(function (i) { return C[i]; }).join('\t')]
+      .concat(r.rows.map(function (x) { return [c.model + (x.part ? ' (' + L.part + ')' : '')].concat(cells(x)).join('\t'); }))
+      .concat(r.rows.length > 1 ? [[L.total].concat(cells(t, true)).join('\t')] : []).join('\n');
+  }
+  $('[data-pk-copy]').addEventListener('click', function () {
+    var b = this, old = b.textContent;
+    var ok = function () { b.textContent = '✓ ' + L.copied; setTimeout(function () { b.textContent = old; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () {}); else ok();
+  });
+  window.addEventListener('ups:qty', function (e) { render(e.detail); });
+  var q0 = document.querySelector('[data-qty]');
+  render(q0 ? q0.value : P.per * 50);
+})();
+</script>
+
+<style>
+  .pk { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; min-width: 0; }
+  .pk-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pk-head h2 { font-size: 24px; margin: 0; }
+  .pk-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .pk-btn { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; padding: 7px 12px; font: 600 13px var(--body); cursor: pointer; }
+  .pk-btn:hover { border-color: var(--ink); }
+  .pk-stats { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .pk-stats :global(div) { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafbfb; }
+  .pk-stats :global(span) { display: block; font-size: 12px; color: var(--muted); }
+  .pk-stats :global(b) { font: 600 22px var(--mono); }
+  .pk-stats :global(small) { font: 500 12px var(--mono); color: var(--muted); margin-left: 3px; }
+  .pk-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .pk-scroll :global(table) { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .pk-scroll :global(th), .pk-scroll :global(td) { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .pk-scroll :global(thead th) { background: var(--ink); color: #fff; font-weight: 600; font-size: 12.5px; line-height: 1.3; }
+  .pk-scroll :global(tbody tr:last-child td) { border-bottom: 0; }
+  .pk-scroll :global(tfoot td) { background: #eef3f1; font-weight: 600; border-top: 2px solid var(--line); border-bottom: 0; }
+  .pk-scroll :global(td.l) { text-align: left; }
+  .pk-scroll :global(tr.part td) { background: #fffaf0; }
+  .pk :global(.pk-tag) { font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 2px 6px; border-radius: 99px; background: var(--charge-soft, #fbefc6); color: #7a5a00; margin-left: 6px; }
+  .pk-cards { display: none; gap: 10px; }
+  .pk-cards :global(.pk-card) { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .pk-cards :global(.pk-card.part) { background: #fffaf0; }
+  .pk-cards :global(h4) { margin: 0 0 8px; font-size: 14px; }
+  .pk-cards :global(dl) { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+  .pk-cards :global(dt) { color: var(--muted); }
+  .pk-cards :global(dd) { margin: 0; text-align: right; font-family: var(--mono); overflow-wrap: anywhere; }
+  .pk-ship { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .pk-ship > :global(div) { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; min-width: 0; }
+  .pk-ship :global(b) { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 2px; }
+  .pk-ship :global(i) { display: block; font-style: normal; font-family: var(--mono); font-weight: 600; }
+  .pk-ship :global(span) { display: block; color: var(--muted); font-size: 12.5px; }
+  .pk-ship :global(em) { display: block; height: 6px; background: #e6ece9; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+  .pk-ship :global(s) { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .pk-foot { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+  @media (max-width: 700px) {
+    .pk { padding: 16px; }
+    .pk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pk-scroll { display: none; }
+    .pk-cards { display: grid; }
+    .pk-ship { grid-template-columns: minmax(0, 1fr); }
+  }
+  /* 下单 / 询价面板里的摘要行 */
+  :global([data-pack-mini]) { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px; font-size: 13px; color: var(--ink); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  :global([data-pack-mini][hidden]) { display: none; }
+  :global([data-pack-mini] b) { font-family: var(--mono); }
+  :global([data-pack-mini] a) { color: var(--accent); font-weight: 600; text-decoration: none; }
+</style>
