@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import DevicePicker from '../../components/DevicePicker.astro';
+import HomeHero from '../../components/HomeHero.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { UI, term, tiersOf } from '../../i18n.mjs';
 import { batteryWh, totalMah, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
@@ -30,7 +31,8 @@ const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
 const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
 ---
 <Base lang={lang} title={`${t.products} · ${SITE.name}`} description={SITE.tagline[lang]} path="">
-  <h1 class="page-title">{t.allProducts}</h1>
+  <HomeHero lang={lang} />
+  <h1 class="page-title" id="shop">{t.allProducts}</h1>
   {products.length === 0 && <p class="empty">{t.noProducts}</p>}
 
   {products.length > 0 && (

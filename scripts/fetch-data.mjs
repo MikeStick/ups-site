@@ -51,6 +51,33 @@ async function saveImage(url, slug, idx) {
   return { src: `/media/${slug}/${name}`, thumb: `/media/${slug}/${name}` };
 }
 
+// 首页动画素材（hp_*）：视频原样保存；场景照片压成 1920 宽的 JPEG（全屏显示要清楚）；UPS 产品图保留透明背景（WebP）
+async function saveHeroMedia(url, slot) {
+  const r = await fetch(url, { headers: { 'x-site-key': KEY } });
+  if (!r.ok) { console.warn(`[fetch-data] 首页动画素材下载失败 ${url} → HTTP ${r.status}`); return null; }
+  const buf = Buffer.from(await r.arrayBuffer());
+  const dir = path.join(MEDIA_DIR, '_site');
+  await fs.mkdir(dir, { recursive: true });
+  const ext = (decodeURIComponent(url).split('.').pop() || '').split('?')[0].toLowerCase();
+  const h = hashOf(buf);
+  if (ext === 'mp4' || ext === 'webm') {
+    if (buf.length > 24 * 1024 * 1024) { console.warn(`[fetch-data] ${slot} 视频超过 24MB，Cloudflare 无法发布，已跳过`); return null; }
+    const name = `${slot}-${h}.${ext}`;
+    await fs.writeFile(path.join(dir, name), buf);
+    return { src: `/media/_site/${name}` };
+  }
+  if (!sharp) { const name = `${slot}-${h}.${ext || 'jpg'}`; await fs.writeFile(path.join(dir, name), buf); return { src: `/media/_site/${name}` }; }
+  if (slot === 'hp_ups') {
+    const name = `${slot}-${h}.webp`;
+    await sharp(buf).rotate().resize({ width: 700, height: 900, fit: 'inside', withoutEnlargement: true }).webp({ quality: 88 }).toFile(path.join(dir, name));
+    return { src: `/media/_site/${name}` };
+  }
+  const name = `${slot}-${h}.jpg`;
+  await sharp(buf).rotate().resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 80, progressive: true, mozjpeg: true }).toFile(path.join(dir, name));
+  return { src: `/media/_site/${name}` };
+}
+
 // 详情图：通常是很长的竖图，WebP 最大边长只有 16383px，所以用 JPEG（最大 65535px），宽度压到 1200 以内
 // prefix：产品自己的详情图是 d1、d2…；模板图片放在 _tpl/<模板id>/ 下，用 t1、t2…
 async function saveDetailImage(url, slug, idx, prefix = 'd') {
@@ -141,7 +168,7 @@ async function fetchSite() {
         const url = typeof it === 'string' ? it : it && it.url;
         if (!url) continue;
         try {
-          const im = await saveDetailImage(url, '_site', i, `${slot}-`);
+          const im = slot.startsWith('hp_') ? await saveHeroMedia(url, slot) : await saveDetailImage(url, '_site', i, `${slot}-`);
           if (im) saved.push({ ...im, caption: (it && it.caption) || {} });
         }
         catch (e) { console.warn(`[fetch-data] 网站图片处理失败 ${slot}：${e.message}`); }

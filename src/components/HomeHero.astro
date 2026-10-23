@@ -1,0 +1,309 @@
+---
+// 首页动画："如果这个时候停电"
+// 六个场景依次全屏 3 秒 → 缩小移到两侧（左：医院 / 学校 / 芯片厂，右：机场 / 电竞 / 家庭）→ 文字"如果这个时候停电" →
+// 六个画面闪烁后全黑 → "如果有 SKE" + 中间出现 UPS → 画面依次恢复 → "有我们在，没意外"。
+// 场景素材：客户档案系统「网站管理 → 首页动画」，图片位 hp_hospital … hp_family、hp_ups；可以传照片或短视频（MP4）。
+// 没上传时显示占位插画。只在首页播放一次，可跳过 / 重播；系统设置了"减少动态效果"时直接显示最终画面。
+import { HT, HP_SCENES } from '../lib/home-hero-i18n.mjs';
+import site from '../data/site.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = HT[lang] || HT.en;
+const asset = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0] : null; };
+const isVideo = (a) => a && /\.(mp4|webm)$/i.test(a.src || '');
+
+// 占位插画（1600×900，铺满裁切）
+const PH = {
+  hospital: `<defs><radialGradient id="hl" cx="50%" cy="8%" r="60%"><stop offset="0" stop-color="#f4fbff"/><stop offset=".25" stop-color="#9fd3e0" stop-opacity=".55"/><stop offset="1" stop-color="#0b2b2e" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="#0d2a2c"/><rect width="1600" height="900" fill="url(#hl)"/>
+    <ellipse cx="800" cy="70" rx="150" ry="44" fill="#dff3fa"/><ellipse cx="800" cy="70" rx="110" ry="28" fill="#fff"/><path d="M800 0v26" stroke="#5c7c80" stroke-width="12"/>
+    <path d="M690 100 L520 620 H1080 L910 100Z" fill="#e8f7ff" opacity=".10"/>
+    <rect x="520" y="560" width="560" height="44" rx="10" fill="#cfe6ea"/><rect x="560" y="604" width="20" height="200" fill="#6d8a8d"/><rect x="1020" y="604" width="20" height="200" fill="#6d8a8d"/>
+    <g fill="#1f8a7c"><circle cx="560" cy="380" r="44"/><path d="M490 470q70-60 140 0v330H490Z"/><circle cx="800" cy="350" r="46"/><path d="M725 445q75-62 150 0v360H725Z"/><circle cx="1040" cy="380" r="44"/><path d="M970 470q70-60 140 0v330H970Z"/></g>
+    <g fill="#2fb3a2"><path d="M516 350q44-36 88 0v-10q-44-30-88 0Z"/><path d="M754 318q46-38 92 0v-10q-46-32-92 0Z"/><path d="M996 350q44-36 88 0v-10q-44-30-88 0Z"/></g>
+    <rect x="1230" y="300" width="250" height="170" rx="12" fill="#081816" stroke="#3b5c5a" stroke-width="6"/><rect x="1296" y="470" width="14" height="330" fill="#3b5c5a"/>`,
+  school: `<defs><linearGradient id="sl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8dc" stop-opacity=".9"/><stop offset="1" stop-color="#f6e7b0" stop-opacity="0"/></linearGradient></defs>
+    <rect width="1600" height="900" fill="#e9e2cc"/><rect width="1600" height="900" fill="#f5efda" opacity=".5"/>
+    <g fill="#14233a"><rect x="40" y="140" width="220" height="380" rx="6"/><rect x="40" y="560" width="220" height="200" rx="6"/></g><circle cx="190" cy="230" r="34" fill="#f2f0d8"/>
+    <rect x="420" y="120" width="760" height="300" rx="10" fill="#22433a"/><path d="M470 200h300M470 250h420M470 300h260" stroke="#d9e8de" stroke-width="10" stroke-linecap="round" opacity=".7"/>
+    <g fill="url(#sl)"><rect x="380" y="0" width="300" height="60"/><rect x="920" y="0" width="300" height="60"/></g><g fill="#fffdf2"><rect x="400" y="20" width="260" height="16" rx="8"/><rect x="940" y="20" width="260" height="16" rx="8"/></g>
+    <g fill="#c9b48a"><rect x="300" y="610" width="440" height="30" rx="6"/><rect x="860" y="610" width="440" height="30" rx="6"/><rect x="200" y="790" width="520" height="34" rx="6"/><rect x="880" y="790" width="520" height="34" rx="6"/></g>
+    <g fill="#24324a"><circle cx="420" cy="540" r="40"/><path d="M360 640q60-70 120 0Z"/><circle cx="620" cy="540" r="40"/><path d="M560 640q60-70 120 0Z"/><circle cx="980" cy="540" r="40"/><path d="M920 640q60-70 120 0Z"/><circle cx="1180" cy="540" r="40"/><path d="M1120 640q60-70 120 0Z"/>
+    <circle cx="340" cy="700" r="52"/><path d="M262 830q78-90 156 0Z"/><circle cx="600" cy="700" r="52"/><path d="M522 830q78-90 156 0Z"/><circle cx="1000" cy="700" r="52"/><path d="M922 830q78-90 156 0Z"/><circle cx="1260" cy="700" r="52"/><path d="M1182 830q78-90 156 0Z"/></g>`,
+  fab: `<defs><linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9a6"/><stop offset="1" stop-color="#b88a1e"/></linearGradient></defs>
+    <rect width="1600" height="900" fill="url(#fl)"/>
+    <g stroke="#fff6cf" stroke-width="10" opacity=".8"><path d="M0 60H1600M0 130H1600"/><path d="M200 0V140M600 0V140M1000 0V140M1400 0V140"/></g>
+    <path d="M800 300 L0 900 H1600Z" fill="#d9b24a" opacity=".5"/>
+    <g fill="#f3efe4" stroke="#8a6d1c" stroke-width="5"><path d="M80 380h360v380H80Z"/><path d="M500 340h220v260H500Z"/><path d="M880 340h220v260H880Z"/><path d="M1160 380h360v380H1160Z"/></g>
+    <g fill="#4a90c2"><rect x="130" y="430" width="120" height="70" rx="6"/><rect x="1210" y="430" width="120" height="70" rx="6"/><rect x="540" y="380" width="80" height="44" rx="5"/><rect x="920" y="380" width="80" height="44" rx="5"/></g>
+    <g fill="#ffffff" stroke="#c8bfa4" stroke-width="4"><circle cx="560" cy="560" r="40"/><path d="M500 640q60-60 120 0v180H500Z"/><circle cx="1050" cy="530" r="36"/><path d="M996 600q54-54 108 0v170H996Z"/></g>
+    <g fill="#3b4b5c"><rect x="535" y="550" width="50" height="16" rx="8"/><rect x="1027" y="521" width="46" height="14" rx="7"/></g>`,
+  airport: `<defs><linearGradient id="al" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1838"/><stop offset=".62" stop-color="#1d3b6e"/><stop offset="1" stop-color="#d9dde4"/></linearGradient></defs>
+    <rect width="1600" height="900" fill="url(#al)"/>
+    <g stroke="#9fb3cf" stroke-width="8" opacity=".55"><path d="M0 120Q800 20 1600 120"/><path d="M200 70V560M500 40V560M800 30V560M1100 40V560M1400 70V560"/><path d="M0 560H1600"/></g>
+    <path d="M980 300l260-26 20 10-200 34 120 40-24 12-170-30-90 18-16-8 70-28Z" fill="#e6ebf2"/>
+    <g fill="#ffb347"><circle cx="120" cy="530" r="5"/><circle cx="300" cy="530" r="5"/><circle cx="480" cy="530" r="5"/><circle cx="660" cy="530" r="5"/><circle cx="1180" cy="530" r="5"/><circle cx="1400" cy="530" r="5"/></g>
+    <rect x="560" y="600" width="480" height="150" rx="10" fill="#111a2a"/><g fill="#ffcc4d"><rect x="590" y="625" width="240" height="14" rx="4"/><rect x="590" y="660" width="320" height="14" rx="4"/><rect x="590" y="695" width="200" height="14" rx="4"/><rect x="900" y="625" width="110" height="14" rx="4" fill="#5ee08a"/></g>
+    <g fill="#2a3446"><circle cx="230" cy="700" r="30"/><path d="M190 900q-6-120 40-170 46 50 40 170Z"/><rect x="290" y="780" width="60" height="90" rx="10"/><circle cx="1320" cy="690" r="32"/><path d="M1278 900q-6-130 42-180 48 50 42 180Z"/><rect x="1210" y="780" width="60" height="90" rx="10"/><circle cx="440" cy="760" r="24"/><path d="M408 900q-4-90 32-130 36 40 32 130Z"/></g>`,
+  esports: `<defs><radialGradient id="el" cx="50%" cy="30%" r="70%"><stop offset="0" stop-color="#ff6a3d" stop-opacity=".55"/><stop offset=".5" stop-color="#5b1aa0" stop-opacity=".6"/><stop offset="1" stop-color="#12051f"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="#12051f"/><rect width="1600" height="900" fill="url(#el)"/>
+    <rect x="360" y="70" width="880" height="400" rx="10" fill="#1a1030" stroke="#c45cff" stroke-width="6"/>
+    <path d="M380 420 L600 260 L760 360 L940 220 L1220 420Z" fill="#3c6b3a"/><path d="M380 420 L560 330 L700 400 L900 300 L1220 420Z" fill="#5a8a43"/><circle cx="1080" cy="160" r="40" fill="#ffb347"/>
+    <g fill="#fff" opacity=".9"><rect x="400" y="96" width="150" height="22" rx="4"/><rect x="1050" y="96" width="160" height="22" rx="4"/></g>
+    <path d="M200 0L520 900M1400 0L1080 900" stroke="#b46bff" stroke-width="40" opacity=".12"/>
+    <rect x="120" y="560" width="1360" height="40" rx="8" fill="#2a1446"/>
+    <g fill="#0b0716"><rect x="200" y="500" width="160" height="70" rx="6"/><rect x="520" y="500" width="160" height="70" rx="6"/><rect x="920" y="500" width="160" height="70" rx="6"/><rect x="1240" y="500" width="160" height="70" rx="6"/></g>
+    <g fill="#ff7a59"><rect x="210" y="508" width="140" height="54" rx="4" opacity=".7"/><rect x="530" y="508" width="140" height="54" rx="4" opacity=".7"/><rect x="930" y="508" width="140" height="54" rx="4" opacity=".7"/><rect x="1250" y="508" width="140" height="54" rx="4" opacity=".7"/></g>
+    <g fill="#08040f"><circle cx="160" cy="820" r="60"/><circle cx="420" cy="840" r="66"/><circle cx="700" cy="820" r="60"/><circle cx="980" cy="840" r="66"/><circle cx="1260" cy="820" r="60"/><circle cx="1500" cy="840" r="66"/><rect y="840" width="1600" height="60"/></g>`,
+  family: `<defs><radialGradient id="fm" cx="50%" cy="35%" r="55%"><stop offset="0" stop-color="#6fb7ff" stop-opacity=".55"/><stop offset="1" stop-color="#2b1a10" stop-opacity="0"/></radialGradient><radialGradient id="lp" cx="12%" cy="40%" r="35%"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".7"/><stop offset="1" stop-color="#2b1a10" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="#2b1a10"/><rect width="1600" height="900" fill="url(#fm)"/><rect width="1600" height="900" fill="url(#lp)"/>
+    <rect x="540" y="140" width="520" height="300" rx="14" fill="#0a0f18"/><rect x="556" y="156" width="488" height="268" rx="6" fill="#7cc4ff"/><path d="M556 360q120-80 240-20t248-40v124H556Z" fill="#3a7bd5"/>
+    <rect x="500" y="460" width="600" height="40" rx="6" fill="#3e2a1c"/>
+    <path d="M160 120h60l40 200H120Z" fill="#ffd89a"/><rect x="186" y="320" width="8" height="380" fill="#6b4a33"/>
+    <path d="M220 640q0-90 90-90h980q90 0 90 90v260H220Z" fill="#5b3a26"/>
+    <g fill="#1d120b"><circle cx="560" cy="590" r="58"/><path d="M480 760q80-110 160 0Z"/><circle cx="760" cy="610" r="44"/><path d="M700 760q60-90 120 0Z"/><circle cx="920" cy="600" r="52"/><path d="M846 760q74-100 148 0Z"/><circle cx="1100" cy="590" r="58"/><path d="M1020 760q80-110 160 0Z"/></g>
+    <rect x="200" y="740" width="1200" height="160" rx="30" fill="#6d4630"/>`,
+};
+const UPS_PH = `<svg viewBox="0 0 300 420" aria-hidden="true"><defs><linearGradient id="ug" x1="0" x2="1"><stop offset="0" stop-color="#2b3335"/><stop offset=".5" stop-color="#3a4446"/><stop offset="1" stop-color="#22292a"/></linearGradient></defs>
+  <rect x="60" y="20" width="180" height="380" rx="14" fill="url(#ug)"/><rect x="60" y="20" width="180" height="380" rx="14" fill="none" stroke="#56615f" stroke-width="2"/>
+  <rect x="88" y="64" width="124" height="66" rx="6" fill="#0c1a14"/><text x="150" y="96" text-anchor="middle" font-family="monospace" font-size="18" font-weight="700" fill="#5ef0a0">ONLINE</text><text x="150" y="120" text-anchor="middle" font-family="monospace" font-size="14" fill="#5ef0a0">0 ms</text>
+  <circle cx="150" cy="180" r="18" fill="none" stroke="#e0a800" stroke-width="4"/><path d="M150 168v12" stroke="#e0a800" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="110" cy="230" r="5" fill="#5ef0a0"/><circle cx="130" cy="230" r="5" fill="#5ef0a0"/><circle cx="150" cy="230" r="5" fill="#3a4446"/>
+  <g stroke="#2a3133" stroke-width="5"><path d="M90 280h120M90 300h120M90 320h120M90 340h120M90 360h120"/></g>
+  <text x="150" y="388" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="800" letter-spacing="3" fill="#cfd6d4">SKE</text></svg>`;
+const ups = asset('hp_ups');
+const scenes = HP_SCENES.map((k) => ({ k, a: asset(`hp_${k}`), label: T.scenes[k][0], status: T.scenes[k][1] }));
+const cfg = { off: T.off, on: T.on };
+---
+<section class="hh" data-hh aria-label={T.slogan}>
+  <script type="application/json" data-hh-cfg set:html={JSON.stringify(cfg)} />
+  <div class="hh-stage" data-stage>
+    <!-- 最终布局的位置（看不见，只用来量位置） -->
+    <div class="hh-grid" aria-hidden="true">
+      {scenes.map((_, i) => <div class={`hh-slot s${i}`} data-slot={i}></div>)}
+      <div class="hh-slot hh-center-slot" data-center></div>
+    </div>
+
+    {scenes.map((s, i) => (
+      <figure class="hh-tile" data-tile={i}>
+        <div class="hh-media">
+          {s.a ? (isVideo(s.a)
+            ? <video src={s.a.src} muted loop playsinline preload="metadata" data-video></video>
+            : <img src={s.a.src} alt={s.label} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />)
+            : <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label={s.label} set:html={PH[s.k]} />}
+        </div>
+        <div class="hh-shade"></div>
+        {s.k === 'hospital' && (
+          <svg class="hh-ecg" viewBox="0 0 200 60" aria-hidden="true"><path class="beat" d="M0 34h50l8-16 10 32 10-40 8 24h24l6-8 8 8h76" /><path class="flat" d="M0 34h200" /></svg>
+        )}
+        <figcaption>
+          <span class="hh-status"><i></i><b data-st data-txt={s.status}>{s.status}</b></span>
+          <span class="hh-label">{s.label}</span>
+        </figcaption>
+      </figure>
+    ))}
+
+    <div class="hh-center" data-centerbox>
+      <p class="hh-q" data-q>{T.q}</p>
+      <p class="hh-if" data-if>{T.ifSke}</p>
+      <div class="hh-ups" data-ups>
+        {ups ? <img src={ups.src} alt="SKE UPS" /> : <Fragment set:html={UPS_PH} />}
+        <span class="hh-ring"></span>
+      </div>
+      <div class="hh-bottom">
+        <p class="hh-rest" data-rest>{T.restored}</p>
+        <div class="hh-end">
+          <h2 class="hh-slogan" data-slogan>{T.slogan}</h2>
+          <div class="hh-cta" data-cta>
+            <a class="hh-btn primary" href="#shop">{T.cta1}</a>
+            <a class="hh-btn" href={`/${lang}/rack-ups/`}>{T.cta2}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hh-ctrl">
+      <button type="button" data-skip>{T.skip} ▸▸</button>
+      <button type="button" data-replay hidden>↻ {T.replay}</button>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-hh]'); if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-hh-cfg]').textContent);
+  var stage = root.querySelector('[data-stage]');
+  var tiles = Array.prototype.slice.call(root.querySelectorAll('[data-tile]'));
+  var slots = Array.prototype.slice.call(root.querySelectorAll('[data-slot]'));
+  var center = root.querySelector('[data-centerbox]'), centerSlot = root.querySelector('[data-center]');
+  function placeCenter() { put(center, rectOf(centerSlot)); }
+  var $ = function (s) { return root.querySelector(s); };
+  var run = 0, done = false;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function rectOf(el) { var a = el.getBoundingClientRect(), b = stage.getBoundingClientRect(); return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height }; }
+  function put(el, r) { el.style.left = r.x + 'px'; el.style.top = r.y + 'px'; el.style.width = r.w + 'px'; el.style.height = r.h + 'px'; }
+  function full() { return { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight }; }
+  function wait(ms, id) { return new Promise(function (res, rej) { setTimeout(function () { id === run ? res() : rej('stop'); }, ms); }); }
+  function status(on) {
+    tiles.forEach(function (t) { var b = t.querySelector('[data-st]'); b.textContent = on === 'off' ? c.off : on === 'ups' ? c.on : b.dataset.txt; });
+  }
+  function videos(play) { root.querySelectorAll('[data-video]').forEach(function (v) { try { play ? v.play() : v.pause(); } catch (e) {} }); }
+  function reset() {
+    placeCenter();
+    stage.className = 'hh-stage';
+    ['[data-q]', '[data-ups]', '[data-if]', '[data-rest]', '[data-slogan]', '[data-cta]'].forEach(function (s) { $(s).classList.remove('in'); });
+    tiles.forEach(function (t) { t.className = 'hh-tile'; t.style.transition = 'none'; put(t, full()); });
+    status('');
+  }
+  function finalState() {
+    done = true; placeCenter();
+    stage.className = 'hh-stage final ups';
+    tiles.forEach(function (t, i) { t.style.transition = 'none'; t.className = 'hh-tile shown small'; put(t, rectOf(slots[i])); });
+    ['[data-ups]', '[data-slogan]', '[data-cta]'].forEach(function (s) { $(s).classList.add('in'); });
+    ['[data-q]', '[data-if]', '[data-rest]'].forEach(function (s) { $(s).classList.remove('in'); });
+    status('ups'); videos(true);
+    $('[data-skip]').hidden = true; $('[data-replay]').hidden = false;
+  }
+  async function play() {
+    var id = ++run; done = false;
+    reset(); videos(true);
+    $('[data-skip]').hidden = false; $('[data-replay]').hidden = true;
+    try {
+      await wait(60, id);
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        t.style.transition = 'none'; put(t, full()); t.style.zIndex = 10 + i;
+        void t.offsetWidth;
+        t.style.transition = '';
+        t.classList.add('shown', 'kb');
+        await wait(3000, id);
+        t.classList.add('small'); put(t, rectOf(slots[i]));
+        await wait(i === tiles.length - 1 ? 1000 : 450, id);
+      }
+      stage.classList.add('final');
+      $('[data-q]').classList.add('in');
+      await wait(2300, id);
+      // 停电：闪两下后全黑
+      stage.classList.add('flicker');
+      await wait(900, id);
+      stage.classList.remove('flicker'); stage.classList.add('dark'); status('off'); videos(false);
+      $('[data-q]').classList.remove('in');
+      await wait(1600, id);
+      // 如果有 SKE：UPS 出现，画面依次恢复
+      $('[data-if]').classList.add('in');
+      await wait(700, id);
+      $('[data-ups]').classList.add('in');
+      await wait(900, id);
+      stage.classList.add('ups');
+      for (var j = 0; j < tiles.length; j++) { tiles[j].classList.add('back'); await wait(140, id); }
+      stage.classList.remove('dark'); status('ups'); videos(true);
+      $('[data-rest]').classList.add('in');
+      await wait(2200, id);
+      $('[data-if]').classList.remove('in'); $('[data-rest]').classList.remove('in');
+      await wait(400, id);
+      finalState();
+    } catch (e) { /* 被跳过或重播打断 */ }
+  }
+  $('[data-skip]').addEventListener('click', function () { run++; finalState(); });
+  $('[data-replay]').addEventListener('click', play);
+  // 窗口大小变化：最终状态下重新对齐到各自位置
+  var ro = window.ResizeObserver ? new ResizeObserver(function () {
+    placeCenter();
+    if (done || stage.classList.contains('final')) tiles.forEach(function (t, i) { if (t.classList.contains('small')) { t.style.transition = 'none'; put(t, rectOf(slots[i])); } });
+    else tiles.forEach(function (t) { if (!t.classList.contains('small')) { t.style.transition = 'none'; put(t, full()); } });
+  }) : null;
+  if (ro) ro.observe(stage);
+  if (reduce) finalState(); else play();
+})();
+</script>
+
+<style>
+  .hh { margin-top: 14px; }
+  .hh-stage { position: relative; aspect-ratio: 16 / 9; max-height: 78vh; width: 100%; background: #070b0b; border-radius: 16px; overflow: hidden; isolation: isolate; }
+  @media (max-width: 760px) { .hh-stage { aspect-ratio: 3 / 4.6; max-height: none; border-radius: 12px; } }
+  /* 最终布局：左三格、右三格，中间放 UPS 和文字（手机上：上三格、中间、下三格） */
+  .hh-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1.25fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 10px; padding: 10px; visibility: hidden; }
+  .hh-slot.s0 { grid-area: 1 / 1; } .hh-slot.s1 { grid-area: 2 / 1; } .hh-slot.s2 { grid-area: 3 / 1; }
+  .hh-slot.s3 { grid-area: 1 / 3; } .hh-slot.s4 { grid-area: 2 / 3; } .hh-slot.s5 { grid-area: 3 / 3; }
+  .hh-center-slot { grid-area: 1 / 2 / 4 / 3; }
+  @media (max-width: 760px) {
+    .hh-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 2.1fr 1fr; gap: 6px; padding: 6px; }
+    .hh-slot.s0 { grid-area: 1 / 1; } .hh-slot.s1 { grid-area: 1 / 2; } .hh-slot.s2 { grid-area: 1 / 3; }
+    .hh-slot.s3 { grid-area: 3 / 1; } .hh-slot.s4 { grid-area: 3 / 2; } .hh-slot.s5 { grid-area: 3 / 3; }
+    .hh-center-slot { grid-area: 2 / 1 / 3 / 4; }
+  }
+
+  .hh-tile { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; overflow: hidden; opacity: 0; border-radius: 0;
+    transition: left .9s cubic-bezier(.7, 0, .2, 1), top .9s cubic-bezier(.7, 0, .2, 1), width .9s cubic-bezier(.7, 0, .2, 1), height .9s cubic-bezier(.7, 0, .2, 1), border-radius .9s, opacity .5s, filter .5s; }
+  .hh-tile.shown { opacity: 1; }
+  .hh-tile.small { border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+  .hh-media, .hh-media > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hh-tile.kb .hh-media { animation: kb 9s ease-out forwards; }
+  @keyframes kb { from { transform: scale(1.0); } to { transform: scale(1.12); } }
+  .hh-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.55)); }
+  .hh-tile figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 30px; display: grid; gap: 8px; justify-items: start; color: #fff; transition: padding .9s; }
+  .hh-label { font: 700 clamp(26px, 4vw, 52px)/1.05 var(--display); text-transform: uppercase; text-shadow: 0 2px 16px rgba(0,0,0,.5); transition: font-size .9s; }
+  .hh-status { display: inline-flex; align-items: center; gap: 7px; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); border-radius: 99px; padding: 4px 11px 4px 9px; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+  .hh-status i { width: 8px; height: 8px; border-radius: 50%; background: #3ee08a; box-shadow: 0 0 8px #3ee08a; animation: blink 1.6s infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .hh-tile.small figcaption { padding: 10px 12px; gap: 5px; }
+  .hh-tile.small .hh-label { font-size: clamp(11px, 1.25vw, 17px); }
+  .hh-tile.small .hh-status { font-size: 10px; padding: 2px 8px 2px 6px; }
+  @media (max-width: 760px) {
+    .hh-tile.small figcaption { padding: 6px 7px; }
+    .hh-tile.small .hh-label { font-size: 9.5px; }
+    .hh-tile.small .hh-status { display: none; }
+  }
+  /* 医院画面上的心电图 */
+  .hh-ecg { position: absolute; right: 4%; top: 6%; width: 22%; max-width: 260px; }
+  .hh-ecg path { fill: none; stroke: #3ee08a; stroke-width: 2.5; stroke-linejoin: round; }
+  .hh-ecg .beat { stroke-dasharray: 260; animation: ecg 1.4s linear infinite; }
+  .hh-ecg .flat { display: none; stroke: #ff4d4d; }
+  @keyframes ecg { from { stroke-dashoffset: 260; } to { stroke-dashoffset: 0; } }
+
+  /* 中间文字和 UPS：上 = "如果有 SKE"，中 = UPS，下 = 恢复说明 / 口号 + 按钮；"如果这个时候停电"压在正中间 */
+  /* 位置和大小由脚本对齐到中间那一格 */
+  .hh-center { position: absolute; left: 33%; top: 0; width: 34%; height: 100%; padding: 0 8px; box-sizing: border-box; text-align: center; color: #fff;
+    display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center; z-index: 30; pointer-events: none; }
+  .hh-q, .hh-if, .hh-ups, .hh-rest, .hh-slogan, .hh-cta { opacity: 0; transform: translateY(14px); transition: opacity .6s, transform .6s; }
+  .hh-center .in { opacity: 1; transform: none; }
+  .hh-q { grid-row: 1 / 4; grid-column: 1; align-self: center; font: 700 clamp(22px, 3vw, 40px)/1.15 var(--display); text-transform: uppercase; margin: 0; }
+  .hh-if { grid-row: 1; grid-column: 1; align-self: end; margin: 0 0 14px; font: 700 clamp(20px, 2.4vw, 32px)/1.1 var(--display); text-transform: uppercase; color: var(--charge); }
+  .hh-ups { grid-row: 2; grid-column: 1; position: relative; width: clamp(110px, 15vw, 200px); }
+  @media (max-width: 760px) { .hh-ups { width: 22vw; } }
+  .hh-ups > img, .hh-ups > :global(svg) { width: 100%; height: auto; display: block; position: relative; z-index: 1; filter: drop-shadow(0 10px 30px rgba(0,0,0,.6)); }
+  .hh-ring { position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(62,224,138,.35), rgba(62,224,138,0) 65%); opacity: 0; transition: opacity .8s; }
+  .hh-stage.ups .hh-ring { opacity: 1; animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: translate(-50%, -50%) scale(1.12); } }
+  .hh-bottom { grid-row: 3; grid-column: 1; display: grid; align-self: start; justify-items: center; margin-top: 14px; }
+  .hh-bottom > * { grid-area: 1 / 1; }
+  .hh-end { display: grid; gap: 12px; justify-items: center; }
+  .hh-rest { font-size: clamp(13px, 1.3vw, 17px); color: #c9e9d8; margin: 0; }
+  .hh-slogan { font: 700 clamp(22px, 2.8vw, 38px)/1.1 var(--display); text-transform: uppercase; margin: 0; }
+  .hh-cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; pointer-events: auto; }
+  .hh-cta:not(.in) { pointer-events: none; }
+  .hh-btn { display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; color: #fff; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.25); }
+  .hh-btn.primary { background: var(--charge); color: var(--ink); border-color: var(--charge); }
+  @media (max-width: 760px) { .hh-btn { min-height: 30px; font-size: 11.5px; padding: 0 9px; } .hh-end { gap: 8px; } .hh-bottom { margin-top: 8px; } .hh-if { margin-bottom: 8px; } }
+
+  /* 停电 */
+  .hh-stage.flicker .hh-tile { animation: flick .9s steps(1) forwards; }
+  @keyframes flick { 0% { filter: brightness(1); } 12% { filter: brightness(.08); } 24% { filter: brightness(1); } 36% { filter: brightness(.05); } 50% { filter: brightness(.9); } 62% { filter: brightness(.03); } 100% { filter: brightness(.03); } }
+  .hh-stage.dark .hh-tile { filter: brightness(.04) grayscale(1); }
+  .hh-stage.dark .hh-tile.back { filter: none; transition: filter .35s; }
+  .hh-stage.dark .hh-tile:not(.back) .hh-media { animation-play-state: paused; }
+  .hh-stage.dark .hh-status i { background: #ff4d4d; box-shadow: 0 0 8px #ff4d4d; animation: none; }
+  .hh-stage.dark .hh-tile.back .hh-status i { background: #3ee08a; box-shadow: 0 0 8px #3ee08a; }
+  .hh-stage.dark .hh-ecg .beat { display: none; }
+  .hh-stage.dark .hh-ecg .flat { display: block; }
+  .hh-stage.dark .hh-tile.back .hh-ecg .beat { display: block; }
+  .hh-stage.dark .hh-tile.back .hh-ecg .flat { display: none; }
+  .hh-stage.ups .hh-tile.small { box-shadow: 0 0 0 1.5px rgba(62,224,138,.55), 0 6px 24px rgba(0,0,0,.35); }
+
+  .hh-ctrl { position: absolute; right: 12px; bottom: 12px; z-index: 40; }
+  .hh-ctrl button { font: 600 12px var(--mono); color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(4px); }
+  .hh-ctrl button[hidden] { display: none; }
+  @media (max-width: 760px) { .hh-ctrl { right: 8px; bottom: auto; top: 8px; } .hh-ctrl button { font-size: 10px; padding: 4px 9px; } }
+</style>
