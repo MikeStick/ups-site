@@ -16,7 +16,7 @@ export const HT = {
     q: 'What if the power went out right now?',
     ifSke: 'With an SKE UPS…',
     restored: 'Everything keeps running. Zero interruption.',
-    slogan: 'With SKE, no surprises.',
+    slogan: 'With SKE, no outage.',
     skip: 'Skip', replay: 'Replay', cta1: 'See our UPS range', cta2: 'Rack-mount online UPS',
   },
   es: {
@@ -32,7 +32,7 @@ export const HT = {
     q: '¿Y si se corta la luz ahora mismo?',
     ifSke: 'Con un UPS SKE…',
     restored: 'Todo sigue funcionando. Sin ninguna interrupción.',
-    slogan: 'Con SKE, sin sorpresas.',
+    slogan: 'Con SKE, sin apagones.',
     skip: 'Saltar', replay: 'Repetir', cta1: 'Ver nuestros UPS', cta2: 'UPS online para rack',
   },
   ru: {
@@ -48,7 +48,7 @@ export const HT = {
     q: 'А если прямо сейчас отключат свет?',
     ifSke: 'С ИБП SKE…',
     restored: 'Всё продолжает работать. Ни секунды перерыва.',
-    slogan: 'С SKE — никаких неожиданностей.',
+    slogan: 'С SKE — без отключений.',
     skip: 'Пропустить', replay: 'Повторить', cta1: 'Наши ИБП', cta2: 'Стоечные онлайн-ИБП',
   },
 };
