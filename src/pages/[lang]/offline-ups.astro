@@ -311,9 +311,9 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
   .result .big small { font-size: 20px; color: var(--ink); }
   .result p { margin: 0; color: var(--muted); font-size: 14px; }
   .rec { display: grid; gap: 6px; }
-  .rec a { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
-  .rec a.best { border-color: var(--accent); background: var(--ok-soft); }
-  .rec a span { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+  .rec :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
+  .rec :global(a.best) { border-color: var(--accent); background: var(--ok-soft); }
+  .rec :global(a span) { color: var(--muted); font-family: var(--mono); font-size: 13px; }
   .muted { color: var(--muted); font-size: 12.5px; }
 
   /* 筛选 + 列表 */

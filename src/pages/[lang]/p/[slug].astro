@@ -9,7 +9,8 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isLongRun, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import products from '../../../data/products.json';
@@ -22,11 +23,18 @@ const { lang } = Astro.params;
 const { p } = Astro.props;
 const t = UI[lang];
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
-const offline = isOffline(p);
+// 机架式 UPS 也走询价面板（选输出电压，不选插座）+ 机架式专用参数表
+const rack = isRack(p);
+const offline = isOffline(p) || rack;
+const R = RT[lang];
+const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
 const series = seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
-const rows = offline
+const rows = rack
+  ? [[R.spec.model, p.model], [R.spec.variant, isLongRun(p) ? R.lr : R.std], ...(U ? [[R.spec.rackU, `${U}U`]] : []),
+     ...RACK_SPEC_FIELDS.map((f) => [R.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
+  : offline
   ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
      ...(socketsText(p.sockets) ? [[O.spec.sockets, socketsText(p.sockets)]] : [])]
   : specRows(p, lang);
@@ -43,7 +51,11 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = offline ? [
+const highlights = rack ? [
+  fmtCap(cap) || specValue(p, 'outputPower', lang),
+  U ? `${U}U` : '', `${R.spec.transferTimeAcToBattery.split(' (')[0]} ${specValue(p, 'transferTimeAcToBattery', lang) || '0 ms'}`,
+  isLongRun(p) ? R.extBatt : R.std,
+].filter(Boolean) : offline ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   specValue(p, 'transferTime', lang), specValue(p, 'waveform', lang),
 ].filter(Boolean) : [
@@ -61,7 +73,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -92,7 +104,7 @@ const jsonLd = {
 
       {offline ? (
         <a class="custom-banner" href={`/${lang}/custom/?tab=oem&model=${p.slug}`}>
-          <span>{O.banner}</span><b>{O.bannerCta} →</b>
+          <span>{rack ? R.banner : O.banner}</span><b>{rack ? R.bannerCta : O.bannerCta} →</b>
         </a>
       ) : (
         <a class="custom-banner" href={`/${lang}/custom/?from=${p.slug}`}>

@@ -1,0 +1,530 @@
+---
+// 机架式 UPS 栏目页（真双变换在线式）：机柜负载规划（含长机外接电池估算）+ 型号列表 + 工作原理图 + 卖点 + 类型对比 + 参数表 + 应用 + OEM。只询价，不显示价格。
+// 产品来自客户档案系统，类型 = 机架式UPS。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { RT, RACK_DEVICES, RUNTIMES, BATT_AH } from '../../lib/rack-i18n.mjs';
+import { specValue } from '../../lib/offline-i18n.mjs';
+import { isRack, isLongRun, rackUnits, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import { batteryWh } from '../../lib/power.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = RT[lang];
+const pfOf = (p) => { const v = parseFloat(String(p.outputPowerFactor || p.powerFactor || '').replace(',', '.')); return v > 0 && v <= 1 ? v : 0; };
+const dcV = (p) => { const m = String(p.batteryVoltage || '').match(/(\d{2,3})(?:\.\d+)?\s*V/i); return m ? +m[1] : 0; };
+const list = all.filter(isRack).map((p) => {
+  const c = capacityOf(p);
+  return { p, va: c.va, w: c.w, lr: isLongRun(p), u: rackUnits(p), pf: pfOf(p), wh: Math.round(batteryWh(p)), vb: dcV(p), s: seriesName(p) };
+}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按系列分组，系列内容量从小到大，同容量标机在前
+const vas = list.map((x) => x.va).filter(Boolean);
+const kva = (v) => v / 1000;
+const rangeTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? fmtCap({ va: vas[0] }) : `${kva(Math.min(...vas))}–${kva(Math.max(...vas))} kVA`) : '1–10 kVA';
+const pfMax = Math.max(0, ...list.map((x) => x.pf));
+const us = [...new Set(list.map((x) => x.u).filter(Boolean))].sort((a, b) => a - b);
+const uTxt = us.length ? (us.length === 1 ? `${us[0]}U` : `${us[0]}–${us[us.length - 1]}U`) : '19"';
+const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const hasStd = list.some((x) => !x.lr), hasLr = list.some((x) => x.lr);
+const sizerModels = list.filter((x) => x.w).map((x) => ({ m: x.p.model, slug: x.p.slug, va: x.va, w: x.w, wh: x.wh, lr: x.lr, vb: x.vb }));
+const cfg = { models: sizerModels, ah: BATT_AH, lang, maxW: Math.max(0, ...sizerModels.map((x) => x.w)),
+  t: { addDevice: T.addDevice, needAtLeast: T.needAtLeast, tooBig: T.tooBig, min: T.min, hours: T.hours, std: T.std, lr: T.lr, stdNote: T.stdNote, lrNote: T.lrNote, bank: T.bank } };
+const rtLabel = (m) => (m >= 60 ? `${m / 60} ${T.hours}` : `${m} ${T.min}`);
+// 对比表：至少一个型号有值的参数才显示
+const compareRows = ['outputPower', 'phase', 'inputVoltageRange', 'inputPowerFactor', 'outputVoltage', 'outputPowerFactor', 'waveform', 'transferTimeAcToBattery', 'efficiencyAcMode', 'batteryVoltage', 'batterySpec', 'chargeCurrent', 'interfacePort', 'dimensions', 'netWeight']
+  .filter((f) => list.some((x) => specValue(x.p, f, lang)));
+const cell = (p, f) => (specValue(p, f, lang) || '—').replace(/\*/g, ' × ');
+const APP_ICONS = [
+  '<rect x="7" y="3" width="16" height="24" rx="1.5"/><path d="M10 8h10M10 12h10M10 16h10"/><circle cx="19" cy="22" r="1"/>',
+  '<rect x="3" y="9" width="24" height="12" rx="2"/><path d="M7 15h1M10 15h1M13 15h1M16 15h1M20 13v4M23 13v4"/>',
+  '<rect x="3" y="10" width="17" height="10" rx="2"/><path d="M20 13l7-3v10l-7-3"/>',
+  '<path d="M15 27V12M9 27l6-15 6 15M7 9a11 11 0 0 1 16 0M10 12a6.5 6.5 0 0 1 10 0"/>',
+  '<rect x="4" y="5" width="22" height="20" rx="3"/><path d="M15 10v10M10 15h10"/>',
+  '<path d="M4 26h22M6 26V12l9-6 9 6v14M10 26v-8M15 26v-8M20 26v-8"/>',
+];
+const DEV_ICONS = {
+  srv1: '<rect x="3" y="12" width="28" height="10" rx="1.5"/><path d="M7 17h8"/><circle cx="26" cy="17" r="1.3"/>',
+  srv2: '<rect x="3" y="8" width="28" height="18" rx="1.5"/><path d="M7 13h8M7 21h8"/><circle cx="26" cy="13" r="1.3"/><circle cx="26" cy="21" r="1.3"/>',
+  nas: '<rect x="7" y="4" width="20" height="26" rx="2"/><path d="M11 10h12M11 15h12M11 20h12"/><circle cx="17" cy="25.5" r="1.3"/>',
+  sw: '<rect x="3" y="12" width="28" height="10" rx="1.5"/><path d="M7 17h2M11 17h2M15 17h2M19 17h2M23 17h2"/>',
+  poe: '<rect x="3" y="14" width="28" height="10" rx="1.5"/><path d="M7 19h2M11 19h2M15 19h2M19 19h2M24 5l-3 6h4l-3 6"/>',
+  nvr: '<rect x="4" y="13" width="18" height="10" rx="2"/><path d="M22 16l8-3v10l-8-3"/>',
+};
+const RACK_SVG = '<svg viewBox="0 0 200 120" aria-hidden="true"><rect x="10" y="38" width="180" height="44" rx="4" fill="#23292a"/><rect x="4" y="40" width="8" height="40" rx="2" fill="#3d4644"/><rect x="188" y="40" width="8" height="40" rx="2" fill="#3d4644"/><rect x="26" y="48" width="40" height="18" rx="2" fill="#7dd3fc" opacity=".85"/><circle cx="84" cy="57" r="6" fill="none" stroke="#e0a800" stroke-width="2.4"/><path d="M84 52v5" stroke="#e0a800" stroke-width="2.4"/><path d="M110 48v26M118 48v26M126 48v26M134 48v26M142 48v26M150 48v26M158 48v26M166 48v26M174 48v26" stroke="#3d4644" stroke-width="3"/></svg>';
+const B = T.blocks;
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="rack-ups/">
+<div class="off rack" data-rack>
+  <script type="application/json" data-rack-cfg set:html={JSON.stringify(cfg)} />
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#models">{T.ctaModels}</a>
+          <a class="btn ghost" href="#sizer">{T.ctaSizer}</a>
+        </div>
+      </div>
+      <div class="hero-facts">
+        <div><b class="num">{rangeTxt}</b><span>{T.facts.range}</span></div>
+        <div><b class="num">0 ms</b><span>{T.facts.transfer}</span></div>
+        <div><b class="num">{pfMax ? `PF ${pfMax}` : 'PF 0.9'}</b><span>{T.facts.pf}</span></div>
+        <div><b class="num">{uTxt}</b><span>{T.facts.rack}</span></div>
+      </div>
+    </div>
+  </section>
+
+  {sizerModels.length > 0 && (
+    <section class="block" id="sizer">
+      <div class="head"><span class="eyebrow">{T.sizerEyebrow}</span><h2>{T.sizerH}</h2><p>{T.sizerP}</p></div>
+      <div class="sizer">
+        <div class="card">
+          <div class="devs" data-devs>
+            {RACK_DEVICES.map((d) => (
+              <div class="dev" data-w={d.w}>
+                <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={DEV_ICONS[d.id]} />
+                <div><b>{T.devices[d.id]}</b><small>~{d.w} W</small></div>
+                <div class="step"><button type="button" data-d="-1" aria-label="−">−</button><output>0</output><button type="button" data-d="1" aria-label="+">+</button></div>
+              </div>
+            ))}
+          </div>
+          <div class="rt">
+            <span>{T.runtime}</span>
+            <div class="rt-chips" data-rt>{RUNTIMES.map((m) => <button type="button" class:list={['chip', { on: m === 30 }]} data-v={m}>{rtLabel(m)}</button>)}</div>
+          </div>
+        </div>
+        <div class="card result">
+          <span class="muted">{T.totalLoad}</span>
+          <div class="big num" data-load>0<small> W</small></div>
+          <p data-hint>{T.addDevice}</p>
+          <div class="rec" data-rec></div>
+          <span class="muted">{T.backupNote}</span>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="block" id="models">
+    <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+    {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
+      <>
+        <div class="filters">
+          {hasStd && hasLr && <div class="fgroup" data-f="batt"><span>{T.fBatt}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="std">{T.fStd}</button><button type="button" class="chip" data-v="lr">{T.fLr}</button></div>}
+          <div class="fgroup" data-f="cap"><span>{T.fCap}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="1">{T.cap1}</button><button type="button" class="chip" data-v="2">{T.cap2}</button><button type="button" class="chip" data-v="3">{T.cap3}</button></div>
+        </div>
+        <div class="grid">
+          {list.map((x) => {
+            const p = x.p, img = p.images && p.images[0];
+            const eff = specValue(p, 'efficiencyAcMode', lang), bat = specValue(p, 'batterySpec', lang);
+            return (
+              <article class="pcard" data-t={x.lr ? 'lr' : 'std'} data-va={x.va} data-w={x.w}>
+                <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                  {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={RACK_SVG} />}
+                  <span class="tags"><span class:list={['tag', x.lr ? 'lr' : 'std']}>{x.lr ? T.lr : T.std}</span>{x.u > 0 && <span class="tag u">{x.u}U</span>}</span>
+                </a>
+                <div class="pbody">
+                  <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                  {fmtCap(x) && <span class="va">{fmtCap(x)}</span>}
+                  <ul>
+                    <li>{T.cTransfer} <b>{specValue(p, 'transferTimeAcToBattery', lang) || '0 ms'}</b></li>
+                    {x.pf > 0 && <li>{T.cPf} <b>{x.pf}</b></li>}
+                    {eff && <li>{T.cEff} <b>{eff}</b></li>}
+                    {x.lr ? <li>{T.cBattery} <b>{T.extBatt}{x.vb ? ` · ${x.vb} V DC` : ''}</b></li> : bat && <li>{T.cBattery} <b>{bat.replace(/\*/g, ' × ')}</b></li>}
+                  </ul>
+                  <div class="pact">
+                    <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                    <a class="btn sm dark" href={wa(qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <p class="empty" data-empty hidden>{T.noMatch}</p>
+      </>
+    )}
+  </section>
+
+  <section class="block" id="how">
+    <div class="head"><span class="eyebrow">{T.howEyebrow}</span><h2>{T.howH}</h2><p>{T.howP}</p></div>
+    <div class="card how" data-how data-mode="normal">
+      <div class="how-tabs" role="tablist">
+        {(['normal', 'battery', 'bypass'] as const).map((m, i) => <button type="button" role="tab" class:list={['chip', { on: i === 0 }]} data-m={m} aria-selected={i === 0 ? 'true' : 'false'}>{T.modes[m]}</button>)}
+      </div>
+      <div class="how-fig">
+        <svg viewBox="0 0 760 270" role="img" aria-label={T.howH}>
+          <g class="wires">
+            <path class="w w-byp" d="M75 112 V44 H665 V112" />
+            <path class="w w-in" d="M130 140 H180" />
+            <path class="w w-rd" d="M310 140 H360" />
+            <path class="w w-di" d="M360 140 H410" />
+            <path class="w w-out" d="M540 140 H600" />
+            <path class="w w-bc" d="M360 140 V196" />
+            <path class="w w-bd" d="M360 196 V140" />
+          </g>
+          <g class="sw"><circle cx="370" cy="44" r="5" /><text x="370" y="30">{B.byp}</text></g>
+          <g class="blk b-mains"><rect x="20" y="112" width="110" height="56" rx="10" /><text x="75" y="145">{B.mains}</text></g>
+          <g class="blk b-rect"><rect x="180" y="112" width="130" height="56" rx="10" /><text x="245" y="145">{B.rect}</text></g>
+          <g class="blk b-dc"><circle cx="360" cy="140" r="9" /><text x="360" y="118" class="sm">{B.dc}</text></g>
+          <g class="blk b-inv"><rect x="410" y="112" width="130" height="56" rx="10" /><text x="475" y="145">{B.inv}</text></g>
+          <g class="blk b-load"><rect x="600" y="112" width="140" height="56" rx="10" /><text x="670" y="145">{B.load}</text></g>
+          <g class="blk b-batt"><rect x="305" y="196" width="110" height="50" rx="10" /><text x="360" y="226">{B.batt}</text></g>
+          <g class="cut"><path d="M147 128 l16 24 M163 128 l-16 24" /></g>
+        </svg>
+      </div>
+      {(['normal', 'battery', 'bypass'] as const).map((m, i) => <p class="how-text" data-t={m} hidden={i !== 0}>{T.modeText[m]}</p>)}
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
+    <div class="vs">
+      {(['off', 'li', 'on'] as const).map((k) => (
+        <div class:list={['card', { hi: k === 'on' }]}><span class:list={['tag', k]}>{T.vs[k].tag}</span><h3>{T.vs[k].h}</h3>
+          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span>{b}</li>)}</ul>
+          <p class="best">{T.vs[k].best}</p></div>
+      ))}
+    </div>
+    <p class="see"><a href={`/${lang}/offline-ups/`}>{T.seeOffline}</a></p>
+  </section>
+
+  {list.length > 0 && compareRows.length > 0 && (
+    <section class="block">
+      <div class="head"><span class="eyebrow">{T.compareEyebrow}</span><h2>{T.compareH}</h2></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>{T.spec.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
+        <tbody>
+          <tr><th>{T.spec.variant}</th>{list.map((x) => <td>{x.lr ? T.lr : T.std}</td>)}</tr>
+          {list.some((x) => x.u) && <tr><th>{T.spec.rackU}</th>{list.map((x) => <td class="num">{x.u ? `${x.u}U` : '—'}</td>)}</tr>}
+          {compareRows.map((f) => <tr><th>{T.spec[f]}</th>{list.map((x) => <td class="num">{cell(x.p, f)}</td>)}</tr>)}
+        </tbody>
+      </table></div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} />{a}</div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.oemEyebrow}</span><h2>{T.oemH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.oem.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.oemCtaH}</h3>
+        <p>{T.oemCtaP}</p>
+        <div><a class="btn primary" href={`/${lang}/custom/?tab=oem`}>{T.oemCta}</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+</div>
+</Base>
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-rack]'); if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-rack-cfg]').textContent);
+  // 工作原理图：三种模式切换
+  var how = root.querySelector('[data-how]');
+  if (how) how.querySelectorAll('[data-m]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      how.dataset.mode = b.dataset.m;
+      how.querySelectorAll('[data-m]').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      how.querySelectorAll('.how-text').forEach(function (p) { p.hidden = p.dataset.t !== b.dataset.m; });
+    });
+  });
+  // 筛选：默认按系列排序；选了容量区间后按容量从小到大
+  var f = { batt: '', cap: '' };
+  var grid = root.querySelector('.grid');
+  var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('.pcard')) : [];
+  cards.forEach(function (el, i) { el.dataset.ord = i; });
+  function filter() {
+    if (grid) {
+      var l = cards.slice();
+      if (f.cap) l.sort(function (a, b) { return (a.dataset.va - b.dataset.va) || (a.dataset.ord - b.dataset.ord); });
+      l.forEach(function (el) { grid.appendChild(el); });
+    }
+    var n = 0;
+    cards.forEach(function (el) {
+      var va = +el.dataset.va;
+      var ok = (!f.batt || el.dataset.t === f.batt) && (!f.cap || (f.cap === '1' ? va <= 3000 : f.cap === '2' ? va > 3000 && va <= 10000 : va > 10000));
+      el.hidden = !ok; if (ok) n++;
+    });
+    var e = root.querySelector('[data-empty]'); if (e) e.hidden = n > 0;
+  }
+  root.querySelectorAll('[data-f]').forEach(function (g) {
+    g.addEventListener('click', function (e) {
+      var b = e.target.closest('.chip'); if (!b) return;
+      g.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+      f[g.dataset.f] = b.dataset.v; filter();
+    });
+  });
+  // 负载规划：负载 × 1.25 ≤ 型号额定功率（W）
+  // 标机：内置电池后备时间 = 电池 Wh × 0.6 ÷ 负载；长机：外接电池组 Wh = 负载 × 时间 ÷ 0.7（逆变效率 + 放电深度），按 12V 电池 + 直流电压算串数
+  var devs = root.querySelectorAll('[data-devs] .dev');
+  if (!devs.length) return;
+  var rt = 30;
+  function rtTxt(m) { return m >= 60 ? (m / 60) + ' ' + c.t.hours : m + ' ' + c.t.min; }
+  function bankTxt(load, vb) {
+    var wh = load * rt / 60 / 0.7;
+    if (!vb) return c.t.bank.replace('{kwh}', (Math.ceil(wh / 100) / 10).toString());
+    var per = Math.max(1, Math.round(vb / 12)), ah = wh / vb, strings = 1;
+    while (ah / strings > 200) strings++;
+    var need = ah / strings, size = c.ah.filter(function (a) { return a >= need; })[0] || 200;
+    return (per * strings) + ' × 12V ' + size + 'Ah';
+  }
+  function calc() {
+    var load = 0;
+    devs.forEach(function (d) { var n = +d.querySelector('output').textContent; d.classList.toggle('on', n > 0); load += n * d.dataset.w; });
+    root.querySelector('[data-load]').innerHTML = load + '<small> W</small>';
+    var rec = root.querySelector('[data-rec]'), hint = root.querySelector('[data-hint]');
+    if (!load) { rec.innerHTML = ''; hint.textContent = c.t.addDevice; return; }
+    var need = Math.ceil(load * 1.25);
+    var fit = c.models.filter(function (x) { return x.w >= need; }).map(function (x) {
+      var min = !x.lr && x.wh ? Math.round(x.wh * 0.6 * 60 / load) : 0;
+      return { x: x, min: min, ok: x.lr || min >= rt };
+    }).sort(function (a, b) { return (b.ok - a.ok) || (a.x.w - b.x.w) || (a.x.lr - b.x.lr); });
+    if (!fit.length) { rec.innerHTML = ''; hint.textContent = c.t.tooBig.replace('{w}', c.maxW); return; }
+    hint.textContent = c.t.needAtLeast.replace('{w}', need);
+    rec.innerHTML = fit.slice(0, 4).map(function (o, i) {
+      var x = o.x, cap = x.va ? (x.va >= 1000 ? (x.va / 1000) + ' kVA' : x.va + ' VA') : x.w + ' W';
+      var note = x.lr ? c.t.lrNote.replace('{t}', rtTxt(rt)).replace('{b}', bankTxt(load, x.vb)) : (o.min ? c.t.stdNote.replace('{m}', o.min) : '');
+      return '<a href="/' + c.lang + '/p/' + x.slug + '/"' + (i === 0 && o.ok ? ' class="best"' : '') + '><b>' + x.m + ' · ' + cap + ' <i>' + (x.lr ? c.t.lr : c.t.std) + '</i></b><span>' + note + '</span></a>';
+    }).join('');
+  }
+  devs.forEach(function (d) {
+    d.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { var o = d.querySelector('output'); o.textContent = Math.max(0, Math.min(40, +o.textContent + +b.dataset.d)); calc(); });
+    });
+  });
+  root.querySelector('[data-rt]').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    this.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+    rt = +b.dataset.v; calc();
+  });
+  calc();
+})();
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .eyebrow { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  section.block { padding-block: 56px 0; }
+  .head { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .head h2 { font-size: clamp(28px, 4.2vw, 42px); }
+  .head p { margin: 0; color: var(--muted); }
+
+  /* 首屏 */
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: var(--charge); }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 560px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 30px/1 var(--display); color: var(--charge); }
+  .hero-facts span { font-size: 13px; color: #a9b8b4; }
+
+  /* 选型助手 */
+  .sizer { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 16px; }
+  @media (max-width: 860px) { .sizer { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .devs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .devs { grid-template-columns: minmax(0, 1fr); } }
+  .dev { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .dev.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .dev svg { width: 34px; height: 34px; color: var(--accent); }
+  .dev b { display: block; font-size: 14px; }
+  .dev small { color: var(--muted); font-size: 12px; }
+  .step { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .step button { width: 30px; border: 0; background: var(--bg); font-size: 16px; cursor: pointer; color: var(--ink); }
+  .step output { width: 30px; text-align: center; font: 500 14px/30px var(--mono); }
+  .result { display: grid; gap: 12px; align-content: start; }
+  .result .big { font: 700 46px/1 var(--display); color: var(--accent); }
+  .result .big small { font-size: 20px; color: var(--ink); }
+  .result p { margin: 0; color: var(--muted); font-size: 14px; }
+  .rec { display: grid; gap: 6px; }
+  .rec :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
+  .rec :global(a.best) { border-color: var(--accent); background: var(--ok-soft); }
+  .rec :global(a span) { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+
+  /* 筛选 + 列表 */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 16px; }
+  .fgroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .fgroup > span { font-size: 13px; font-weight: 600; margin-right: 4px; }
+  .chip { font: 14px var(--body); padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg svg { width: 70%; }
+  .pimg .tag { position: absolute; left: 10px; top: 10px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  .tag.li { background: var(--ok-soft); color: var(--ok); }
+  .tag.lion { background: #e2ecfb; color: #1f4f9a; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+  /* 插座 */
+  .sockets { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .sockets { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .sock { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px; text-align: center; display: grid; gap: 6px; justify-items: center; }
+  .sock svg { width: 56px; height: 56px; }
+  .sock b { font-size: 14px; }
+  .sock span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+  /* 对比 */
+  .vs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+  .vs .card h3 { font-size: 26px; margin: 6px 0 8px; }
+  .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+  .vs li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .vs li span { color: var(--muted); }
+  .vs .best { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 10px; }
+
+  /* 参数表 */
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); }
+
+  /* OEM */
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: var(--ink); color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #c9d4d1; }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  footer { margin-top: 0; }
+  .note { margin-top: 10px; }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg :global(svg) { width: 70%; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .tbl-wrap a { color: var(--ink); }
+  .sock :global(svg) { width: 56px; height: 56px; }
+  .app svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dev svg { fill: none; }
+  /* —— 机架式专用 —— */
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .pimg .tag { position: static; }
+  .tag.std { background: var(--ok-soft); color: var(--ok); }
+  .tag.lr { background: #e2ecfb; color: #1f4f9a; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .tag.on { background: var(--accent); color: #fff; }
+  .pimg :global(svg) { width: 84%; }
+  .rt { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .rt > span { font-size: 13px; font-weight: 600; }
+  .rt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rec :global(a b i) { font-style: normal; font: 600 10.5px var(--mono); text-transform: uppercase; color: var(--muted); margin-left: 4px; }
+  .rec :global(a) { flex-wrap: wrap; }
+  .rec :global(a span) { text-align: right; }
+
+  .how { display: grid; gap: 14px; }
+  .how-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .how-fig { overflow-x: auto; }
+  .how-fig svg { width: 100%; min-width: 560px; height: auto; display: block; }
+  .how-text { margin: 0; font-size: 15px; color: var(--ink); background: var(--bg); border-radius: 8px; padding: 10px 14px; }
+  .how .blk rect, .how .blk circle { fill: #fff; stroke: #b9c6c2; stroke-width: 2; transition: .25s; }
+  .how .blk text, .how .sw text { font: 600 15px var(--body); fill: var(--ink); text-anchor: middle; }
+  .how .blk text.sm, .how .sw text { font: 600 12px var(--mono); fill: var(--muted); text-transform: uppercase; }
+  .how .w { fill: none; stroke: #d3dbd8; stroke-width: 5; stroke-linecap: round; transition: stroke .25s; }
+  .how .w-bc, .how .w-bd { stroke-width: 0; }
+  .how .sw circle { fill: #fff; stroke: #b9c6c2; stroke-width: 2; }
+  .how .cut { display: none; }
+  .how .cut path { stroke: #c0392b; stroke-width: 4; stroke-linecap: round; }
+  @keyframes flow { to { stroke-dashoffset: -28; } }
+  /* 正常：市电 → 整流 → 直流母线 → 逆变 → 负载，同时给电池充电 */
+  .how[data-mode="normal"] :is(.w-in, .w-rd, .w-di, .w-out, .w-bc) { stroke: var(--accent); stroke-width: 5; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="normal"] :is(.b-mains, .b-rect, .b-dc, .b-inv, .b-load, .b-batt) :is(rect, circle) { stroke: var(--accent); }
+  /* 市电中断：电池 → 逆变 → 负载 */
+  .how[data-mode="battery"] :is(.w-bd, .w-di, .w-out) { stroke: var(--charge); stroke-width: 5; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="battery"] :is(.b-batt, .b-dc, .b-inv, .b-load) :is(rect, circle) { stroke: var(--charge); }
+  .how[data-mode="battery"] .b-mains rect { stroke-dasharray: 5 4; }
+  .how[data-mode="battery"] .cut { display: block; }
+  /* 旁路：市电直接 → 负载 */
+  .how[data-mode="bypass"] .w-byp { stroke: #1f4f9a; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="bypass"] :is(.b-mains, .b-load) rect, .how[data-mode="bypass"] .sw circle { stroke: #1f4f9a; }
+  .how[data-mode="bypass"] .sw circle { fill: #1f4f9a; }
+
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: var(--charge); }
+  .feat h3 { font-size: 24px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+  .vs .card.hi { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+</style>
+<style>
+  /* 机架式机器是扁长的，手机上两列也看得清，页面不会太长 */
+  @media (max-width: 460px) {
+    .rack .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .rack .pbody { padding: 10px 10px 12px; }
+    .rack .pbody h3 { font-size: 19px; }
+    .rack .pbody .va { font-size: 13px; }
+    .rack .pbody ul { font-size: 12px; }
+    .rack .pact { flex-direction: column; gap: 6px; }
+  }
+</style>
