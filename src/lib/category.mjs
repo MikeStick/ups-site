@@ -6,8 +6,11 @@ export const isLithiumOffline = (p) => p.type === '离线式锂电UPS';
 // 列表筛选 / 标签用：off = 离线式，lion = 离线式锂电，li = 在线互动式
 export const offKind = (p) => (isLineInteractive(p) ? 'li' : isLithiumOffline(p) ? 'lion' : 'off');
 // 机架式 UPS 栏目（真双变换在线式，机架安装）
-export const RACK_TYPES = ['机架式UPS'];
+export const RACK_TYPES = ['机架式UPS', '机架式锂电UPS'];
 export const isRack = (p) => RACK_TYPES.includes(p.type);
+export const isRackLithium = (p) => p.type === '机架式锂电UPS';
+// 列表筛选 / 标签用：li = 锂电，lr = 长机（外接电池），std = 标机（内置铅酸）
+export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 'std');
 // 标机（内置电池）/ 长机（外接电池组）：看"标机/长机"字段，没填时型号末尾带 L 的算长机（如 RT3KL）
 export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant) : /\d\s*K?L\b/i.test(String(p.model || '')));
 // Mini UPS 栏目：除离线式 / 在线互动式 / 机架式以外的已发布产品（以后加品类时在这里分流）

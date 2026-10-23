@@ -5,7 +5,7 @@ import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { RT, RACK_DEVICES, RUNTIMES, BATT_AH } from '../../lib/rack-i18n.mjs';
 import { specValue } from '../../lib/offline-i18n.mjs';
-import { isRack, isLongRun, rackUnits, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import { isRack, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import { batteryWh } from '../../lib/power.mjs';
 import all from '../../data/products.json';
 
@@ -18,7 +18,7 @@ const pfOf = (p) => { const v = parseFloat(String(p.outputPowerFactor || p.power
 const dcV = (p) => { const m = String(p.batteryVoltage || '').match(/(\d{2,3})(?:\.\d+)?\s*V/i); return m ? +m[1] : 0; };
 const list = all.filter(isRack).map((p) => {
   const c = capacityOf(p);
-  return { p, va: c.va, w: c.w, lr: isLongRun(p), u: rackUnits(p), pf: pfOf(p), wh: Math.round(batteryWh(p)), vb: dcV(p), s: seriesName(p) };
+  return { p, va: c.va, w: c.w, lr: isLongRun(p), k: rackKind(p), u: rackUnits(p), pf: pfOf(p), wh: Math.round(batteryWh(p)), vb: dcV(p), s: seriesName(p) };
 }).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按系列分组，系列内容量从小到大，同容量标机在前
 const vas = list.map((x) => x.va).filter(Boolean);
 const kva = (v) => v / 1000;
@@ -28,10 +28,13 @@ const us = [...new Set(list.map((x) => x.u).filter(Boolean))].sort((a, b) => a -
 const uTxt = us.length ? (us.length === 1 ? `${us[0]}U` : `${us[0]}–${us[us.length - 1]}U`) : '19"';
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
-const hasStd = list.some((x) => !x.lr), hasLr = list.some((x) => x.lr);
-const sizerModels = list.filter((x) => x.w).map((x) => ({ m: x.p.model, slug: x.p.slug, va: x.va, w: x.w, wh: x.wh, lr: x.lr, vb: x.vb }));
+const hasStd = list.some((x) => x.k === 'std'), hasLr = list.some((x) => x.k === 'lr'), hasLi = list.some((x) => x.k === 'li');
+const kinds = [hasStd, hasLr, hasLi].filter(Boolean).length;
+const kindLabel = (k) => (k === 'li' ? T.li : k === 'lr' ? T.lr : T.std);
+const feats = hasLi ? [...T.feats, T.liFeat] : T.feats;
+const sizerModels = list.filter((x) => x.w).map((x) => ({ m: x.p.model, slug: x.p.slug, va: x.va, w: x.w, wh: x.wh, lr: x.lr, vb: x.vb, k: x.k, e: x.k === 'li' ? 0.85 : 0.6 }));
 const cfg = { models: sizerModels, ah: BATT_AH, lang, maxW: Math.max(0, ...sizerModels.map((x) => x.w)),
-  t: { addDevice: T.addDevice, needAtLeast: T.needAtLeast, tooBig: T.tooBig, min: T.min, hours: T.hours, std: T.std, lr: T.lr, stdNote: T.stdNote, lrNote: T.lrNote, bank: T.bank } };
+  t: { addDevice: T.addDevice, needAtLeast: T.needAtLeast, tooBig: T.tooBig, min: T.min, hours: T.hours, std: T.std, lr: T.lr, li: T.li, liNote: T.liNote, stdNote: T.stdNote, lrNote: T.lrNote, bank: T.bank } };
 const rtLabel = (m) => (m >= 60 ? `${m / 60} ${T.hours}` : `${m} ${T.min}`);
 // 对比表：至少一个型号有值的参数才显示
 const compareRows = ['outputPower', 'phase', 'inputVoltageRange', 'inputPowerFactor', 'outputVoltage', 'outputPowerFactor', 'waveform', 'transferTimeAcToBattery', 'efficiencyAcMode', 'batteryVoltage', 'batterySpec', 'chargeCurrent', 'interfacePort', 'dimensions', 'netWeight']
@@ -116,7 +119,7 @@ const B = T.blocks;
     {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
       <>
         <div class="filters">
-          {hasStd && hasLr && <div class="fgroup" data-f="batt"><span>{T.fBatt}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="std">{T.fStd}</button><button type="button" class="chip" data-v="lr">{T.fLr}</button></div>}
+          {kinds > 1 && <div class="fgroup" data-f="batt"><span>{T.fBatt}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{hasStd && <button type="button" class="chip" data-v="std">{T.fStd}</button>}{hasLr && <button type="button" class="chip" data-v="lr">{T.fLr}</button>}{hasLi && <button type="button" class="chip" data-v="li">{T.fLi}</button>}</div>}
           <div class="fgroup" data-f="cap"><span>{T.fCap}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="1">{T.cap1}</button><button type="button" class="chip" data-v="2">{T.cap2}</button><button type="button" class="chip" data-v="3">{T.cap3}</button></div>
         </div>
         <div class="grid">
@@ -124,10 +127,10 @@ const B = T.blocks;
             const p = x.p, img = p.images && p.images[0];
             const eff = specValue(p, 'efficiencyAcMode', lang), bat = specValue(p, 'batterySpec', lang);
             return (
-              <article class="pcard" data-t={x.lr ? 'lr' : 'std'} data-va={x.va} data-w={x.w}>
+              <article class="pcard" data-t={x.k} data-va={x.va} data-w={x.w}>
                 <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                   {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={RACK_SVG} />}
-                  <span class="tags"><span class:list={['tag', x.lr ? 'lr' : 'std']}>{x.lr ? T.lr : T.std}</span>{x.u > 0 && <span class="tag u">{x.u}U</span>}</span>
+                  <span class="tags"><span class:list={['tag', x.k]}>{kindLabel(x.k)}</span>{x.u > 0 && <span class="tag u">{x.u}U</span>}</span>
                 </a>
                 <div class="pbody">
                   <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
@@ -185,14 +188,14 @@ const B = T.blocks;
 
   <section class="block">
     <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
-    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+    <div class="feats">{feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
   </section>
 
   <section class="block">
     <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
     <div class="vs">
       {(['off', 'li', 'on'] as const).map((k) => (
-        <div class:list={['card', { hi: k === 'on' }]}><span class:list={['tag', k]}>{T.vs[k].tag}</span><h3>{T.vs[k].h}</h3>
+        <div class:list={['card', { hi: k === 'on' }]}><span class:list={['tag', k === 'li' ? 'vs-li' : k]}>{T.vs[k].tag}</span><h3>{T.vs[k].h}</h3>
           <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span>{b}</li>)}</ul>
           <p class="best">{T.vs[k].best}</p></div>
       ))}
@@ -206,7 +209,7 @@ const B = T.blocks;
       <div class="tbl-wrap"><table>
         <thead><tr><th>{T.spec.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
         <tbody>
-          <tr><th>{T.spec.variant}</th>{list.map((x) => <td>{x.lr ? T.lr : T.std}</td>)}</tr>
+          <tr><th>{T.spec.variant}</th>{list.map((x) => <td>{kindLabel(x.k)}</td>)}</tr>
           {list.some((x) => x.u) && <tr><th>{T.spec.rackU}</th>{list.map((x) => <td class="num">{x.u ? `${x.u}U` : '—'}</td>)}</tr>}
           {compareRows.map((f) => <tr><th>{T.spec[f]}</th>{list.map((x) => <td class="num">{cell(x.p, f)}</td>)}</tr>)}
         </tbody>
@@ -304,15 +307,15 @@ const B = T.blocks;
     if (!load) { rec.innerHTML = ''; hint.textContent = c.t.addDevice; return; }
     var need = Math.ceil(load * 1.25);
     var fit = c.models.filter(function (x) { return x.w >= need; }).map(function (x) {
-      var min = !x.lr && x.wh ? Math.round(x.wh * 0.6 * 60 / load) : 0;
+      var min = !x.lr && x.wh ? Math.round(x.wh * (x.e || 0.6) * 60 / load) : 0;
       return { x: x, min: min, ok: x.lr || min >= rt };
     }).sort(function (a, b) { return (b.ok - a.ok) || (a.x.w - b.x.w) || (a.x.lr - b.x.lr); });
     if (!fit.length) { rec.innerHTML = ''; hint.textContent = c.t.tooBig.replace('{w}', c.maxW); return; }
     hint.textContent = c.t.needAtLeast.replace('{w}', need);
     rec.innerHTML = fit.slice(0, 4).map(function (o, i) {
       var x = o.x, cap = x.va ? (x.va >= 1000 ? (x.va / 1000) + ' kVA' : x.va + ' VA') : x.w + ' W';
-      var note = x.lr ? c.t.lrNote.replace('{t}', rtTxt(rt)).replace('{b}', bankTxt(load, x.vb)) : (o.min ? c.t.stdNote.replace('{m}', o.min) : '');
-      return '<a href="/' + c.lang + '/p/' + x.slug + '/"' + (i === 0 && o.ok ? ' class="best"' : '') + '><b>' + x.m + ' · ' + cap + ' <i>' + (x.lr ? c.t.lr : c.t.std) + '</i></b><span>' + note + '</span></a>';
+      var note = x.lr ? c.t.lrNote.replace('{t}', rtTxt(rt)).replace('{b}', bankTxt(load, x.vb)) : (o.min ? (x.k === 'li' ? c.t.liNote : c.t.stdNote).replace('{m}', o.min) : '');
+      return '<a href="/' + c.lang + '/p/' + x.slug + '/"' + (i === 0 && o.ok ? ' class="best"' : '') + '><b>' + x.m + ' · ' + cap + ' <i>' + (x.k === 'li' ? c.t.li : x.lr ? c.t.lr : c.t.std) + '</i></b><span>' + note + '</span></a>';
     }).join('');
   }
   devs.forEach(function (d) {
@@ -471,6 +474,8 @@ const B = T.blocks;
   .tag.std { background: var(--ok-soft); color: var(--ok); }
   .tag.lr { background: #e2ecfb; color: #1f4f9a; }
   .tag.u { background: var(--ink); color: #fff; }
+  .tag.li { background: #e3f4f8; color: #0e6a80; }
+  .tag.vs-li { background: var(--ok-soft); color: var(--ok); }
   .tag.on { background: var(--accent); color: #fff; }
   .pimg :global(svg) { width: 84%; }
   .rt { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
@@ -507,7 +512,7 @@ const B = T.blocks;
   .how[data-mode="bypass"] :is(.b-mains, .b-load) rect, .how[data-mode="bypass"] .sw circle { stroke: #1f4f9a; }
   .how[data-mode="bypass"] .sw circle { fill: #1f4f9a; }
 
-  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
   @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
   .feat { display: grid; gap: 8px; align-content: start; }

@@ -9,7 +9,7 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isLongRun, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
@@ -32,7 +32,7 @@ const O = OT[lang];
 const series = seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = rack
-  ? [[R.spec.model, p.model], [R.spec.variant, isLongRun(p) ? R.lr : R.std], ...(U ? [[R.spec.rackU, `${U}U`]] : []),
+  ? [[R.spec.model, p.model], [R.spec.variant, rackKind(p) === 'li' ? (isLongRun(p) ? `${R.li} · ${R.lr}` : R.li) : isLongRun(p) ? R.lr : R.std], ...(U ? [[R.spec.rackU, `${U}U`]] : []),
      ...RACK_SPEC_FIELDS.map((f) => [R.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
   : offline
   ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
@@ -54,7 +54,7 @@ const cap = capacityOf(p);
 const highlights = rack ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   U ? `${U}U` : '', `${R.spec.transferTimeAcToBattery.split(' (')[0]} ${specValue(p, 'transferTimeAcToBattery', lang) || '0 ms'}`,
-  isLongRun(p) ? R.extBatt : R.std,
+  isLongRun(p) ? R.extBatt : rackKind(p) === 'li' ? R.li : R.std,
 ].filter(Boolean) : offline ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   specValue(p, 'transferTime', lang), specValue(p, 'waveform', lang),
