@@ -6,7 +6,8 @@ import { LANGS, SITE } from '../../config.mjs';
 import { CT, CERTS, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
 import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
 import products from '../../data/products.json';
-import { isOffline } from '../../lib/category.mjs';
+import { isOffline, isRack } from '../../lib/category.mjs';
+import { RT } from '../../lib/rack-i18n.mjs';
 import { OT } from '../../lib/offline-i18n.mjs';
 import { PLUGS, PLUG_ICON } from '../../lib/plugs.mjs';
 
@@ -26,6 +27,7 @@ const lite = products.map((p) => ({
   model: p.model,
   thumb: (p.images && p.images[0] && (p.images[0].thumb || p.images[0].src)) || null,
   offline: isOffline(p),
+  rack: isRack(p),
   img: (p.images && p.images[0] && p.images[0].src) || null,
   w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
   chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
@@ -35,7 +37,7 @@ const lite = products.map((p) => ({
 }));
 
 const cfg = {
-  T, offFee: OT[lang].qOem.split(' · ')[1] || '', PORT_TYPES, CHEM, maxW: MAX_RATED_W, maxPorts: MAX_PORTS, oemMoq: OEM_MOQ, fee: SAMPLE_FEE, eff: EFFICIENCY,
+  T, offFee: OT[lang].qOem.split(' · ')[1] || '', rackFee: RT[lang].qOem.split(' · ')[1] || '', rackMoq: 50, PORT_TYPES, CHEM, maxW: MAX_RATED_W, maxPorts: MAX_PORTS, oemMoq: OEM_MOQ, fee: SAMPLE_FEE, eff: EFFICIENCY,
   wa: SITE.whatsapp, email: SITE.email, products: lite,
 };
 const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
@@ -230,7 +232,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
               </div>
               <label class="cz-field"><span class="cz-label">{T.oemQty}</span>
                 <span class="cz-inline"><input type="number" inputmode="numeric" min={OEM_MOQ} step="100" value={OEM_MOQ} data-oem-qty /> <span>{T.pcs}</span></span>
-                <span class="cz-hint strong">{tpl(T.oemMoq, { n: OEM_MOQ })}</span>
+                <span class="cz-hint strong" data-oem-moq>{tpl(T.oemMoq, { n: OEM_MOQ })}</span>
                 <span class="cz-hint strong" data-oem-fee hidden></span>
               </label>
             </div>
@@ -627,8 +629,15 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     var missing = [];
     var slug = oemModel.value, prod = c.products.filter(function (p) { return p.slug === slug; })[0];
     if (!prod) missing.push(T.mModel);
+    // 起订量：机架式 UPS 50 台，其他 1000 台；切换型号时没改过的默认数量跟着变
+    var moq = prod && prod.rack ? c.rackMoq : c.oemMoq;
+    if (oemQty.dataset.moq !== String(moq)) {
+      if (!oemQty.dataset.moq || parseNum(oemQty.value) === +oemQty.dataset.moq || !oemQty.value) oemQty.value = moq;
+      oemQty.dataset.moq = moq; oemQty.min = moq; oemQty.step = moq < 100 ? 10 : 100;
+      $('[data-oem-moq]').textContent = fmt(T.oemMoq, { n: moq });
+    }
     var qty = parseNum(oemQty.value);
-    if (!(qty >= c.oemMoq)) missing.push(fmt(T.oemMoq, { n: c.oemMoq }));
+    if (!(qty >= moq)) missing.push(fmt(T.oemMoq, { n: moq }));
     var chosen = $$('[data-oem-item]').filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.oemItem; });
     // 缩略图：所选型号的第一张产品图
     var th = $('[data-oem-thumb]'), pop = $('[data-oem-pop]');
@@ -658,8 +667,10 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     var spec = [[T.lModel, prod ? prod.model : '—'], [T.oemQty, qty > 0 ? qty + ' ' + T.pcs : '—'], [T.lCustom, labels.length ? labels.join('\n') : '—']];
     // 离线式 UPS 贴牌：样品费 3000 美元，批量订单退还
     var feeEl = $('[data-oem-fee]');
-    feeEl.hidden = !(prod && prod.offline); feeEl.textContent = c.offFee ? c.offFee.charAt(0).toUpperCase() + c.offFee.slice(1) : '';
-    if (prod && prod.offline && c.offFee) spec.push([T.feeTitle.split(':')[0], c.offFee]);
+    // 机架式 UPS 贴牌：定制费 2000 美元
+    var fee = prod && prod.rack ? c.rackFee : prod && prod.offline ? c.offFee : '';
+    feeEl.hidden = !fee; feeEl.textContent = fee ? fee.charAt(0).toUpperCase() + fee.slice(1) : '';
+    if (fee) spec.push([prod.rack ? 'OEM' : T.feeTitle.split(':')[0], fee]);
     if (notes) spec.push([T.lNotes, notes]);
     $('[data-oem-spec]').innerHTML = spec.map(function (s) {
       return '<li><span>' + s[0] + '</span><b>' + String(s[1]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</b></li>';

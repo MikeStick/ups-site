@@ -1,4 +1,5 @@
 // 机架式 UPS（真双变换在线式）栏目：页面文字、询价面板、参数表标签（三语）
+// OEM：起订 50 台，定制费 US$2,000
 
 // 选型助手里机柜常见设备（W，典型满载功耗的保守值）
 export const RACK_DEVICES = [
@@ -74,11 +75,11 @@ export const RT = {
     apps: ['Server rooms & data centres', 'Network cabinets', 'CCTV & security', 'Telecom & ISP', 'Medical & laboratory', 'Banks & industrial control'],
     oemEyebrow: 'OEM for importers', oemH: 'Your brand on a professional UPS',
     oem: [['Logo & front panel', 'Your logo, colours and LCD start screen'], ['Voltage', '110 / 120 V or 220 / 230 / 240 V output'], ['Battery', 'Internal batteries or long-run with charger current for your bank'], ['Outputs', 'IEC C13 / C19 or terminal block'], ['Monitoring', 'USB / RS-232, SNMP card, dry contacts'], ['Packaging', 'Rack ears, manual and box in your language']],
-    oemCtaH: 'Start an OEM order', oemCtaP: 'Tell us the capacity, voltage and quantity — we send MOQ, sample and lead time the same day.', oemCta: 'Request OEM quote',
+    oemCtaH: 'Start an OEM order', oemCtaP: 'OEM from 50 pcs, one-time customisation fee US$2,000. Tell us the capacity, voltage and quantity — we reply the same day.', oemCta: 'Request OEM quote',
     ctaH: 'Need a quote?', ctaP: 'Send us the capacity, voltage, runtime and quantity — we reply on WhatsApp the same day.',
     // 产品页询价面板
     qVolt: 'Output voltage', qVoltHint: 'Choose the voltage used in your country.', qNotesPh: 'Runtime needed, battery bank, SNMP card, brand…',
-    lVolt: 'Output voltage', qOem: 'OEM with your logo available · MOQ on request', banner: 'Your brand on this model?', bannerCta: 'OEM service',
+    lVolt: 'Output voltage', qOem: 'OEM with your logo from 50 pcs · customisation fee US$2,000', banner: 'Your brand on this model?', bannerCta: 'OEM from 50 pcs',
     spec: SPEC_EN,
   },
   es: {
@@ -127,10 +128,10 @@ export const RT = {
     apps: ['Salas de servidores y data centers', 'Gabinetes de red', 'CCTV y seguridad', 'Telecom e ISP', 'Medicina y laboratorios', 'Bancos y control industrial'],
     oemEyebrow: 'OEM para importadores', oemH: 'Su marca en un UPS profesional',
     oem: [['Logo y panel frontal', 'Su logo, colores y pantalla de inicio del LCD'], ['Voltaje', 'Salida de 110 / 120 V o 220 / 230 / 240 V'], ['Batería', 'Baterías internas o larga autonomía con cargador para su banco'], ['Salidas', 'IEC C13 / C19 o bornera'], ['Monitoreo', 'USB / RS-232, tarjeta SNMP, contactos secos'], ['Empaque', 'Orejas de rack, manual y caja en su idioma']],
-    oemCtaH: 'Iniciar un pedido OEM', oemCtaP: 'Indíquenos capacidad, voltaje y cantidad: le enviamos MOQ, muestra y plazo de entrega el mismo día.', oemCta: 'Solicitar cotización OEM',
+    oemCtaH: 'Iniciar un pedido OEM', oemCtaP: 'OEM desde 50 uds, costo único de personalización US$2.000. Indíquenos capacidad, voltaje y cantidad: respondemos el mismo día.', oemCta: 'Solicitar cotización OEM',
     ctaH: '¿Necesita una cotización?', ctaP: 'Envíenos capacidad, voltaje, autonomía y cantidad: respondemos por WhatsApp el mismo día.',
     qVolt: 'Voltaje de salida', qVoltHint: 'Elija el voltaje que se usa en su país.', qNotesPh: 'Autonomía, banco de baterías, tarjeta SNMP, marca…',
-    lVolt: 'Voltaje de salida', qOem: 'OEM con su logo disponible · MOQ a consultar', banner: '¿Su marca en este modelo?', bannerCta: 'Servicio OEM',
+    lVolt: 'Voltaje de salida', qOem: 'OEM con su logo desde 50 uds · personalización US$2.000', banner: '¿Su marca en este modelo?', bannerCta: 'OEM desde 50 uds',
     spec: {
       outputPower: 'Capacidad', phase: 'Fases', acInputVoltage: 'Voltaje de entrada', inputVoltageRange: 'Rango de voltaje de entrada', inputFrequency: 'Frecuencia de entrada',
       inputPowerFactor: 'Factor de potencia de entrada', outputVoltage: 'Voltaje de salida', outputVoltageRange: 'Regulación de salida', outputPowerFactor: 'Factor de potencia de salida',
@@ -188,10 +189,10 @@ export const RT = {
     apps: ['Серверные и ЦОД', 'Сетевые шкафы', 'Видеонаблюдение и охрана', 'Телеком и провайдеры', 'Медицина и лаборатории', 'Банки и промышленная автоматика'],
     oemEyebrow: 'OEM для импортёров', oemH: 'Ваш бренд на профессиональном ИБП',
     oem: [['Логотип и панель', 'Ваш логотип, цвета и заставка на LCD'], ['Напряжение', 'Выход 110 / 120 В или 220 / 230 / 240 В'], ['Батареи', 'Встроенные или Long-run с током заряда под ваш блок'], ['Выходы', 'IEC C13 / C19 или клеммная колодка'], ['Мониторинг', 'USB / RS-232, SNMP-карта, сухие контакты'], ['Упаковка', 'Уши для стойки, инструкция и коробка на вашем языке']],
-    oemCtaH: 'Начать OEM-заказ', oemCtaP: 'Сообщите мощность, напряжение и количество — в тот же день пришлём MOQ, условия образца и сроки.', oemCta: 'Запросить OEM-предложение',
+    oemCtaH: 'Начать OEM-заказ', oemCtaP: 'OEM от 50 шт., разовая оплата кастомизации US$2 000. Сообщите мощность, напряжение и количество — ответим в тот же день.', oemCta: 'Запросить OEM-предложение',
     ctaH: 'Нужно предложение?', ctaP: 'Пришлите мощность, напряжение, время работы и количество — ответим в WhatsApp в тот же день.',
     qVolt: 'Выходное напряжение', qVoltHint: 'Выберите напряжение, принятое в вашей стране.', qNotesPh: 'Время работы, батарейный блок, SNMP-карта, бренд…',
-    lVolt: 'Выходное напряжение', qOem: 'Доступен OEM с вашим логотипом · MOQ по запросу', banner: 'Ваш бренд на этой модели?', bannerCta: 'OEM-сервис',
+    lVolt: 'Выходное напряжение', qOem: 'OEM с вашим логотипом от 50 шт. · кастомизация US$2 000', banner: 'Ваш бренд на этой модели?', bannerCta: 'OEM от 50 шт.',
     spec: {
       outputPower: 'Мощность', phase: 'Фазы', acInputVoltage: 'Входное напряжение', inputVoltageRange: 'Диапазон входного напряжения', inputFrequency: 'Входная частота',
       inputPowerFactor: 'Входной коэффициент мощности', outputVoltage: 'Выходное напряжение', outputVoltageRange: 'Стабилизация выхода', outputPowerFactor: 'Выходной коэффициент мощности',
