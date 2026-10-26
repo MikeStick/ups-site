@@ -13,8 +13,22 @@ export const isRackLithium = (p) => p.type === '机架式锂电UPS';
 export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 'std');
 // 标机（内置电池）/ 长机（外接电池组）：看"标机/长机"字段，没填时型号末尾带 L 的算长机（如 RT3KL）
 export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant) : /\d\s*K?L\b/i.test(String(p.model || '')));
-// Mini UPS 栏目：除离线式 / 在线互动式 / 机架式以外的已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => !isOffline(p) && !isRack(p);
+// 模块化 UPS 栏目
+export const isModular = (p) => p.type === '模块化UPS';
+// Mini UPS 栏目：除离线式 / 在线互动式 / 机架式 / 模块化以外的已发布产品（以后加品类时在这里分流）
+export const isMini = (p) => !isOffline(p) && !isRack(p) && !isModular(p);
+// 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
+export function moduleOf(p) {
+  const t = String(p.upsModuleCapacity || '');
+  const num = (re) => { const m = t.match(re); return m ? parseFloat(m[1]) * (/k/i.test(m[2] || '') ? 1000 : 1) : 0; };
+  let va = num(/(\d+(?:\.\d+)?)\s*(k?)VA/i), w = num(/(\d+(?:\.\d+)?)\s*(k?)W/i);
+  if (!va && !w) { const m = t.match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; } // 只写了数字：按 kVA
+  if (!w && va) w = va; // 模块化 UPS 输出功率因数通常是 1
+  if (!va && w) va = w;
+  let n = parseInt(String(p.upsModuleCount || '').match(/\d+/) || '', 10) || 0;
+  if (!n && va) { const c = capacityOf(p); if (c.va) n = Math.round(c.va / va); }
+  return { va, w, n };
+}
 // 机架高度（U）：型号 / 卖点里写了 2U、3U 就用它；否则从尺寸里找接近 44.45mm 整数倍的那个数（排除 19 英寸机箱的宽度）
 export function rackUnits(p) {
   const m = `${p.model || ''} ${p.sellingPoints || ''} ${p.dimensions || ''}`.match(/\b([1-6])\s*U\b/);
@@ -44,7 +58,7 @@ export function capacityOf(p) {
   let w = num(/(\d+(?:\.\d+)?)\s*(k?)W(?!h)/i);
   const pf = parseFloat(String(p.powerFactor || p.outputPowerFactor || '').replace(',', '.'));
   if (!w && va && pf > 0 && pf <= 1) w = Math.round(va * pf);
-  if (!w && va) w = Math.round(va * (isRack(p) ? 0.9 : 0.6));
+  if (!w && va) w = Math.round(va * (isRack(p) ? 0.9 : isModular(p) ? 1 : 0.6));
   return { va, w };
 }
 
@@ -52,13 +66,14 @@ export function capacityOf(p) {
 export function fmtCap(c) {
   if (!c || !c.va) return '';
   const va = c.va >= 1000 ? `${c.va / 1000} kVA` : `${c.va} VA`;
-  return c.w ? `${va} / ${c.w} W` : va;
+  const w = c.w >= 10000 ? `${+(c.w / 1000).toFixed(1)} kW` : `${c.w} W`;
+  return c.w ? `${va} / ${w}` : va;
 }
 
 // 同系列型号：同一栏目里字母前缀相同的型号（GF400 / GF600 / GF1000；Gi600 / Gi1000 / Gi1200 PRO），按容量数字排序
 const seriesKey = (p) => {
   const m = String(p.model || '').trim().toUpperCase().match(/^([A-Z]+)[-\s]?(\d+(?:\.\d+)?)(.*)$/);
-  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
+  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : isModular(p) ? 'u' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
 };
 export function seriesOf(p, all) {
   const me = seriesKey(p);

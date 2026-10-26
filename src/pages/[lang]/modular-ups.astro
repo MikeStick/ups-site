@@ -1,0 +1,539 @@
+---
+// 模块化 UPS 栏目页：系统配置器（负载 + 未来负载 + 冗余 → 选机柜、显示每个槽位，可点模块模拟故障）+ 机柜列表 + 卖点 + 与传统塔式对比 + 参数表 + 应用 + 项目询价。只询价，不显示价格。
+// 产品来自客户档案系统，类型 = 模块化UPS；单模块容量 / 最多模块数填在产品的"功率模块容量""最多模块数"里。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { MT, REDUNDANCY } from '../../lib/modular-i18n.mjs';
+import { specValue } from '../../lib/offline-i18n.mjs';
+import { isModular, moduleOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = MT[lang];
+const kva = (v) => `${+(v / 1000).toFixed(1)} kVA`;
+const pfOf = (p) => { const v = parseFloat(String(p.outputPowerFactor || p.powerFactor || '').replace(',', '.')); return v > 0 && v <= 1 ? v : 0; };
+const list = all.filter(isModular).map((p) => {
+  const c = capacityOf(p), m = moduleOf(p);
+  return { p, va: c.va, w: c.w, m, pf: pfOf(p), s: seriesName(p) };
+}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va);
+const vas = list.map((x) => x.va).filter(Boolean);
+const rangeTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? kva(vas[0]) : `${Math.min(...vas) / 1000}–${Math.max(...vas) / 1000} kVA`) : '30–600 kVA';
+const modSizes = [...new Set(list.map((x) => x.m.va).filter(Boolean))].sort((a, b) => a - b);
+const modJoin = modSizes.map((v) => String(v / 1000)).join(' · ');
+const modTxt = modSizes.length ? modJoin + ' kVA' : '25 · 50 kVA';
+const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+// 配置器只用填了"功率模块容量"的机柜
+const builderModels = list.filter((x) => x.m.w && x.m.n).map((x) => ({ m: x.p.model, slug: x.p.slug, va: x.va || x.m.va * x.m.n, mw: x.m.w, mva: x.m.va, n: x.m.n }));
+const cfg = { models: builderModels, lang, t: { kw: T.kw, none: T.bNone, tooBig: T.bTooBig, result: T.bResult, split: T.bSplit, free: T.bFree, pct: T.bLoadPct, fut: T.bFutureNote, alt: T.bAlt, failOk: T.failOk, failNo: T.failNo, tryFail: T.tryFail, redHint: T.redHint, slots: T.slots } };
+const compareRows = ['outputPower', 'upsModuleCapacity', 'upsModuleCount', 'phase', 'inputVoltageRange', 'inputPowerFactor', 'outputVoltage', 'outputPowerFactor', 'efficiencyAcMode', 'harmonicDistortion', 'parallelUnits', 'dimensions', 'netWeight']
+  .filter((f) => list.some((x) => specValue(x.p, f, lang)));
+const cell = (p, f) => (specValue(p, f, lang) || '—').replace(/\*/g, ' × ');
+const APP_ICONS = [
+  '<rect x="5" y="3" width="9" height="24" rx="1.5"/><rect x="16" y="3" width="9" height="24" rx="1.5"/><path d="M8 8h3M8 12h3M19 8h3M19 12h3"/>',
+  '<rect x="4" y="6" width="22" height="20" rx="2"/><path d="M15 10v10M10 15h10"/>',
+  '<path d="M4 26h22M6 26V12l9-6 9 6v14M10 26v-8M15 26v-8M20 26v-8"/>',
+  '<path d="M15 27V12M9 27l6-15 6 15M7 9a11 11 0 0 1 16 0M10 12a6.5 6.5 0 0 1 10 0"/>',
+  '<path d="M3 26V14l7 4v-4l7 4v-4l7 4V6h3v20Z"/>',
+  '<path d="M4 18l9-2 6-10 3 1-3 9 7-1 2 3-22 4Z"/><path d="M4 26h22"/>',
+];
+const slotSvg = (i) => '<rect x="68" y="' + (58 + i * 21) + '" width="64" height="16" rx="2" fill="' + (i < 4 ? '#3a4446' : '#2c3335') + '"/><circle cx="76" cy="' + (66 + i * 21) + '" r="2.4" fill="' + (i < 4 ? '#5ef0a0' : '#4a5553') + '"/>';
+const CAB_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="176" rx="6" fill="#23292a"/><rect x="70" y="26" width="60" height="22" rx="3" fill="#7dd3fc" opacity=".85"/>' + [0, 1, 2, 3, 4, 5].map(slotSvg).join('') + '</svg>';
+const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="modular-ups/">
+<div class="off rack mod" data-mod>
+  <script type="application/json" data-mod-cfg set:html={JSON.stringify(cfg)} />
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#models">{T.ctaModels}</a>
+          {builderModels.length > 0 && <a class="btn ghost" href="#builder">{T.ctaBuilder}</a>}
+        </div>
+      </div>
+      <div class="hero-facts">
+        <div><b class="num">{rangeTxt}</b><span>{T.facts.range}</span></div>
+        <div><b class="num">{modTxt}</b><span>{T.facts.module}</span></div>
+        <div><b class="num">N+X</b><span>{T.facts.red}</span></div>
+        <div><b class="num">Hot-swap</b><span>{T.facts.swap}</span></div>
+      </div>
+    </div>
+  </section>
+
+  {builderModels.length > 0 && (
+    <section class="block" id="builder">
+      <div class="head"><span class="eyebrow">{T.bEyebrow}</span><h2>{T.bH}</h2><p>{T.bP}</p></div>
+      <div class="sizer">
+        <div class="card bld-in">
+          <label class="bld-f"><span>{T.bLoad}</span>
+            <span class="bld-num"><input type="number" inputmode="decimal" min="1" step="1" value="60" data-load /> <b>{T.kw}</b></span>
+            <input type="range" min="5" max="600" step="5" value="60" data-range aria-label={T.bLoad} />
+          </label>
+          <label class="bld-f"><span>{T.bFuture}</span>
+            <span class="bld-num"><input type="number" inputmode="decimal" min="0" step="1" placeholder="—" data-future /> <b>{T.kw}</b></span>
+          </label>
+          <div class="bld-f"><span>{T.bRed}</span>
+            <div class="rt-chips" data-red>{REDUNDANCY.map((x) => <button type="button" class:list={['chip', { on: x === 1 }]} data-v={x}>{RED[x]}</button>)}</div>
+            <small class="muted" data-redhint>{T.redHint[1]}</small>
+          </div>
+          <p class="muted">{T.battNote}</p>
+        </div>
+        <div class="card bld-out">
+          <p class="bld-title" data-title>{T.bNone}</p>
+          <div class="bld-row">
+            <div class="cab" data-cab aria-live="polite"></div>
+            <div class="bld-info">
+              <ul class="bld-facts" data-facts></ul>
+              <div class="legend">
+                <span><i class="act"></i>{T.legend.act}</span><span><i class="red"></i>{T.legend.red}</span>
+                <span><i class="fut"></i>{T.legend.fut}</span><span><i class="free"></i>{T.legend.free}</span><span><i class="fail"></i>{T.legend.fail}</span>
+              </div>
+              <p class="bld-fail" data-failmsg>{T.tryFail}</p>
+              <button type="button" class="chip" data-reset hidden>{T.reset}</button>
+            </div>
+          </div>
+          <div class="bld-alt" data-alt></div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="block" id="models">
+    <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+    {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
+      <>
+        <div class="filters">
+          <div class="fgroup" data-f="cap"><span>{T.fCap}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="1">{T.cap1}</button><button type="button" class="chip" data-v="2">{T.cap2}</button><button type="button" class="chip" data-v="3">{T.cap3}</button></div>
+          {modSizes.length > 1 && <div class="fgroup" data-f="mod"><span>{T.fMod}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{modSizes.map((v) => <button type="button" class="chip" data-v={v}>{v / 1000} kVA</button>)}</div>}
+        </div>
+        <div class="grid">
+          {list.map((x) => {
+            const p = x.p, img = p.images && p.images[0];
+            const eff = specValue(p, 'efficiencyAcMode', lang), ph = specValue(p, 'phase', lang);
+            return (
+              <article class="pcard" data-va={x.va} data-mod={x.m.va || ''}>
+                <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                  {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={CAB_SVG} />}
+                  {x.m.n > 0 && <span class="tags"><span class="tag u">{T.slots.replace('{n}', x.m.n)}</span></span>}
+                </a>
+                <div class="pbody">
+                  <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                  {fmtCap(x) && <span class="va">{fmtCap(x)}</span>}
+                  <ul>
+                    {x.m.va > 0 && <li>{T.cModules} <b>{x.m.n ? `${x.m.n} × ` : ''}{kva(x.m.va)}</b></li>}
+                    {ph && <li>{T.cPhase} <b>{ph}</b></li>}
+                    {x.pf > 0 && <li>{T.cPf} <b>{x.pf}</b></li>}
+                    {eff && <li>{T.cEff} <b>{eff}</b></li>}
+                  </ul>
+                  <div class="pact">
+                    <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                    <a class="btn sm dark" href={wa(qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <p class="empty" data-empty hidden>{T.noMatch}</p>
+      </>
+    )}
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
+    <div class="vs two">
+      {(['tower', 'mod'] as const).map((k) => (
+        <div class:list={['card', { hi: k === 'mod' }]}><span class:list={['tag', k === 'mod' ? 'on' : 'vs-li']}>{T.vs[k].tag}</span><h3>{T.vs[k].h}</h3>
+          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span>{b}</li>)}</ul>
+          <p class="best">{T.vs[k].best}</p></div>
+      ))}
+    </div>
+  </section>
+
+  {list.length > 0 && compareRows.length > 0 && (
+    <section class="block">
+      <div class="head"><span class="eyebrow">{T.compareEyebrow}</span><h2>{T.compareH}</h2></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>{T.spec.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
+        <tbody>
+          {compareRows.map((f) => <tr><th>{T.spec[f]}</th>{list.map((x) => <td class="num">{f === 'outputPower' && !specValue(x.p, f, lang) ? fmtCap(x) || '—' : cell(x.p, f)}</td>)}</tr>)}
+        </tbody>
+      </table></div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} />{a}</div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.projEyebrow}</span><h2>{T.projH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.proj.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.projCtaH}</h3>
+        <p>{T.projCtaP}</p>
+        {SITE.whatsapp && <div><a class="btn primary" href={wa(T.projMsg)} target="_blank" rel="noopener">{T.projCta}</a></div>}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+</div>
+</Base>
+
+<script is:inline>
+(function () {
+  var root = document.querySelector('[data-mod]'); if (!root) return;
+  var c = JSON.parse(root.querySelector('[data-mod-cfg]').textContent);
+  var $ = function (s) { return root.querySelector(s); };
+  // 列表筛选：容量区间 + 模块规格；选了容量后按容量从小到大
+  var f = { cap: '', mod: '' };
+  var grid = $('.grid');
+  var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('.pcard')) : [];
+  cards.forEach(function (el, i) { el.dataset.ord = i; });
+  function filter() {
+    if (grid) { var l = cards.slice(); if (f.cap) l.sort(function (a, b) { return (a.dataset.va - b.dataset.va) || (a.dataset.ord - b.dataset.ord); }); l.forEach(function (el) { grid.appendChild(el); }); }
+    var n = 0;
+    cards.forEach(function (el) {
+      var va = +el.dataset.va;
+      var ok = (!f.mod || el.dataset.mod === f.mod) && (!f.cap || (f.cap === '1' ? va <= 100000 : f.cap === '2' ? va > 100000 && va <= 300000 : va > 300000));
+      el.hidden = !ok; if (ok) n++;
+    });
+    var e = $('[data-empty]'); if (e) e.hidden = n > 0;
+  }
+  root.querySelectorAll('[data-f]').forEach(function (g) {
+    g.addEventListener('click', function (e) {
+      var b = e.target.closest('.chip'); if (!b) return;
+      g.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+      f[g.dataset.f] = b.dataset.v; filter();
+    });
+  });
+
+  // 系统配置器
+  if (!$('[data-cab]')) return;
+  var red = 1, failed = -1, cur = null;
+  var kvaTxt = function (v) { return (+(v / 1000).toFixed(1)) + ' kVA'; };
+  function fmt(s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); }
+  function plan(load, future) {
+    var X = red, L = load * 1000, F = Math.max(load, future || 0) * 1000;
+    var ok = c.models.map(function (m) {
+      var act = Math.max(1, Math.ceil(L / m.mw)), need = act + X, fneed = Math.max(1, Math.ceil(F / m.mw)) + X;
+      return { m: m, act: act, need: need, fneed: fneed, fits: need <= m.n, ffits: fneed <= m.n };
+    }).filter(function (o) { return o.fits; }).sort(function (a, b) { return (b.ffits - a.ffits) || (a.m.va - b.m.va) || (b.m.mw - a.m.mw); });
+    return ok;
+  }
+  function draw() {
+    var load = parseFloat($('[data-load]').value) || 0, future = parseFloat($('[data-future]').value) || 0;
+    var cab = $('[data-cab]'), facts = $('[data-facts]'), title = $('[data-title]'), alt = $('[data-alt]');
+    failed = -1; $('[data-reset]').hidden = true; $('[data-failmsg]').textContent = c.t.tryFail; $('[data-failmsg]').className = 'bld-fail';
+    if (!(load > 0)) { title.textContent = c.t.none; cab.innerHTML = ''; facts.innerHTML = ''; alt.innerHTML = ''; cur = null; return; }
+    var opts = plan(load, future);
+    if (!opts.length) {
+      var maxKw = Math.max.apply(null, c.models.map(function (m) { return (m.n - red) * m.mw / 1000; }));
+      title.textContent = fmt(c.t.tooBig, { kw: Math.max(0, Math.round(maxKw)) }); cab.innerHTML = ''; facts.innerHTML = ''; alt.innerHTML = ''; cur = null; return;
+    }
+    var o = cur = opts[0], m = o.m;
+    title.innerHTML = '<a href="/' + c.lang + '/p/' + m.slug + '/">' + fmt(c.t.result, { m: m.m, n: o.need, mod: kvaTxt(m.mva) }) + '</a>';
+    var futureAdd = o.ffits ? o.fneed - o.need : 0, free = m.n - o.need - futureAdd;
+    var html = '<div class="cab-top"><span></span></div><div class="cab-slots' + (m.n > 10 ? ' two' : '') + '">';
+    for (var i = 0; i < m.n; i++) {
+      var st = i < o.act ? 'act' : i < o.need ? 'red' : i < o.need + futureAdd ? 'fut' : 'free';
+      html += '<button type="button" class="slot ' + st + '" data-i="' + i + '"' + (st === 'act' || st === 'red' ? '' : ' disabled') + '><i></i><span>' + (st === 'free' ? '' : kvaTxt(m.mva)) + '</span></button>';
+    }
+    cab.innerHTML = html + '</div>';
+    var pct = Math.round(load * 1000 / (o.need * m.mw) * 100);
+    var li = ['<li><b>' + fmt(c.t.split, { a: o.act, r: red }) + '</b></li>', '<li>' + fmt(c.t.pct, { p: pct }) + '</li>'];
+    if (futureAdd > 0) li.push('<li>' + fmt(c.t.fut, { kw: Math.max(load, future), n: futureAdd }) + '</li>');
+    if (free > 0) li.push('<li>' + fmt(c.t.free, { f: free }) + '</li>');
+    facts.innerHTML = li.join('');
+    var more = opts.slice(1, 3);
+    alt.innerHTML = more.length ? '<span class="muted">' + c.t.alt + '</span>' + more.map(function (x) {
+      return '<a href="/' + c.lang + '/p/' + x.m.slug + '/"><b>' + x.m.m + '</b><span>' + x.need + ' × ' + kvaTxt(x.m.mva) + ' · ' + fmt(c.t.slots, { n: x.m.n }) + '</span></a>';
+    }).join('') : '';
+  }
+  // 点模块模拟故障：有冗余 → 负载继续；没有冗余 → 转旁路
+  $('[data-cab]').addEventListener('click', function (e) {
+    var b = e.target.closest('.slot'); if (!b || b.disabled || failed >= 0) return;
+    failed = +b.dataset.i; b.classList.add('fail');
+    var msg = $('[data-failmsg]');
+    msg.textContent = red > 0 ? c.t.failOk : c.t.failNo; msg.className = 'bld-fail ' + (red > 0 ? 'ok' : 'bad');
+    if (red > 0) { var r = $('[data-cab] .slot.red'); if (r && r !== b) r.classList.add('takeover'); }
+    $('[data-reset]').hidden = false;
+  });
+  $('[data-reset]').addEventListener('click', draw);
+  var load = $('[data-load]'), range = $('[data-range]');
+  load.addEventListener('input', function () { range.value = Math.min(600, Math.max(5, +load.value || 5)); draw(); });
+  range.addEventListener('input', function () { load.value = range.value; draw(); });
+  $('[data-future]').addEventListener('input', draw);
+  $('[data-red]').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    this.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+    red = +b.dataset.v; $('[data-redhint]').textContent = c.t.redHint[red]; draw();
+  });
+  draw();
+})();
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .eyebrow { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  section.block { padding-block: 56px 0; }
+  .head { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .head h2 { font-size: clamp(28px, 4.2vw, 42px); }
+  .head p { margin: 0; color: var(--muted); }
+
+  /* 首屏 */
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: var(--charge); }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 560px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 30px/1 var(--display); color: var(--charge); }
+  .hero-facts span { font-size: 13px; color: #a9b8b4; }
+
+  /* 选型助手 */
+  .sizer { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 16px; }
+  @media (max-width: 860px) { .sizer { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .devs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .devs { grid-template-columns: minmax(0, 1fr); } }
+  .dev { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .dev.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .dev svg { width: 34px; height: 34px; color: var(--accent); }
+  .dev b { display: block; font-size: 14px; }
+  .dev small { color: var(--muted); font-size: 12px; }
+  .step { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .step button { width: 30px; border: 0; background: var(--bg); font-size: 16px; cursor: pointer; color: var(--ink); }
+  .step output { width: 30px; text-align: center; font: 500 14px/30px var(--mono); }
+  .result { display: grid; gap: 12px; align-content: start; }
+  .result .big { font: 700 46px/1 var(--display); color: var(--accent); }
+  .result .big small { font-size: 20px; color: var(--ink); }
+  .result p { margin: 0; color: var(--muted); font-size: 14px; }
+  .rec { display: grid; gap: 6px; }
+  .rec :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
+  .rec :global(a.best) { border-color: var(--accent); background: var(--ok-soft); }
+  .rec :global(a span) { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+
+  /* 筛选 + 列表 */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 16px; }
+  .fgroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .fgroup > span { font-size: 13px; font-weight: 600; margin-right: 4px; }
+  .chip { font: 14px var(--body); padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg svg { width: 70%; }
+  .pimg .tag { position: absolute; left: 10px; top: 10px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  .tag.li { background: var(--ok-soft); color: var(--ok); }
+  .tag.lion { background: #e2ecfb; color: #1f4f9a; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+  /* 插座 */
+  .sockets { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .sockets { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .sock { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px; text-align: center; display: grid; gap: 6px; justify-items: center; }
+  .sock svg { width: 56px; height: 56px; }
+  .sock b { font-size: 14px; }
+  .sock span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+  /* 对比 */
+  .vs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+  .vs .card h3 { font-size: 26px; margin: 6px 0 8px; }
+  .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+  .vs li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .vs li span { color: var(--muted); }
+  .vs .best { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 10px; }
+
+  /* 参数表 */
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); }
+
+  /* OEM */
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: var(--ink); color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #c9d4d1; }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  footer { margin-top: 0; }
+  .note { margin-top: 10px; }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg :global(svg) { width: 70%; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .tbl-wrap a { color: var(--ink); }
+  .sock :global(svg) { width: 56px; height: 56px; }
+  .app svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dev svg { fill: none; }
+  /* —— 机架式专用 —— */
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .pimg .tag { position: static; }
+  .tag.std { background: var(--ok-soft); color: var(--ok); }
+  .tag.lr { background: #e2ecfb; color: #1f4f9a; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .tag.li { background: #e3f4f8; color: #0e6a80; }
+  .tag.vs-li { background: var(--ok-soft); color: var(--ok); }
+  .tag.on { background: var(--accent); color: #fff; }
+  .pimg :global(svg) { width: 84%; }
+  .rt { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .rt > span { font-size: 13px; font-weight: 600; }
+  .rt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rec :global(a b i) { font-style: normal; font: 600 10.5px var(--mono); text-transform: uppercase; color: var(--muted); margin-left: 4px; }
+  .rec :global(a) { flex-wrap: wrap; }
+  .rec :global(a span) { text-align: right; }
+
+  .how { display: grid; gap: 14px; }
+  .how-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .how-fig { overflow-x: auto; }
+  .how-fig svg { width: 100%; min-width: 560px; height: auto; display: block; }
+  .how-text { margin: 0; font-size: 15px; color: var(--ink); background: var(--bg); border-radius: 8px; padding: 10px 14px; }
+  .how .blk rect, .how .blk circle { fill: #fff; stroke: #b9c6c2; stroke-width: 2; transition: .25s; }
+  .how .blk text, .how .sw text { font: 600 15px var(--body); fill: var(--ink); text-anchor: middle; }
+  .how .blk text.sm, .how .sw text { font: 600 12px var(--mono); fill: var(--muted); text-transform: uppercase; }
+  .how .w { fill: none; stroke: #d3dbd8; stroke-width: 5; stroke-linecap: round; transition: stroke .25s; }
+  .how .w-bc, .how .w-bd { stroke-width: 0; }
+  .how .sw circle { fill: #fff; stroke: #b9c6c2; stroke-width: 2; }
+  .how .cut { display: none; }
+  .how .cut path { stroke: #c0392b; stroke-width: 4; stroke-linecap: round; }
+  @keyframes flow { to { stroke-dashoffset: -28; } }
+  /* 正常：市电 → 整流 → 直流母线 → 逆变 → 负载，同时给电池充电 */
+  .how[data-mode="normal"] :is(.w-in, .w-rd, .w-di, .w-out, .w-bc) { stroke: var(--accent); stroke-width: 5; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="normal"] :is(.b-mains, .b-rect, .b-dc, .b-inv, .b-load, .b-batt) :is(rect, circle) { stroke: var(--accent); }
+  /* 市电中断：电池 → 逆变 → 负载 */
+  .how[data-mode="battery"] :is(.w-bd, .w-di, .w-out) { stroke: var(--charge); stroke-width: 5; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="battery"] :is(.b-batt, .b-dc, .b-inv, .b-load) :is(rect, circle) { stroke: var(--charge); }
+  .how[data-mode="battery"] .b-mains rect { stroke-dasharray: 5 4; }
+  .how[data-mode="battery"] .cut { display: block; }
+  /* 旁路：市电直接 → 负载 */
+  .how[data-mode="bypass"] .w-byp { stroke: #1f4f9a; stroke-dasharray: 10 4; animation: flow 1s linear infinite; }
+  .how[data-mode="bypass"] :is(.b-mains, .b-load) rect, .how[data-mode="bypass"] .sw circle { stroke: #1f4f9a; }
+  .how[data-mode="bypass"] .sw circle { fill: #1f4f9a; }
+
+  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: var(--charge); }
+  .feat h3 { font-size: 24px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+  .vs .card.hi { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+  .mod .sizer { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+  @media (max-width: 860px) { .mod .sizer { grid-template-columns: minmax(0, 1fr); } }
+  /* —— 模块化专用 —— */
+  .mod .pimg :global(svg) { width: 62%; }
+  .vs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 760px) { .vs.two { grid-template-columns: minmax(0, 1fr); } }
+  .bld-in { display: grid; gap: 18px; align-content: start; }
+  .bld-f { display: grid; gap: 8px; }
+  .bld-f > span { font-size: 13px; font-weight: 600; }
+  .bld-num { display: flex; align-items: center; gap: 8px; }
+  .bld-num input { width: 140px; font: 600 22px var(--mono); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .bld-num b { font: 600 15px var(--mono); color: var(--muted); }
+  .bld-f input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .bld-out { display: grid; gap: 14px; align-content: start; }
+  .bld-title { margin: 0; font: 700 22px/1.2 var(--display); text-transform: uppercase; }
+  .bld-title :global(a) { color: var(--ink); text-decoration: none; }
+  .bld-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 520px) { .bld-row { grid-template-columns: minmax(0, 1fr); justify-items: center; } }
+  .cab:empty { display: none; }
+  .cab { background: #1f2526; border-radius: 10px; padding: 10px; width: 150px; box-shadow: inset 0 0 0 2px #333c3d; }
+  .cab :global(.cab-top) { height: 30px; border-radius: 5px; background: #0c1a14; margin-bottom: 8px; display: grid; place-items: center; }
+  .cab :global(.cab-top span) { width: 40%; height: 6px; border-radius: 3px; background: #5ef0a0; opacity: .7; }
+  .cab :global(.cab-slots) { display: grid; gap: 5px; }
+  .cab :global(.cab-slots.two) { grid-template-columns: 1fr 1fr; }
+  .cab :global(.slot) { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border-radius: 4px; border: 0; font: 600 10.5px var(--mono); color: #cfd6d4; cursor: pointer; transition: background .25s, box-shadow .25s; }
+  .cab :global(.slot i) { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .cab :global(.slot.act) { background: #2f3a3b; } .cab :global(.slot.act i) { background: #3ee08a; box-shadow: 0 0 6px #3ee08a; }
+  .cab :global(.slot.red) { background: #3a3523; } .cab :global(.slot.red i) { background: var(--charge); }
+  .cab :global(.slot.fut) { background: transparent; box-shadow: inset 0 0 0 1.5px #6b7775; color: #8d9997; cursor: default; } .cab :global(.slot.fut i) { background: transparent; box-shadow: inset 0 0 0 1.5px #8d9997; }
+  .cab :global(.slot.free) { background: #171b1c; cursor: default; } .cab :global(.slot.free i) { background: #2c3335; }
+  .cab :global(.slot.fail) { background: #5a1f1f; } .cab :global(.slot.fail i) { background: #ff4d4d; box-shadow: 0 0 6px #ff4d4d; }
+  .cab :global(.slot.takeover) { background: #2f3a3b; } .cab :global(.slot.takeover i) { background: #3ee08a; box-shadow: 0 0 6px #3ee08a; }
+  .cab :global(.slot:not(:disabled):hover) { box-shadow: inset 0 0 0 1.5px #fff; }
+  .bld-info { display: grid; gap: 12px; }
+  .bld-facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+  .bld-facts :global(li) { border-top: 1px dashed var(--line); padding-top: 6px; }
+  .bld-facts :global(li:first-child) { border-top: 0; padding-top: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; }
+  .legend i.act { background: #3ee08a; } .legend i.red { background: var(--charge); } .legend i.fut { box-shadow: inset 0 0 0 1.5px #6b7775; } .legend i.free { background: #2c3335; } .legend i.fail { background: #ff4d4d; }
+  .bld-fail { margin: 0; font-size: 13px; color: var(--muted); padding: 8px 10px; border-radius: 8px; background: var(--bg); }
+  .bld-fail.ok { color: var(--ok); background: var(--ok-soft); }
+  .bld-fail.bad { color: #a5480b; background: #fdeee2; }
+  [data-reset] { justify-self: start; }
+  [data-reset][hidden] { display: none; }
+  .bld-alt { display: grid; gap: 6px; }
+  .bld-alt :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
+  .bld-alt :global(a span) { color: var(--muted); font: 13px var(--mono); }
+</style>

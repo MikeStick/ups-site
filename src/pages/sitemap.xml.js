@@ -4,7 +4,7 @@ import products from '../data/products.json';
 
 export function GET({ site }) {
   const base = String(site || '').replace(/\/$/, '');
-  const paths = ['', 'offline-ups/', 'rack-ups/', 'about/', 'custom/', ...products.map((p) => `p/${p.slug}/`)];
+  const paths = ['', 'offline-ups/', 'rack-ups/', 'modular-ups/', 'about/', 'custom/', ...products.map((p) => `p/${p.slug}/`)];
   const today = new Date().toISOString().slice(0, 10);
   const urls = paths.flatMap((path) => LANGS.map((lang) => {
     const alt = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${base}/${l}/${path}"/>`).join('')
