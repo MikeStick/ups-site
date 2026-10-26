@@ -122,7 +122,7 @@ const cfg = { off: T.off, on: T.on };
       </div>
     </div>
 
-    <div class="hh-ctrl">
+    <div class="hh-ctrl" hidden>
       <button type="button" data-skip>{T.skip} ▸▸</button>
       <button type="button" data-replay hidden>↻ {T.replay}</button>
     </div>
@@ -215,7 +215,9 @@ const cfg = { off: T.off, on: T.on };
     else tiles.forEach(function (t) { if (!t.classList.contains('small')) { t.style.transition = 'none'; put(t, full()); } });
   }) : null;
   if (ro) ro.observe(stage);
-  if (reduce) finalState(); else play();
+  // 不播放切换动画，直接显示最终画面（六个场景 + 中间 UPS + 口号）；动画代码保留，以后要恢复把这里改回 play()
+  finalState();
+  $('[data-replay]').hidden = true;
 })();
 </script>
 
@@ -302,6 +304,7 @@ const cfg = { off: T.off, on: T.on };
   .hh-stage.dark .hh-tile.back .hh-ecg .flat { display: none; }
   .hh-stage.ups .hh-tile.small { box-shadow: 0 0 0 1.5px rgba(62,224,138,.55), 0 6px 24px rgba(0,0,0,.35); }
 
+  .hh-ctrl[hidden] { display: none; }
   .hh-ctrl { position: absolute; right: 12px; bottom: 12px; z-index: 40; }
   .hh-ctrl button { font: 600 12px var(--mono); color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(4px); }
   .hh-ctrl button[hidden] { display: none; }
