@@ -1,24 +1,29 @@
-// 产品品类：客户档案系统里 type 字段（中文）决定产品出现在哪个栏目
+// 产品品类：客户档案系统里的细分品类决定产品出现在哪个栏目。
+// 一个产品可以同时属于多个品类：type（主品类，决定参数表 / 询价面板）+ extraTypes（同时属于，只影响出现在哪些栏目）
+export const typesOf = (p) => [p.type, ...(Array.isArray(p.extraTypes) ? p.extraTypes : [])].filter(Boolean);
+const has = (p, list) => typesOf(p).some((t) => list.includes(t));
+// 只看主品类（产品页用：决定显示哪套参数表、哪种询价面板、面包屑回到哪个栏目）
+export const primary = (p) => ({ ...p, extraTypes: [] });
 export const OFFLINE_TYPES = ['离线式UPS', '离线式锂电UPS', '在线互动式UPS'];
-export const isOffline = (p) => OFFLINE_TYPES.includes(p.type);
-export const isLineInteractive = (p) => p.type === '在线互动式UPS';
-export const isLithiumOffline = (p) => p.type === '离线式锂电UPS';
+export const isOffline = (p) => has(p, OFFLINE_TYPES);
+export const isLineInteractive = (p) => (isOffline(p) && OFFLINE_TYPES.includes(p.type) ? p.type === '在线互动式UPS' : has(p, ['在线互动式UPS']));
+export const isLithiumOffline = (p) => (isOffline(p) && OFFLINE_TYPES.includes(p.type) ? p.type === '离线式锂电UPS' : has(p, ['离线式锂电UPS']));
 // 列表筛选 / 标签用：off = 离线式，lion = 离线式锂电，li = 在线互动式
 export const offKind = (p) => (isLineInteractive(p) ? 'li' : isLithiumOffline(p) ? 'lion' : 'off');
 // 机架式 UPS 栏目（真双变换在线式，机架安装）
 export const RACK_TYPES = ['机架式UPS', '机架式锂电UPS'];
-export const isRack = (p) => RACK_TYPES.includes(p.type);
-export const isRackLithium = (p) => p.type === '机架式锂电UPS';
+export const isRack = (p) => has(p, RACK_TYPES);
+export const isRackLithium = (p) => has(p, ['机架式锂电UPS']);
 // 列表筛选 / 标签用：li = 锂电，lr = 长机（外接电池），std = 标机（内置铅酸）
 export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 'std');
 // 标机（内置电池）/ 长机（外接电池组）：看"标机/长机"字段，没填时型号末尾带 L 的算长机（如 RT3KL）
 export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant) : /\d\s*K?L\b/i.test(String(p.model || '')));
 // 模块化 UPS 栏目
 export const MODULAR_TYPES = ['模块化UPS', '机架式模块化UPS'];
-export const isModular = (p) => MODULAR_TYPES.includes(p.type);
-export const isRackModular = (p) => p.type === '机架式模块化UPS';
-// Mini UPS 栏目：除离线式 / 在线互动式 / 机架式 / 模块化以外的已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => !isOffline(p) && !isRack(p) && !isModular(p);
+export const isModular = (p) => has(p, MODULAR_TYPES);
+export const isRackModular = (p) => has(p, ['机架式模块化UPS']);
+// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化的其他已发布产品（以后加品类时在这里分流）
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');

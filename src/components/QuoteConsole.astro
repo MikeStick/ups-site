@@ -4,15 +4,15 @@ import { SITE } from '../config.mjs';
 import { OT, OEM_MOQ_OFFLINE } from '../lib/offline-i18n.mjs';
 import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_MAX } from '../lib/sockets.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
-import { isRack, isModular } from '../lib/category.mjs';
+import { isRack, isModular, primary } from '../lib/category.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
 
 const { p, lang } = Astro.props;
 const T = OT[lang];
 // 机架式 UPS：不选插座（输出是 IEC C13/C19 或接线端子），改选输出电压；数量默认 10 台
 // 模块化 UPS：同样不选插座，选三相线电压，数量默认 1 套
-const modular = isModular(p);
-const rack = isRack(p) || modular;
+const modular = isModular(primary(p));
+const rack = isRack(primary(p)) || modular;
 const R = modular ? { ...RT[lang], ...MT[lang], qOem: MT[lang].qNote } : RT[lang];
 const VOLTS = modular ? ['380 V', '400 V', '415 V', '220 V'] : ['220 V', '230 V', '240 V', '110 V', '120 V'];
 const defVolt = modular ? (/415/.test(String(p.outputVoltage || '')) && !/380|400/.test(String(p.outputVoltage || '')) ? '415 V' : /400/.test(String(p.outputVoltage || '')) && !/380/.test(String(p.outputVoltage || '')) ? '400 V' : '380 V')

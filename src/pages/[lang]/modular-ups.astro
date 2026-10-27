@@ -7,7 +7,7 @@ import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { MT, MW } from '../../lib/modular-i18n.mjs';
 import { MX } from '../../lib/modular-cfg-i18n.mjs';
-import { isModular } from '../../lib/category.mjs';
+import { isModular, isRackModular, moduleOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import all from '../../data/products.json';
 
 export function getStaticPaths() {
@@ -19,6 +19,11 @@ const T = MT[lang], W = MW[lang], X = MX[lang];
 const norm = (s) => String(s || '').toUpperCase().replace(/[\s_-]+/g, '').replace('MIMI', 'MINI');
 const links = Object.fromEntries(all.filter(isModular).map((p) => [norm(p.model), p.slug]));
 const cfg = { lang, wa: SITE.whatsapp, links, x: X };
+// 已发布的模块化产品（含"同时属于"模块化的产品，比如主品类是机架式UPS、同时勾了模块化UPS）
+const models = all.filter(isModular).map((p) => ({ p, c: capacityOf(p), m: moduleOf(p), s: seriesName(p) })).sort((a, b) => a.s.localeCompare(b.s) || a.c.va - b.c.va);
+const MODELS_H = { en: 'Published models', es: 'Modelos publicados', ru: 'Модели в каталоге' }[lang];
+const DETAILS = { en: 'Details', es: 'Detalles', ru: 'Подробнее' }[lang];
+const CAB_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="176" rx="6" fill="#23292a"/><rect x="70" y="26" width="60" height="22" rx="3" fill="#7dd3fc" opacity=".85"/></svg>';
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v) === String(on) }));
 ---
@@ -123,6 +128,31 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
       </div>
     </div>
   </section>
+
+  {models.length > 0 && (
+    <section class="block" id="models">
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{MODELS_H}</h2></div>
+      <div class="grid">
+        {models.map(({ p, c, m }) => {
+          const img = p.images && p.images[0];
+          return (
+            <article class="pcard">
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={CAB_SVG} />}
+                <span class="tags"><span class="tag u">{isRackModular(p) ? X.kRack.replace(/\s*\(.*\)/, '') : X.kCab.replace(/\s*\(.*\)/, '')}</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                {fmtCap(c) && <span class="va">{fmtCap(c)}</span>}
+                <ul>{m.va > 0 && <li>{T.cModules} <b>{m.n ? `${m.n} × ` : ''}{+(m.va / 1000).toFixed(1)} kVA</b></li>}</ul>
+                <div class="pact"><a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{DETAILS}</a></div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
 
   <section class="block">
     <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>

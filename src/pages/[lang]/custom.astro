@@ -6,7 +6,7 @@ import { LANGS, SITE } from '../../config.mjs';
 import { CT, CERTS, PORT_TYPES, CHEM, CAP_PRESETS, POWER_PRESETS, MAX_RATED_W, SAMPLE_FEE, OEM_MOQ, MAX_PORTS } from '../../lib/custom-i18n.mjs';
 import { powerW, totalMah, EFFICIENCY } from '../../lib/power.mjs';
 import products from '../../data/products.json';
-import { isOffline, isRack, isModular } from '../../lib/category.mjs';
+import { isOffline, isRack, isModular, primary } from '../../lib/category.mjs';
 import { RT } from '../../lib/rack-i18n.mjs';
 import { OT } from '../../lib/offline-i18n.mjs';
 import { PLUGS, PLUG_ICON } from '../../lib/plugs.mjs';
@@ -26,8 +26,8 @@ const lite = products.map((p) => ({
   slug: p.slug,
   model: p.model,
   thumb: (p.images && p.images[0] && (p.images[0].thumb || p.images[0].src)) || null,
-  offline: isOffline(p),
-  rack: isRack(p),
+  offline: isOffline(primary(p)),
+  rack: isRack(primary(p)),
   img: (p.images && p.images[0] && p.images[0].src) || null,
   w: Math.min(MAX_RATED_W, powerW(p) || 0) || null,
   chem: /LFP|LIFEPO4/i.test(`${p.model} ${p.batterySpec || ''}`) ? 'LFP' : 'LI',
@@ -226,7 +226,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
                   </div>
                   <select id="oem-model" data-oem-model>
                     <option value="">{T.oemPick}</option>
-                    {products.filter((p) => !isModular(p)).map((p) => <option value={p.slug}>{p.model}</option>)}
+                    {products.filter((p) => !isModular(primary(p))).map((p) => <option value={p.slug}>{p.model}</option>)}
                   </select>
                 </div>
               </div>

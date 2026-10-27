@@ -9,7 +9,7 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
@@ -25,12 +25,13 @@ const { p } = Astro.props;
 const t = UI[lang];
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
 // 机架式 UPS 也走询价面板（选输出电压，不选插座）+ 机架式专用参数表
-const rack = isRack(p);
+const P0 = primary(p); // 产品页按主品类决定参数表和询价面板（同时属于的其他品类只影响出现在哪些栏目）
+const rack = isRack(P0);
 // 模块化 UPS：询价面板（三相电压）+ 模块化专用参数表，横幅换成"系统配置器"
-const modular = isModular(p);
+const modular = isModular(P0);
 const M = MT[lang];
 const mod = modular ? moduleOf(p) : null;
-const offline = isOffline(p) || rack || modular;
+const offline = isOffline(P0) || rack || modular;
 const R = RT[lang];
 const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
