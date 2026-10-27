@@ -48,7 +48,22 @@ const rows = modular
   : specRows(p, lang);
 const tiers = tiersOf(p);
 // 产品自己的详情图在前，引用的详情模板图片（工厂、认证、包装等）接在后面，无缝拼成一整列
-const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []), ...(Array.isArray(p.templateImages) ? p.templateImages : [])];
+// 模板里有 HTML 片段时按 templateDetail 的顺序（图片和 HTML 穿插），否则沿用 templateImages
+const tplSeq = Array.isArray(p.templateDetail) && p.templateDetail.length
+  ? p.templateDetail.map((x) => (x.img ? { im: x.img } : { html: (x.html && (x.html[lang] || x.html.en)) || '' })).filter((x) => x.im || x.html)
+  : (Array.isArray(p.templateImages) ? p.templateImages : []).map((im) => ({ im }));
+const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []).map((im) => ({ im })), ...tplSeq];
+// HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面
+const HH_SCRIPT = '<script>(function(){function s(){try{parent.postMessage({skeHtmlH:Math.ceil(document.documentElement.getBoundingClientRect().height)},"*")}catch(e){}}addEventListener("load",s);if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);setTimeout(s,300);setTimeout(s,1500);})()</' + 'script>';
+const htmlDoc = (h) => {
+  const base = '<base target="_blank">';
+  if (/<html[\s>]/i.test(h)) {
+    let d = /<head[^>]*>/i.test(h) ? h.replace(/<head[^>]*>/i, (m) => m + base) : h.replace(/<html[^>]*>/i, (m) => m + '<head>' + base + '</head>');
+    return /<\/body>/i.test(d) ? d.replace(/<\/body>/i, HH_SCRIPT + '</body>') : d + HH_SCRIPT;
+  }
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + base +
+    '<style>html,body{margin:0;padding:0}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#15211f}img{max-width:100%;height:auto}</style></head><body>' + h + HH_SCRIPT + '</body></html>';
+};
 const group = p.sale && p.sale.mode === 'group';
 const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
@@ -163,8 +178,10 @@ const jsonLd = {
       <section class="card detail-imgs">
         <h2>{t.details}</h2>
         <div class="detail-stack">
-          {detailAll.map((im, i) => (
-            <img src={im.src} alt={`${p.model} ${i + 1}`} loading="lazy" decoding="async" width={im.w} height={im.h} />
+          {detailAll.map((x, i) => x.im ? (
+            <img src={x.im.src} alt={`${p.model} ${i + 1}`} loading="lazy" decoding="async" width={x.im.w} height={x.im.h} />
+          ) : (
+            <iframe class="detail-html" title={`${p.model} ${i + 1}`} sandbox="allow-scripts allow-popups" srcdoc={htmlDoc(x.html)} loading="lazy" data-detail-html></iframe>
           ))}
         </div>
       </section>
@@ -175,6 +192,17 @@ const jsonLd = {
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script is:inline>
+  // 详情里的 HTML 片段：按片段内容自动调整 iframe 高度
+  (function () {
+    var frames = document.querySelectorAll('[data-detail-html]');
+    if (!frames.length) return;
+    addEventListener('message', function (e) {
+      var h = e.data && e.data.skeHtmlH; if (!h) return;
+      for (var i = 0; i < frames.length; i++) if (frames[i].contentWindow === e.source) frames[i].style.height = Math.min(h, 20000) + 'px';
+    });
+  })();
+  </script>
 </Base>
 
 <style>
@@ -234,5 +262,6 @@ const jsonLd = {
   /* 详情图：按顺序上下拼接，不留缝（详情图通常是一整张长图切成几段） */
   .detail-stack { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; }
   .detail-stack img { width: 100%; height: auto; display: block; }
+  .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
   .specs dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 </style>

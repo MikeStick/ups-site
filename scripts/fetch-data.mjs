@@ -149,6 +149,15 @@ async function main() {
       if (saved) tpl.push(saved);
     }
     p.templateImages = tpl;
+    // 详情图片 + HTML 片段的完整顺序：图片换成本地文件（和 templateImages 共用缓存），HTML 原样保留
+    if (Array.isArray(p.templateDetail)) {
+      const seq = [];
+      for (const x of p.templateDetail) {
+        if (x && x.img) { const saved = await saveTemplateImage(x.img); if (saved) seq.push({ img: saved }); }
+        else if (x && x.html) seq.push({ html: x.html });
+      }
+      p.templateDetail = seq;
+    }
   }
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
   await fetchSite();
