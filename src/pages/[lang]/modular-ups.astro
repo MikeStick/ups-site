@@ -1,53 +1,30 @@
 ---
-// 模块化 UPS 栏目页（给技术工程师用的选型页）：
-// ① 机柜类型（立式 / 机架式）→ ② 电气制式（3进3出 / 3进1出 / 1进1出）→ ③ 功率模块规格 → ④ 负载 + 未来负载 + 冗余 → ⑤ 后备时间（可选）
-// 每一步只列出实际有的选项（带数量），右侧实时给出配置：机柜、模块数量、槽位图（可点模块模拟故障）、关键参数、电池估算，一键发送 / 复制配置。
-// 下方"匹配的机柜"表列出所有符合条件的机柜，点一行就换成那个机柜。
-// 产品来自客户档案系统：类型 = 模块化UPS（立式）/ 机架式模块化UPS；需要填"功率模块容量""最多模块数"。
+// 模块化 UPS 栏目页 = 工程选型器（给设计院 / 集成商 / 客户电气工程师用）
+// 数据：src/data/modular-catalog.mjs（按工厂规格书整理的 PI / Mini / Plus 三个系列）
+// 计算：src/lib/modular-engine.mjs（测试：node scripts/test-modular-engine.mjs）
+// 页面只负责收集输入、显示引擎结果；所有数字的规则和假设在引擎里，并在结果下方列出。
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
-import { MT, MW, REDUNDANCY, MOD_RUNTIMES } from '../../lib/modular-i18n.mjs';
-import { BATT_AH } from '../../lib/rack-i18n.mjs';
-import { specValue } from '../../lib/offline-i18n.mjs';
-import { isModular, isRackModular, moduleOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import { MT, MW } from '../../lib/modular-i18n.mjs';
+import { MX } from '../../lib/modular-cfg-i18n.mjs';
+import { isModular } from '../../lib/category.mjs';
 import all from '../../data/products.json';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 const { lang } = Astro.params;
-const T = MT[lang];
-const W = MW[lang];
-// 电气制式：从"相数"里读出 输入相数 + 输出相数（3-phase input / 1-phase output、3/3、三进三出……）
-function phaseOf(p) {
-  const t = String(p.phase || '').toLowerCase().replace(/三/g, '3').replace(/单/g, '1');
-  let m = t.match(/(\d)\s*(?:-|\s)?(?:phase|ph|相|进)[^\d]*(\d)\s*(?:-|\s)?(?:phase|ph|相|出)/);
-  if (!m) m = t.match(/(\d)\s*[/:]\s*(\d)/);
-  if (m && /^[13]$/.test(m[1]) && /^[13]$/.test(m[2])) return m[1] + m[2];
-  if (/3\s*-?\s*(phase|ph|相)/.test(t)) return '33';
-  if (/1\s*-?\s*(phase|ph|相)/.test(t)) return '11';
-  return '';
-}
-// 电池直流电压：±240V → 480，384V → 384
-const dcV = (p) => { const t = String(p.batteryVoltage || ''); const m = t.match(/(\d{2,3})(?:\.\d+)?\s*V/i); return m ? +m[1] * (/±/.test(t) ? 2 : 1) : 0; };
-const sv = (p, f) => (specValue(p, f, lang) || '').replace(/\*/g, ' × ');
-const frames = all.filter(isModular).map((p) => {
-  const c = capacityOf(p), m = moduleOf(p);
-  return {
-    m: p.model, slug: p.slug, k: isRackModular(p) ? 'rack' : 'tower', ph: phaseOf(p), va: c.va || m.va * m.n, cap: fmtCap(c) || sv(p, 'outputPower'),
-    mva: m.va, mw: m.w, n: m.n, vb: dcV(p), s: seriesName(p),
-    d: { volt: sv(p, 'outputVoltage'), eff: sv(p, 'efficiencyAcMode'), pf: sv(p, 'outputPowerFactor'), thd: sv(p, 'harmonicDistortion'), dims: sv(p, 'dimensions'),
-      weight: sv(p, 'netWeight'), modDims: sv(p, 'upsModuleDimensions'), modW: sv(p, 'upsModuleWeight'), parallel: sv(p, 'parallelUnits') },
-  };
-}).filter((f) => f.mw && f.n).sort((a, b) => a.va - b.va || a.s.localeCompare(b.s));
-const cfg = { frames, lang, wa: SITE.whatsapp, ah: BATT_AH, t: { ...W, kind: { tower: W.tower, rack: W.rack }, redHint: T.redHint, failOk: T.failOk, failNo: T.failNo, tryFail: T.tryFail, kw: T.kw, slots: T.slots } };
-const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
+const T = MT[lang], W = MW[lang], X = MX[lang];
+// 客户档案系统里已发布的模块化产品：型号能对上的，结果里链接到产品页
+const norm = (s) => String(s || '').toUpperCase().replace(/[\s_-]+/g, '').replace('MIMI', 'MINI');
+const links = Object.fromEntries(all.filter(isModular).map((p) => [norm(p.model), p.slug]));
+const cfg = { lang, wa: SITE.whatsapp, links, x: X };
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const rtLabel = (m) => (m === 0 ? W.rtNone : `${m} min`);
+const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v) === String(on) }));
 ---
 <Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="modular-ups/">
-<div class="off rack mod" data-mod>
-  <script type="application/json" data-mod-cfg set:html={JSON.stringify(cfg)} />
+<div class="off rack mod" data-mod data-failok={T.failOk} data-failno={T.failNo} data-redhints={JSON.stringify(T.redHint)}>
+  <script type="application/json" data-mx-cfg set:html={JSON.stringify(cfg)} />
   <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
 
   <section class="hero">
@@ -56,9 +33,7 @@ const rtLabel = (m) => (m === 0 ? W.rtNone : `${m} min`);
         <span class="eyebrow">{T.eyebrow}</span>
         <h1>{T.h1a}<em>{T.h1b}</em></h1>
         <p>{T.lead}</p>
-        <div class="hero-cta">
-          <a class="btn primary" href="#builder">{T.ctaBuilder}</a>
-        </div>
+        <div class="hero-cta"><a class="btn primary" href="#builder">{T.ctaBuilder}</a></div>
       </div>
       <div class="hero-facts">
         <div><b class="num">{W.range}</b><span>{T.facts.range}</span></div>
@@ -70,90 +45,83 @@ const rtLabel = (m) => (m === 0 ? W.rtNone : `${m} min`);
   </section>
 
   <section class="block" id="builder">
-    <div class="head"><span class="eyebrow">{W.selEyebrow}</span><h2>{W.selH}</h2><p>{W.selP}</p></div>
-    {frames.length === 0 ? <p class="empty">{T.noModels}</p> : (
-      <>
-        <div class="cfgr">
-          <div class="steps">
-            <div class="card stp">
-              <div class="stp-h"><span class="sn">1</span><b>{W.s1}</b></div>
-              <div class="kinds" data-step="k">
-                <button type="button" class="kind on" data-v=""><b>{W.any}</b><small data-cnt></small></button>
-                <button type="button" class="kind" data-v="tower"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="12" y="3" width="16" height="34" rx="2"/><path d="M15 12h10M15 17h10M15 22h10M15 27h10"/></svg><b>{W.tower}</b><span>{W.towerD}</span><small data-cnt></small></button>
-                <button type="button" class="kind" data-v="rack"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="13" width="34" height="14" rx="2"/><path d="M8 17v6M12 17v6M16 17v6M20 17v6"/></svg><b>{W.rack}</b><span>{W.rackD}</span><small data-cnt></small></button>
+    <div class="head"><span class="eyebrow">{X.eyebrow}</span><h2>{X.h}</h2><p>{X.p}</p></div>
+    <div class="mx">
+      <form class="mx-in" data-in onsubmit="return false">
+        <fieldset class="card mx-s">
+          <legend><span class="sn">A</span>{X.sA}</legend>
+          <div class="mx-f"><span>{X.grid}</span>
+            <div class="rt-chips">{chips('g', [['380', '380 V'], ['400', '400 V'], ['415', '415 V'], ['1ph', X.g1], ['208', X.gAm], ['480', X.g480]], '400').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
+            <small class="muted">{X.gridHint}</small>
+          </div>
+          <div class="mx-row">
+            <div class="mx-f"><span>{X.freq}</span><div class="rt-chips">{chips('f', [['50', '50 Hz'], ['60', '60 Hz']], '50').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+            <label class="mx-f"><span>{X.alt}</span><span class="bld-num"><input type="number" min="0" max="5000" step="100" value="0" data-n="alt" /> <b>{X.unitM}</b></span></label>
+            <label class="mx-f"><span>{X.amb}</span><span class="bld-num"><input type="number" min="-10" max="55" step="1" value="25" data-n="amb" /> <b>{X.unitC}</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">B</span>{X.sB}</legend>
+          <div class="mx-row">
+            <label class="mx-f"><span>{X.load}</span><span class="bld-num"><input type="number" min="1" step="1" value="120" data-n="kw" /> <b>{X.unitKw}</b></span></label>
+            <label class="mx-f"><span>{X.future}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="fut" /> <b>{X.unitKw}</b></span></label>
+          </div>
+          <div class="mx-f"><span>{X.pf}</span><div class="rt-chips">{chips('pf', [['0.8', '0.8'], ['0.9', '0.9'], ['0.95', '0.95'], ['1', '1.0']], '0.9').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <div class="mx-f"><span>{X.type}</span><div class="rt-chips">{chips('lt', [['it', X.tIt], ['mixed', X.tMix], ['motor', X.tMot]], 'it').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <label class="mx-f"><span>{X.inrush}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="inr" /> <b>{X.unitKw}</b></span><small class="muted">{X.inrushHint}</small></label>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">C</span>{X.sC}</legend>
+          <div class="mx-f"><span>{X.red}</span><div class="rt-chips">{chips('r', [['0', 'N'], ['1', 'N+1'], ['2', 'N+2']], '1').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div><small class="muted" data-redhint>{T.redHint[1]}</small></div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">D</span>{X.sD}</legend>
+          <div class="mx-f"><span>{X.rt}</span>
+            <div class="rt-chips">{chips('rt', [['0', X.rtNone], ['5', '5'], ['10', '10'], ['15', '15'], ['30', '30'], ['60', '60'], ['120', '120']], '15').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}<span class="muted">{X.unitMin}</span></div>
+          </div>
+          <div class="mx-f"><span>{X.bt}</span><div class="rt-chips">{chips('bt', [['vrla', X.vrla], ['lfp', X.lfp]], 'vrla').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <div class="mx-row">
+            <label class="mx-f"><span>{X.blocks}</span><select data-n="blk">{[30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50].map((b) => <option value={b} selected={b === 40}>{b} × 12 V = {b * 12} V</option>)}</select></label>
+            <label class="mx-f"><span>{X.rech}</span><span class="bld-num"><input type="number" min="2" max="48" step="1" value="8" data-n="rch" /> <b>{X.unitH}</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">E</span>{X.sE}</legend>
+          <div class="rt-chips">{chips('k', [['', X.kAny], ['rack', X.kRack], ['compact', X.kCompact], ['cabinet', X.kCab]], '').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
+        </fieldset>
+      </form>
+
+      <div class="card mx-out" data-out>
+        <div class="mx-head">
+          <span class="eyebrow">{X.resEyebrow}</span>
+          <span class="mx-id" data-id></span>
+        </div>
+        <p class="bld-title" data-title>{X.none}</p>
+        <div data-body hidden>
+          <div class="bld-row">
+            <div class="cab" data-cab aria-live="polite"></div>
+            <div class="bld-info">
+              <div class="legend">
+                <span><i class="act"></i>{T.legend.act}</span><span><i class="red"></i>{T.legend.red}</span>
+                <span><i class="fut"></i>{T.legend.fut}</span><span><i class="free"></i>{T.legend.free}</span><span><i class="fail"></i>{T.legend.fail}</span>
               </div>
-            </div>
-            <div class="card stp">
-              <div class="stp-h"><span class="sn">2</span><b>{W.s2}</b></div>
-              <div class="rt-chips" data-step="ph">
-                <button type="button" class="chip on" data-v="">{W.any}</button>
-                {['33', '31', '11'].map((v) => <button type="button" class="chip" data-v={v}>{W.ph[v]} <small data-cnt></small></button>)}
-              </div>
-            </div>
-            <div class="card stp">
-              <div class="stp-h"><span class="sn">3</span><b>{W.s3}</b></div>
-              <div class="rt-chips" data-step="mod">
-                <button type="button" class="chip on" data-v="">{W.any}</button>
-                {[...new Set(frames.map((f) => f.mva))].sort((a, b) => a - b).map((v) => <button type="button" class="chip" data-v={v}>{+(v / 1000).toFixed(1)} kVA <small data-cnt></small></button>)}
-              </div>
-            </div>
-            <div class="card stp">
-              <div class="stp-h"><span class="sn">4</span><b>{W.s4}</b></div>
-              <div class="ld">
-                <label class="bld-f"><span>{T.bLoad}</span>
-                  <span class="bld-num"><input type="number" inputmode="decimal" min="1" step="1" value="60" data-load /> <b>{T.kw}</b></span>
-                  <input type="range" min="5" max="1200" step="5" value="60" data-range aria-label={T.bLoad} />
-                </label>
-                <label class="bld-f"><span>{T.bFuture}</span>
-                  <span class="bld-num"><input type="number" inputmode="decimal" min="0" step="1" placeholder="—" data-future /> <b>{T.kw}</b></span>
-                </label>
-              </div>
-              <div class="bld-f"><span>{T.bRed}</span>
-                <div class="rt-chips" data-red>{REDUNDANCY.map((x) => <button type="button" class:list={['chip', { on: x === 1 }]} data-v={x}>{RED[x]}</button>)}</div>
-                <small class="muted" data-redhint>{T.redHint[1]}</small>
-              </div>
-            </div>
-            <div class="card stp">
-              <div class="stp-h"><span class="sn">5</span><b>{W.s5}</b></div>
-              <div class="rt-chips" data-rt>{MOD_RUNTIMES.map((m) => <button type="button" class:list={['chip', { on: m === 0 }]} data-v={m}>{rtLabel(m)}</button>)}</div>
+              <p class="bld-fail" data-failmsg>{T.tryFail}</p>
+              <button type="button" class="chip" data-reset hidden>{T.reset}</button>
             </div>
           </div>
-
-          <div class="card res">
-            <span class="eyebrow">{W.resEyebrow}</span>
-            <p class="bld-title" data-title>{W.resEmpty}</p>
-            <div class="res-body" data-body hidden>
-              <div class="bld-row">
-                <div class="cab" data-cab aria-live="polite"></div>
-                <div class="bld-info">
-                  <div class="legend">
-                    <span><i class="act"></i>{T.legend.act}</span><span><i class="red"></i>{T.legend.red}</span>
-                    <span><i class="fut"></i>{T.legend.fut}</span><span><i class="free"></i>{T.legend.free}</span><span><i class="fail"></i>{T.legend.fail}</span>
-                  </div>
-                  <p class="bld-fail" data-failmsg>{T.tryFail}</p>
-                  <button type="button" class="chip" data-reset hidden>{T.reset}</button>
-                </div>
-              </div>
-              <dl class="res-dl" data-dl></dl>
-              <div class="res-act">
-                {SITE.whatsapp && <a class="btn primary" data-send href="#" target="_blank" rel="noopener">{W.send}</a>}
-                <button type="button" class="btn line" data-copy>{W.copy}</button>
-                <a class="btn line" data-details href="#">{W.details}</a>
-              </div>
-              <p class="muted">{T.battNote}</p>
-            </div>
+          <div class="mx-acts">
+            {SITE.whatsapp && <a class="btn primary" data-send href="#" target="_blank" rel="noopener">{X.send}</a>}
+            <button type="button" class="btn line" data-print>{X.print}</button>
+            <button type="button" class="btn line" data-link>{X.link}</button>
           </div>
+          <div data-sections></div>
         </div>
-
-        <div class="match">
-          <div class="match-h"><b>{W.matchH} <span data-mcount></span></b><span class="muted">{W.matchP}</span></div>
-          <div class="tbl-wrap"><table>
-            <thead><tr>{W.cols.map((c) => <th>{c}</th>)}</tr></thead>
-            <tbody data-rows></tbody>
-          </table></div>
-        </div>
-      </>
-    )}
+      </div>
+    </div>
   </section>
 
   <section class="block">
@@ -185,147 +153,189 @@ const rtLabel = (m) => (m === 0 ? W.rtNone : `${m} min`);
 </div>
 </Base>
 
-<script is:inline>
-(function () {
-  var root = document.querySelector('[data-mod]'); if (!root) return;
-  var c = JSON.parse(root.querySelector('[data-mod-cfg]').textContent);
-  var $ = function (s) { return root.querySelector(s); };
-  var $$ = function (s) { return Array.prototype.slice.call(root.querySelectorAll(s)); };
-  if (!$('[data-rows]')) return;
-  var T = c.t, F = c.frames;
-  var st = { k: '', ph: '', mod: '', red: 1, rt: 0, pick: '' };
-  var failed = -1, lastText = '';
-  function fmt(s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); }
-  function kva(v) { return (+(v / 1000).toFixed(1)) + ' kVA'; }
-  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-  // 第 n 步可选项：只按前面几步筛选
-  function pass(f, upto) {
-    if (upto > 0 && st.k && f.k !== st.k) return false;
-    if (upto > 1 && st.ph && f.ph && f.ph !== st.ph) return false;
-    if (upto > 2 && st.mod && String(f.mva) !== st.mod) return false;
-    return true;
+<script>
+  import { catalog } from '../../data/modular-catalog.mjs';
+  import { configure, configId, ASSUME } from '../../lib/modular-engine.mjs';
+
+  const root = document.querySelector('[data-mod]') as HTMLElement;
+  const C = JSON.parse((root.querySelector('[data-mx-cfg]') as HTMLElement).textContent || '{}');
+  const X = C.x;
+  const CAT = catalog();
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const fmt = (s: string, o: Record<string, unknown>) => String(s).replace(/\{(\w+)\}/g, (_, k) => (o[k] !== undefined ? String(o[k]) : ''));
+  const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const norm = (s: string) => String(s || '').toUpperCase().replace(/[\s_-]+/g, '');
+  const kindName: Record<string, string> = { rack: X.kRack, compact: X.kCompact, cabinet: X.kCab };
+
+  // —— 输入状态（同时写进网址，方便分享 / 复现）——
+  const st: Record<string, string> = { g: '400', f: '50', pf: '0.9', lt: 'it', r: '1', rt: '15', bt: 'vrla', k: '' };
+  const num: Record<string, string> = { alt: '0', amb: '25', kw: '120', fut: '', inr: '', blk: '40', rch: '8' };
+  let pick = '', failed = false, lastText = '';
+  const failMsg = $('[data-failmsg]'); failMsg.dataset.t = failMsg.textContent || '';
+  try {
+    const u = new URLSearchParams(location.search);
+    for (const k of Object.keys(st)) if (u.has(k)) st[k] = u.get(k) || '';
+    for (const k of Object.keys(num)) if (u.has(k)) num[k] = u.get(k) || '';
+    pick = u.get('m') || '';
+  } catch (e) { /* 忽略 */ }
+  root.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', st[(b as HTMLElement).dataset.k!] === (b as HTMLElement).dataset.v));
+  root.querySelectorAll('[data-n]').forEach((el) => { const k = (el as HTMLInputElement).dataset.n!; if (num[k] !== '') (el as HTMLInputElement).value = num[k]; });
+
+  function query() {
+    return {
+      grid: st.g, freq: +st.f, loadKw: +num.kw || 0, pf: +st.pf, loadType: st.lt, inrushKw: +num.inr || 0, futureKw: +num.fut || 0,
+      red: +st.r, altitude: +num.alt || 0, ambient: num.amb === '' ? 25 : +num.amb, minutes: +st.rt, battType: st.bt, blocks: +num.blk || 40,
+      rechargeH: +num.rch || 8, kind: st.k,
+    };
   }
-  var order = ['k', 'ph', 'mod'];
-  function refreshSteps() {
-    order.forEach(function (key, i) {
-      var box = $('[data-step="' + key + '"]');
-      var base = F.filter(function (f) { return pass(f, i); });
-      box.querySelectorAll('[data-v]').forEach(function (b) {
-        var v = b.dataset.v;
-        var n = v === '' ? base.length : base.filter(function (f) { return key === 'k' ? f.k === v : key === 'ph' ? (!f.ph || f.ph === v) : String(f.mva) === v; }).length;
-        var cnt = b.querySelector('[data-cnt]'); if (cnt) cnt.textContent = n ? fmt(T.frames, { n: n }) : T.none0;
-        b.disabled = v !== '' && n === 0;
-        b.hidden = key !== 'k' && v !== '' && n === 0 && !F.some(function (f) { return key === 'ph' ? f.ph === v : String(f.mva) === v; });
-        if (b.disabled && st[key] === v) { st[key] = ''; }
-      });
-      box.querySelectorAll('[data-v]').forEach(function (b) { b.classList.toggle('on', b.dataset.v === st[key]); });
-    });
+  function saveUrl() {
+    try {
+      const u = new URLSearchParams();
+      for (const k of Object.keys(st)) u.set(k, st[k]);
+      for (const k of Object.keys(num)) if (num[k] !== '') u.set(k, num[k]);
+      if (pick) u.set('m', pick);
+      history.replaceState(null, '', location.pathname + '?' + u.toString() + '#builder');
+    } catch (e) { /* 预览环境可能不允许 */ }
   }
-  function plan(f, L, Fu) {
-    var act = Math.max(1, Math.ceil(L * 1000 / f.mw)), need = act + st.red, fneed = Math.max(1, Math.ceil(Math.max(L, Fu) * 1000 / f.mw)) + st.red;
-    return { f: f, act: act, need: need, fneed: fneed, fits: need <= f.n, ffits: fneed <= f.n };
+
+  const row = (k: string, v: unknown) => (v === '' || v === null || v === undefined ? '' : `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`);
+  const sec = (title: string, body: string, open = true) => `<details class="mx-sec"${open ? ' open' : ''}><summary>${esc(title)}</summary>${body}</details>`;
+  const kva = (v: number) => `${+(+v).toFixed(1)} kVA`;
+
+  function sld(s: any, r: any) {
+    const b = X.sld, e = s.elec, hasB = !!r.batt;
+    return `<svg class="mx-sld" viewBox="0 -14 640 244" role="img" aria-label="${esc(X.secSld)}">
+      <g class="ln"><path d="M20 70H150"/><path d="M20 30H330V60"/><path d="M290 150V185"/><path d="M370 110H500"/><path d="M500 110H620"/><path d="M20 30V10H560V110" class="mb"/></g>
+      <g class="tx"><text x="20" y="88">${b.mains}</text><text x="20" y="24">${b.byp}</text><text x="520" y="-2">${b.mbs}</text><text x="600" y="100">${b.load}</text></g>
+      <g class="br"><rect x="80" y="62" width="22" height="16"/><text x="91" y="95">Q1 ${e.brIn} A</text><rect x="200" y="22" width="22" height="16"/><text x="211" y="55">Q2 ${e.brByp} A</text><rect x="430" y="102" width="22" height="16"/><text x="441" y="135">Q3 ${e.brOut} A</text>
+        ${hasB ? `<rect x="279" y="160" width="22" height="16"/><text x="320" y="172" style="text-anchor:start">QF ${r.batt.breakerDc} A DC</text>` : ''}</g>
+      <rect class="ups" x="150" y="60" width="220" height="90" rx="8"/><text class="c b" x="260" y="86">${esc(s.fr.model)}</text>
+      <text class="c" x="260" y="106">${s.inst} × ${s.fr.moduleKva} kVA</text><text class="c" x="260" y="126">${esc(b.ups)} · ${['N', 'N+1', 'N+2'][+st.r]}</text>
+      ${hasB ? `<rect class="bat" x="250" y="185" width="80" height="34" rx="4"/><text class="c" x="290" y="207">${r.batt.type === 'lfp' ? 'LFP' : `${r.batt.strings} × ${r.blocks} × 12V`}</text>` : ''}
+    </svg>`;
   }
-  function battTxt(L, f) {
-    if (!st.rt) return '';
-    var wh = L * 1000 * st.rt / 60 / 0.95 / 0.8, s = fmt(T.batt, { kwh: Math.ceil(wh / 100) / 10, m: st.rt });
-    if (f.vb) {
-      var per = Math.max(1, Math.round(f.vb / 12)), ah = wh / f.vb, strings = 1;
-      while (ah / strings > 200) strings++;
-      var size = c.ah.filter(function (a) { return a >= ah / strings; })[0] || 200;
-      s += ' · ' + fmt(T.battBlocks, { b: per * strings, ah: size });
-    }
-    return s;
-  }
+
   function render() {
-    refreshSteps();
-    var L = parseFloat($('[data-load]').value) || 0, Fu = parseFloat($('[data-future]').value) || 0;
-    var cand = F.filter(function (f) { return pass(f, 3); });
-    var plans = cand.map(function (f) { return plan(f, L, Fu); });
-    var ok = plans.filter(function (p) { return p.fits; }).sort(function (a, b) { return (b.ffits - a.ffits) || (a.f.va - b.f.va) || (b.f.mw - a.f.mw); });
-    var sel = L > 0 ? (ok.filter(function (p) { return p.f.slug === st.pick; })[0] || ok[0]) : null;
-    // 匹配的机柜表
-    $('[data-mcount]').textContent = '(' + cand.length + ')';
-    $('[data-rows]').innerHTML = plans.map(function (p) {
-      var f = p.f, on = sel && sel.f.slug === f.slug, dim = L > 0 && !p.fits;
-      return '<tr data-slug="' + f.slug + '" class="' + (on ? 'sel' : '') + (dim ? ' dim' : '') + '"><td><b>' + esc(f.m) + '</b>' + (on ? ' <span class="tag on">' + T.selected + '</span>' : '') + '</td><td>' + T.kind[f.k] +
-        '</td><td class="num">' + esc(f.cap || kva(f.va)) + '</td><td class="num">' + kva(f.mva) + '</td><td class="num">' + f.n + '</td><td>' + (f.ph ? T.ph[f.ph] : '—') +
-        '</td><td class="num">' + esc(f.d.eff || '—') + '</td><td class="num">' + esc(f.d.dims || '—') + '</td></tr>';
-    }).join('');
-    // 配置结果
-    var title = $('[data-title]'), body = $('[data-body]');
-    failed = -1; $('[data-reset]').hidden = true; $('[data-failmsg]').textContent = T.tryFail; $('[data-failmsg]').className = 'bld-fail';
-    if (!(L > 0)) { title.textContent = T.resEmpty; body.hidden = true; return; }
-    if (!sel) { title.textContent = T.noMatch; body.hidden = true; return; }
-    body.hidden = false;
-    var f = sel.f, futureAdd = sel.ffits ? sel.fneed - sel.need : 0, free = f.n - sel.need - futureAdd;
-    title.innerHTML = '<a href="/' + c.lang + '/p/' + f.slug + '/">' + esc(f.m) + '</a> · ' + sel.need + ' × ' + kva(f.mva);
-    var html = '<div class="cab-top"><span></span></div><div class="cab-slots' + (f.n > 10 ? ' two' : '') + '">';
-    for (var i = 0; i < f.n; i++) {
-      var s = i < sel.act ? 'act' : i < sel.need ? 'red' : i < sel.need + futureAdd ? 'fut' : 'free';
-      html += '<button type="button" class="slot ' + s + '" data-i="' + i + '"' + (s === 'act' || s === 'red' ? '' : ' disabled') + '><i></i><span>' + (s === 'free' ? '' : kva(f.mva)) + '</span></button>';
+    const q = query();
+    const r = configure(q, CAT);
+    const id = configId(q);
+    $('[data-id]').textContent = `${X.cfgId} ${id}`;
+    const title = $('[data-title]'), body = $('[data-body]');
+    failed = false; ($('[data-reset]') as HTMLElement).hidden = true;
+    failMsg.textContent = failMsg.dataset.t || ''; failMsg.className = 'bld-fail';
+    if (!(q.loadKw > 0)) { title.textContent = X.none; body.hidden = true; saveUrl(); return; }
+    let s = r.options.find((o: any) => o.fr.model === pick) || r.best;
+    if (!s) {
+      title.innerHTML = esc(X.noFit) + (r.parallel ? '<br><small>' + esc(fmt(X.parallel, { u: r.parallel.units, m: r.parallel.model })) + '</small>' : '');
+      body.hidden = true; saveUrl(); return;
     }
-    $('[data-cab]').innerHTML = html + '</div>';
-    var R = T.rows, rows = [
-      [R.frame, f.m], [R.type, T.kind[f.k]], [R.system, f.cap || kva(f.va)], [R.modules, fmt(T.slots, { n: f.n }) + ' × ' + kva(f.mva)],
-      [R.installed, fmt(T.installed, { n: sel.need, mod: kva(f.mva), a: sel.act, r: st.red })],
-      [R.free, String(Math.max(0, f.n - sel.need))],
-      [R.share, Math.round(L * 1000 / (sel.need * f.mw) * 100) + '%'],
-    ];
-    if (Fu > L) rows.push([R.growth, sel.ffits ? fmt(T.growth, { n: sel.fneed - sel.need, kw: Fu }) : T.growthNo]);
-    if (st.rt) rows.push([R.battery, battTxt(L, f)]);
-    if (f.ph) rows.push([R.phase, T.ph[f.ph]]);
-    [['volt', R.volt], ['eff', R.eff], ['pf', R.pf], ['thd', R.thd], ['dims', R.dims], ['weight', R.weight], ['modDims', R.modDims], ['modW', R.modW], ['parallel', R.parallel]]
-      .forEach(function (x) { if (f.d[x[0]]) rows.push([x[1], f.d[x[0]]]); });
-    $('[data-dl]').innerHTML = rows.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
-    var head = [[T.msgLoad, L + ' kW'], Fu > L ? [T.msgFuture, Fu + ' kW'] : null, [T.msgRed, ['N', 'N+1', 'N+2'][st.red]], st.rt ? [T.msgRt, st.rt + ' min'] : null].filter(Boolean);
-    lastText = T.msgHead + '\n' + head.concat(rows.slice(0, 7)).map(function (r) { return '• ' + r[0] + ': ' + r[1]; }).join('\n') + '\n' + location.origin + '/' + c.lang + '/p/' + f.slug + '/';
-    var send = $('[data-send]'); if (send) send.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastText);
-    $('[data-details]').href = '/' + c.lang + '/p/' + f.slug + '/';
+    body.hidden = false;
+    const fr = s.fr, slug = C.links[norm(fr.model).replace('MIMI', 'MINI')];
+    title.innerHTML = (slug ? `<a href="/${C.lang}/p/${slug}/">${esc(fr.model)}</a>` : esc(fr.model)) + ` · ${s.inst} × ${fr.moduleKva} kVA`;
+    // 槽位图
+    const futAdd = s.futureFits ? s.nFut - s.inst : 0;
+    let h = `<div class="cab-top"><span></span></div><div class="cab-slots${fr.slots > 8 ? ' two' : ''}">`;
+    for (let i = 0; i < fr.slots; i++) {
+      const c = i >= fr.usable ? 'free' : i < s.nNow ? 'act' : i < s.inst ? 'red' : i < s.inst + futAdd ? 'fut' : 'free';
+      h += `<button type="button" class="slot ${c}" data-i="${i}"${c === 'act' || c === 'red' ? '' : ' disabled'}><i></i><span>${c === 'free' ? '' : fr.moduleKva + ' kVA'}</span></button>`;
+    }
+    $('[data-cab]').innerHTML = h + '</div>';
+
+    // —— 各部分 ——
+    const B = X.b, BT = X.bt2, E = X.e, I = X.i;
+    const growth = q.futureKw > q.loadKw ? (s.futureFits ? fmt(X.growthOk, { n: s.nFut - s.inst }) : X.growthNo) : '';
+    const bom = `<dl class="mx-dl">${row(B.frame, esc(fr.model) + (slug ? ` · <a href="/${C.lang}/p/${slug}/">↗</a>` : ''))}${row(B.series, esc(kindName[fr.kind] + ' · ' + fr.series))}
+      ${row(B.modules, `${fr.moduleKva} kVA / ${fr.moduleKva} kW · ${fr.module.dims} mm · ${fr.module.kg} kg`)}
+      ${row(B.installed, esc(fmt(X.installedTxt, { n: s.inst, m: fr.moduleKva, a: s.nNow, r: q.red })))}
+      ${row(B.free, String(s.free))}
+      ${row(B.kva, kva(r.need.kva))}
+      ${row(B.usable, kva(s.capInst) + (r.need.altF < 1 ? ` (×${r.need.altF})` : ''))}
+      ${row(B.util, Math.round(s.util * 100) + '%')}
+      ${row(B.growth, growth ? esc(q.futureKw + ' kW: ' + growth) : '')}
+      ${row(B.grid, q.grid === '1ph' ? '1-ph 220/230/240 V' : '3-ph 380/400/415 V · 3W+N+PE')}
+      ${row(B.options, esc(X.optTxt))}</dl>`;
+
+    let batt = '';
+    if (r.batt) {
+      const b = r.batt;
+      batt = `<dl class="mx-dl">${row(BT.string, fmt(X.stringTxt, { n: r.blocks, v: b.vNom }))}${row(BT.vNom, `${b.vNom} V / ${Math.round(b.vEnd)} V`)}
+        ${row(BT.pBatt, Math.round(b.pW / 100) / 10 + ' kW')}${row(BT.wcell, Math.round(b.wCell) + ' W/cell')}
+        ${row(fmt(BT.wdesign, { e: ASSUME.endV, t: q.minutes }), `<b class="hl">${Math.round(b.wCellDesign)} W/cell</b>`)}
+        ${row(BT.factors, fmt(X.factorsTxt, { a: ASSUME.aging, m: ASSUME.margin, t: b.tempF.toFixed(2) }))}
+        ${b.type === 'lfp' ? row(BT.kwh, b.kwh + ' kWh') + row(BT.crate, b.cRate + 'C') : row(BT.est, esc(fmt(X.estTxt, { s: b.strings, n: r.blocks, ah: b.ah, total: b.blocksTotal }))) + row(BT.weight, '≈ ' + b.kg + ' kg')}
+        ${row(BT.idc, Math.round(b.iEnd) + ' A')}${row(BT.brdc, '≥ ' + b.breakerDc + ' A DC')}
+        ${s.charge ? row(BT.charge, fmt(X.chargeTxt, { a: s.charge.avail, c: s.charge.c })) + row(BT.recharge, s.charge.ok ? fmt(X.rechargeTxt, { h: s.charge.hours, t: q.rechargeH }) : `<span class="bad">${esc(fmt(X.rechargeNo, { h: s.charge.hours, n: Math.max(0, s.charge.needA - s.charge.avail) }))}</span>`) : ''}
+        </dl><p class="mx-note">${esc(b.type === 'lfp' ? X.lfpNote : fmt(X.battNote, { e: ASSUME.endV }))}</p>`;
+    }
+    const e = s.elec;
+    const elec = `<dl class="mx-dl">${row(E.iin, `${e.iInNow} A / ${e.iInFrame} A`)}${row(E.brin, e.brIn + ' A')}${row(E.brbyp, e.brByp + ' A')}
+      ${row(E.iout, e.iOut + ' A')}${row(E.brout, e.brOut + ' A')}${row(E.gen, fmt(X.genTxt, { a: e.genKva[0], b: e.genKva[1] }))}
+      ${row(E.heat, fmt(X.heatTxt, { w: e.heatW.toLocaleString(), btu: e.btu.toLocaleString() }))}${row(E.neutral, esc(X.neutralTxt))}</dl>`;
+    const inst = `<dl class="mx-dl">${row(I.dims, `${fr.dims.d} × ${fr.dims.w} × ${fr.dims.h} mm`)}${fr.rackU ? row(I.rackU, fr.rackU + 'U') : ''}
+      ${row(I.weight, '≈ ' + s.install.kg + ' kg')}${row(I.floor, '≈ ' + s.install.floor + ' kg/m²')}${row(I.module, `${fr.module.dims} mm / ${fr.module.kg} kg`)}
+      ${r.batt && r.batt.kg ? row(I.battW, '≈ ' + r.batt.kg + ' kg') : ''}${fr.alt ? row(I.alt, esc(fr.alt)) : ''}</dl>`;
+    // 检查项
+    const K = X.chk;
+    const items: [string, string][] = [];
+    for (const w of r.warnings) items.push([w.level, fmt(K[w.id], w)]);
+    for (const c of s.checks) {
+      if (c.id === 'inrush') items.push([c.level, fmt(K.inrush, c) + ' ' + (c.level === 'bad' ? K.inrushBad : K.inrushOk)]);
+      else if (c.id === 'lowUtil') items.push([c.level, fmt(K.lowUtil, c)]);
+      else if (c.id === 'charge') items.push([c.level, fmt(K.charge, c)]);
+    }
+    const order: Record<string, number> = { bad: 0, warn: 1, info: 2, ok: 3 };
+    items.sort((a, b) => order[a[0]] - order[b[0]]);
+    const chk = `<ul class="mx-chk">${items.map(([l, t]) => `<li class="${l}"><i></i>${esc(t)}</li>`).join('')}</ul>`;
+    // 备选
+    const alt = `<p class="muted">${esc(X.altT.pick)}</p><div class="tbl-wrap"><table class="mx-alt"><thead><tr>${X.altT.cols.map((c: string) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+      r.options.map((o: any) => `<tr data-m="${esc(o.fr.model)}" class="${o.fr.model === fr.model ? 'sel' : ''}"><td><b>${esc(o.fr.model)}</b></td><td class="num">${o.inst} × ${o.fr.moduleKva}</td><td class="num">${Math.round(o.util * 100)}%</td><td class="num">${o.free}</td><td class="num">${o.fr.ratingKva} kVA</td><td class="num">${o.fr.dims.d}×${o.fr.dims.w}×${o.fr.dims.h}</td><td class="num">${o.charge ? o.charge.hours + ' h' : '—'}</td></tr>`).join('') + '</tbody></table></div>';
+    const ass = `<ul class="mx-ass">${X.assTxt.map((t: string) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    $('[data-sections]').innerHTML = sec(X.secChk, chk) + sec(X.secBom, bom) + (batt ? sec(X.secBatt, batt) : '') + sec(X.secElec, elec) + sec(X.secInst, inst) + sec(X.secSld, sld(s, r)) + sec(X.secAlt, alt, false) + sec(X.secAss, ass, false);
+
+    // 发送 / 分享文本
+    const lines = [
+      fmt(X.msgHead, { id }),
+      `• ${X.load}: ${q.loadKw} kW, PF ${q.pf}${q.futureKw > q.loadKw ? ` → ${q.futureKw} kW` : ''}`,
+      `• ${X.grid}: ${q.grid === '1ph' ? '1-ph' : q.grid + ' V'} ${q.freq} Hz · ${X.alt} ${q.altitude} m · ${q.ambient} °C`,
+      `• ${B.frame}: ${fr.model} · ${fmt(X.installedTxt, { n: s.inst, m: fr.moduleKva, a: s.nNow, r: q.red })}`,
+      r.batt ? `• ${X.rt}: ${q.minutes} min · ${r.blocks} × 12 V · ${Math.round(r.batt.wCellDesign)} W/cell @ ${ASSUME.endV} V/cell${r.batt.type === 'lfp' ? ` · LFP ${r.batt.kwh} kWh` : ` · ≈ ${r.batt.strings} × ${r.batt.ah} Ah`}` : '',
+      `• Q1 ${e.brIn} A · Q2 ${e.brByp} A · Q3 ${e.brOut} A${r.batt ? ` · QF ${r.batt.breakerDc} A DC` : ''}`,
+    ].filter(Boolean);
+    saveUrl();
+    lastText = lines.join('\n') + '\n' + location.href;
+    const send = root.querySelector('[data-send]') as HTMLAnchorElement | null;
+    if (send) send.href = `https://wa.me/${C.wa}?text=${encodeURIComponent(lastText)}`;
   }
-  // 步骤 1–3
-  order.forEach(function (key) {
-    $('[data-step="' + key + '"]').addEventListener('click', function (e) {
-      var b = e.target.closest('[data-v]'); if (!b || b.disabled) return;
-      st[key] = b.dataset.v; st.pick = ''; render();
-    });
+
+  // —— 事件 ——
+  root.querySelector('[data-in]')!.addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('[data-k]') as HTMLElement | null; if (!b) return;
+    const k = b.dataset.k!; st[k] = b.dataset.v!; pick = '';
+    root.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.toggle('on', x === b));
+    if (k === 'r') { const hint = root.querySelector('[data-redhint]'); const H = JSON.parse(root.dataset.redhints || '{}'); if (hint && H[st.r]) hint.textContent = H[st.r]; }
+    render();
   });
-  // 步骤 4–5
-  var load = $('[data-load]'), range = $('[data-range]');
-  load.addEventListener('input', function () { range.value = Math.min(1200, Math.max(5, +load.value || 5)); render(); });
-  range.addEventListener('input', function () { load.value = range.value; render(); });
-  $('[data-future]').addEventListener('input', render);
-  $('[data-red]').addEventListener('click', function (e) {
-    var b = e.target.closest('.chip'); if (!b) return;
-    this.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
-    st.red = +b.dataset.v; $('[data-redhint]').textContent = T.redHint[st.red]; render();
+  root.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('input', () => { num[(el as HTMLInputElement).dataset.n!] = (el as HTMLInputElement).value; pick = ''; render(); }));
+  root.querySelector('[data-sections]')!.addEventListener('click', (ev) => {
+    const tr = (ev.target as HTMLElement).closest('tr[data-m]') as HTMLElement | null; if (!tr) return;
+    pick = tr.dataset.m!; render(); $('[data-out]').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  $('[data-rt]').addEventListener('click', function (e) {
-    var b = e.target.closest('.chip'); if (!b) return;
-    this.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
-    st.rt = +b.dataset.v; render();
-  });
-  // 表格：点一行换成那个机柜
-  $('[data-rows]').addEventListener('click', function (e) {
-    var tr = e.target.closest('tr'); if (!tr || tr.classList.contains('dim')) return;
-    st.pick = tr.dataset.slug; render();
-    $('.res').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
-  // 点模块模拟故障
-  $('[data-cab]').addEventListener('click', function (e) {
-    var b = e.target.closest('.slot'); if (!b || b.disabled || failed >= 0) return;
-    failed = +b.dataset.i; b.classList.add('fail');
-    var msg = $('[data-failmsg]');
-    msg.textContent = st.red > 0 ? T.failOk : T.failNo; msg.className = 'bld-fail ' + (st.red > 0 ? 'ok' : 'bad');
-    if (st.red > 0) { var r = $('[data-cab] .slot.red'); if (r && r !== b) r.classList.add('takeover'); }
-    $('[data-reset]').hidden = false;
+  $('[data-cab]').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('.slot') as HTMLButtonElement | null; if (!b || b.disabled || failed) return;
+    failed = true; b.classList.add('fail');
+    const red = +st.r;
+    failMsg.textContent = red > 0 ? (root.dataset.failok || '') : (root.dataset.failno || '');
+    failMsg.className = 'bld-fail ' + (red > 0 ? 'ok' : 'bad');
+    if (red > 0) { const r = root.querySelector('[data-cab] .slot.red'); if (r && r !== b) r.classList.add('takeover'); }
+    ($('[data-reset]') as HTMLElement).hidden = false;
   });
   $('[data-reset]').addEventListener('click', render);
-  $('[data-copy]').addEventListener('click', function () {
-    var b = this, done = function () { var o = b.textContent; b.textContent = T.copied; setTimeout(function () { b.textContent = o; }, 1500); };
-    try { navigator.clipboard.writeText(lastText).then(done, function () {}); } catch (e) {}
+  $('[data-print]').addEventListener('click', () => { root.querySelectorAll('.mx-sec').forEach((d) => d.setAttribute('open', '')); window.print(); });
+  $('[data-link]').addEventListener('click', () => {
+    const b = $('[data-link]'), o = b.textContent;
+    try { navigator.clipboard.writeText(location.href).then(() => { b.textContent = X.linkOk; setTimeout(() => (b.textContent = o), 1500); }); } catch (e) { /* 忽略 */ }
   });
   render();
-})();
 </script>
 
 <style>
@@ -564,43 +574,64 @@ const rtLabel = (m) => (m === 0 ? W.rtNone : `${m} min`);
   .bld-alt { display: grid; gap: 6px; }
   .bld-alt :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
   .bld-alt :global(a span) { color: var(--muted); font: 13px var(--mono); }
-  /* —— 选型器 —— */
-  .cfgr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-  @media (max-width: 960px) { .cfgr { grid-template-columns: minmax(0, 1fr); } }
-  .steps { display: grid; gap: 10px; }
-  .stp { display: grid; gap: 12px; padding: 16px 18px; }
-  .stp-h { display: flex; align-items: center; gap: 10px; }
-  .stp-h b { font-size: 15px; }
+  /* —— 工程选型器 —— */
+  .mx { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .mx { grid-template-columns: minmax(0, 1fr); } }
+  .mx-in { display: grid; gap: 10px; margin: 0; }
+  .mx-s { margin: 0; border: 1px solid var(--line); display: grid; gap: 12px; padding: 14px 16px; min-width: 0; }
+  .mx-s legend { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 0 4px; }
   .sn { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font: 700 12px var(--mono); flex: none; }
-  .kinds { display: grid; grid-template-columns: .6fr 1fr 1fr; gap: 8px; }
-  @media (max-width: 520px) { .kinds { grid-template-columns: minmax(0, 1fr); } }
-  .kind { display: grid; gap: 4px; align-content: start; justify-items: start; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font: 14px var(--body); }
-  .kind svg { width: 34px; height: 34px; fill: none; stroke: var(--accent); stroke-width: 2; }
-  .kind span { font-size: 12px; color: var(--muted); line-height: 1.35; }
-  .kind small, .chip small { font: 11px var(--mono); color: var(--muted); }
-  .kind.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--ok-soft); }
-  .chip.on small { color: #cfd6d4; }
-  .kind:disabled, .chip:disabled { opacity: .4; cursor: not-allowed; }
-  .chip[hidden] { display: none; }
-  .ld { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: start; }
-  .cab:has(.two) { width: 200px; }
-  .cab :global(.slot span) { white-space: nowrap; }
-  @media (max-width: 520px) { .ld { grid-template-columns: minmax(0, 1fr); } }
-  .res { position: sticky; top: 14px; display: grid; gap: 14px; }
-  @media (max-width: 960px) { .res { position: static; } }
-  .res-body { display: grid; gap: 14px; }
-  .res-body[hidden] { display: none; }
-  .res-dl { margin: 0; display: grid; font-size: 13.5px; border-top: 1px solid var(--line); }
-  .res-dl :global(div) { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-  .res-dl :global(dt) { color: var(--muted); }
-  .res-dl :global(dd) { margin: 0; font-weight: 500; }
-  .res-act { display: flex; gap: 8px; flex-wrap: wrap; }
-  .res-act .btn { min-height: 42px; font-size: 14px; }
-  .match { margin-top: 18px; display: grid; gap: 10px; }
-  .match-h { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
-  .match :global(tbody tr) { cursor: pointer; }
-  .match :global(tbody tr:hover td) { background: var(--bg); }
-  .match :global(tr.sel td) { background: var(--ok-soft) !important; }
-  .match :global(tr.dim) { opacity: .45; cursor: default; }
-  .match :global(td .tag) { margin-left: 6px; font: 600 10px var(--mono); text-transform: uppercase; padding: 2px 7px; border-radius: 99px; background: var(--accent); color: #fff; }
+  .mx-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .mx-f { display: grid; gap: 6px; align-content: start; }
+  .mx-f > span:first-child { font-size: 13px; font-weight: 600; }
+  .mx-f select { font: 14px var(--mono); padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .mx .bld-num input { width: 120px; font-size: 18px; }
+  .mx-out { position: sticky; top: 12px; display: grid; gap: 12px; }
+  @media (max-width: 1000px) { .mx-out { position: static; } }
+  .mx-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .mx-id { font: 600 12px var(--mono); color: var(--muted); }
+  .mx-acts { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .mx-acts .btn { min-height: 40px; font-size: 14px; }
+</style>
+
+<style is:global>
+  .mx .mx-sec { border-top: 1px solid var(--line); padding: 10px 0 2px; }
+  .mx .mx-sec > summary { cursor: pointer; font: 700 14px var(--body); text-transform: uppercase; letter-spacing: .03em; list-style: none; display: flex; justify-content: space-between; }
+  .mx .mx-sec > summary::after { content: '+'; color: var(--muted); }
+  .mx .mx-sec[open] > summary::after { content: '–'; }
+  .mx .mx-dl { margin: 8px 0; display: grid; font-size: 13.5px; }
+  .mx .mx-dl > div { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .mx .mx-dl dt { color: var(--muted); }
+  .mx .mx-dl dd { margin: 0; font-weight: 500; }
+  .mx .mx-dl .hl { color: var(--accent); font-size: 15px; }
+  .mx .mx-dl .bad { color: #a5480b; }
+  .mx .mx-note { font-size: 12.5px; color: var(--muted); margin: 6px 0 8px; }
+  .mx .mx-chk { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+  .mx .mx-chk li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 10px; border-radius: 8px; background: var(--bg); }
+  .mx .mx-chk li i { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: #8d9997; }
+  .mx .mx-chk li.ok i { background: #3ee08a; } .mx .mx-chk li.warn i { background: var(--charge); } .mx .mx-chk li.bad i { background: #e5484d; }
+  .mx .mx-chk li.bad { background: #fdeceb; } .mx .mx-chk li.warn { background: #fdf6e1; }
+  .mx .mx-ass { margin: 8px 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+  .mx .mx-alt { min-width: 620px; font-size: 13px; }
+  .mx .mx-alt tbody tr { cursor: pointer; }
+  .mx .mx-alt tbody tr:hover td { background: var(--bg); }
+  .mx .mx-alt tr.sel td { background: var(--ok-soft); }
+  .mx .bld-title a { color: var(--ink); }
+  .mx .mx-sld { width: 100%; height: auto; margin: 8px 0; }
+  .mx .mx-sld .ln path { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .mx .mx-sld .ln .mb { stroke-dasharray: 6 4; stroke: var(--muted); }
+  .mx .mx-sld .br rect { fill: #fff; stroke: var(--ink); stroke-width: 2; }
+  .mx .mx-sld .ups { fill: var(--ok-soft); stroke: var(--accent); stroke-width: 2; }
+  .mx .mx-sld .bat { fill: #fdf6e1; stroke: var(--charge); stroke-width: 2; }
+  .mx .mx-sld text { font: 11px var(--mono); fill: var(--ink); text-anchor: middle; }
+  .mx .mx-sld .tx { text-anchor: start; }
+  .mx .mx-sld text.c { text-anchor: middle; }
+  .mx .mx-sld text.b { font-weight: 700; }
+  @media print {
+    header.top, footer, .crumbs, .hero, .mx-in, .mx-acts, .legend, .bld-fail, [data-reset], .block:not(#builder), .cta, #builder > .head { display: none !important; }
+    .mx { display: block !important; }
+    .mx-out { position: static !important; border: 0 !important; box-shadow: none !important; }
+    .mx .mx-sec > summary::after { content: '' !important; }
+    body { background: #fff !important; }
+  }
 </style>
