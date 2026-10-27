@@ -14,7 +14,9 @@ export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 
 // 标机（内置电池）/ 长机（外接电池组）：看"标机/长机"字段，没填时型号末尾带 L 的算长机（如 RT3KL）
 export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant) : /\d\s*K?L\b/i.test(String(p.model || '')));
 // 模块化 UPS 栏目
-export const isModular = (p) => p.type === '模块化UPS';
+export const MODULAR_TYPES = ['模块化UPS', '机架式模块化UPS'];
+export const isModular = (p) => MODULAR_TYPES.includes(p.type);
+export const isRackModular = (p) => p.type === '机架式模块化UPS';
 // Mini UPS 栏目：除离线式 / 在线互动式 / 机架式 / 模块化以外的已发布产品（以后加品类时在这里分流）
 export const isMini = (p) => !isOffline(p) && !isRack(p) && !isModular(p);
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
@@ -23,6 +25,8 @@ export function moduleOf(p) {
   const num = (re) => { const m = t.match(re); return m ? parseFloat(m[1]) * (/k/i.test(m[2] || '') ? 1000 : 1) : 0; };
   let va = num(/(\d+(?:\.\d+)?)\s*(k?)VA/i), w = num(/(\d+(?:\.\d+)?)\s*(k?)W/i);
   if (!va && !w) { const m = t.match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; } // 只写了数字：按 kVA
+  if (va > 0 && va < 1000) va *= 1000; // 单位漏写成 VA / W
+  if (w > 0 && w < 1000) w *= 1000;
   if (!w && va) w = va; // 模块化 UPS 输出功率因数通常是 1
   if (!va && w) va = w;
   let n = parseInt(String(p.upsModuleCount || '').match(/\d+/) || '', 10) || 0;
@@ -58,6 +62,8 @@ export function capacityOf(p) {
   let w = num(/(\d+(?:\.\d+)?)\s*(k?)W(?!h)/i);
   const pf = parseFloat(String(p.powerFactor || p.outputPowerFactor || '').replace(',', '.'));
   if (!w && va && pf > 0 && pf <= 1) w = Math.round(va * pf);
+  // 模块化 UPS 没有 1 kVA 以下的：数字小于 1000 说明单位其实是 kVA / kW（CRM 里单位默认是 VA，容易漏改）
+  if (isModular(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
   if (!w && va) w = Math.round(va * (isRack(p) ? 0.9 : isModular(p) ? 1 : 0.6));
   return { va, w };
 }

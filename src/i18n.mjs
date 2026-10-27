@@ -118,6 +118,7 @@ const TERMS = {
   '高频塔式UPS': { es: 'UPS torre de alta frecuencia', en: 'High-frequency tower UPS', ru: 'Высокочастотный ИБП (башня)' },
   '工频UPS': { es: 'UPS de baja frecuencia', en: 'Low-frequency UPS', ru: 'Низкочастотный ИБП' },
   '模块化UPS': { es: 'UPS modular', en: 'Modular UPS', ru: 'Модульный ИБП' },
+  '机架式模块化UPS': { es: 'UPS modular para rack', en: 'Rack-mount Modular UPS', ru: 'Стоечный модульный ИБП' },
   '机架式UPS': { es: 'UPS para rack', en: 'Rack-mount UPS', ru: 'Стоечный ИБП' },
   '机架式锂电UPS': { es: 'UPS para rack de litio', en: 'Lithium-ion Rack-mount UPS', ru: 'Стоечный ИБП с литий-ионной батареей' },
   // 机型：与客户档案系统 normalizeMachineVariant / MACHINE_VARIANT_NOTES 保持一致

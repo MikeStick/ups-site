@@ -1,52 +1,30 @@
 ---
-// 模块化 UPS 栏目页：系统配置器（负载 + 未来负载 + 冗余 → 选机柜、显示每个槽位，可点模块模拟故障）+ 机柜列表 + 卖点 + 与传统塔式对比 + 参数表 + 应用 + 项目询价。只询价，不显示价格。
-// 产品来自客户档案系统，类型 = 模块化UPS；单模块容量 / 最多模块数填在产品的"功率模块容量""最多模块数"里。
+// 模块化 UPS 栏目页 = 工程选型器（给设计院 / 集成商 / 客户电气工程师用）
+// 数据：src/data/modular-catalog.mjs（按工厂规格书整理的 PI / Mini / Plus 三个系列）
+// 计算：src/lib/modular-engine.mjs（测试：node scripts/test-modular-engine.mjs）
+// 页面只负责收集输入、显示引擎结果；所有数字的规则和假设在引擎里，并在结果下方列出。
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
-import { MT, REDUNDANCY } from '../../lib/modular-i18n.mjs';
-import { specValue } from '../../lib/offline-i18n.mjs';
-import { isModular, moduleOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import { MT, MW } from '../../lib/modular-i18n.mjs';
+import { MX } from '../../lib/modular-cfg-i18n.mjs';
+import { isModular } from '../../lib/category.mjs';
 import all from '../../data/products.json';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 const { lang } = Astro.params;
-const T = MT[lang];
-const kva = (v) => `${+(v / 1000).toFixed(1)} kVA`;
-const pfOf = (p) => { const v = parseFloat(String(p.outputPowerFactor || p.powerFactor || '').replace(',', '.')); return v > 0 && v <= 1 ? v : 0; };
-const list = all.filter(isModular).map((p) => {
-  const c = capacityOf(p), m = moduleOf(p);
-  return { p, va: c.va, w: c.w, m, pf: pfOf(p), s: seriesName(p) };
-}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va);
-const vas = list.map((x) => x.va).filter(Boolean);
-const rangeTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? kva(vas[0]) : `${Math.min(...vas) / 1000}–${Math.max(...vas) / 1000} kVA`) : '30–600 kVA';
-const modSizes = [...new Set(list.map((x) => x.m.va).filter(Boolean))].sort((a, b) => a - b);
-const modJoin = modSizes.map((v) => String(v / 1000)).join(' · ');
-const modTxt = modSizes.length ? modJoin + ' kVA' : '25 · 50 kVA';
+const T = MT[lang], W = MW[lang], X = MX[lang];
+// 客户档案系统里已发布的模块化产品：型号能对上的，结果里链接到产品页
+const norm = (s) => String(s || '').toUpperCase().replace(/[\s_-]+/g, '').replace('MIMI', 'MINI');
+const links = Object.fromEntries(all.filter(isModular).map((p) => [norm(p.model), p.slug]));
+const cfg = { lang, wa: SITE.whatsapp, links, x: X };
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
-// 配置器只用填了"功率模块容量"的机柜
-const builderModels = list.filter((x) => x.m.w && x.m.n).map((x) => ({ m: x.p.model, slug: x.p.slug, va: x.va || x.m.va * x.m.n, mw: x.m.w, mva: x.m.va, n: x.m.n }));
-const cfg = { models: builderModels, lang, t: { kw: T.kw, none: T.bNone, tooBig: T.bTooBig, result: T.bResult, split: T.bSplit, free: T.bFree, pct: T.bLoadPct, fut: T.bFutureNote, alt: T.bAlt, failOk: T.failOk, failNo: T.failNo, tryFail: T.tryFail, redHint: T.redHint, slots: T.slots } };
-const compareRows = ['outputPower', 'upsModuleCapacity', 'upsModuleCount', 'phase', 'inputVoltageRange', 'inputPowerFactor', 'outputVoltage', 'outputPowerFactor', 'efficiencyAcMode', 'harmonicDistortion', 'parallelUnits', 'dimensions', 'netWeight']
-  .filter((f) => list.some((x) => specValue(x.p, f, lang)));
-const cell = (p, f) => (specValue(p, f, lang) || '—').replace(/\*/g, ' × ');
-const APP_ICONS = [
-  '<rect x="5" y="3" width="9" height="24" rx="1.5"/><rect x="16" y="3" width="9" height="24" rx="1.5"/><path d="M8 8h3M8 12h3M19 8h3M19 12h3"/>',
-  '<rect x="4" y="6" width="22" height="20" rx="2"/><path d="M15 10v10M10 15h10"/>',
-  '<path d="M4 26h22M6 26V12l9-6 9 6v14M10 26v-8M15 26v-8M20 26v-8"/>',
-  '<path d="M15 27V12M9 27l6-15 6 15M7 9a11 11 0 0 1 16 0M10 12a6.5 6.5 0 0 1 10 0"/>',
-  '<path d="M3 26V14l7 4v-4l7 4v-4l7 4V6h3v20Z"/>',
-  '<path d="M4 18l9-2 6-10 3 1-3 9 7-1 2 3-22 4Z"/><path d="M4 26h22"/>',
-];
-const slotSvg = (i) => '<rect x="68" y="' + (58 + i * 21) + '" width="64" height="16" rx="2" fill="' + (i < 4 ? '#3a4446' : '#2c3335') + '"/><circle cx="76" cy="' + (66 + i * 21) + '" r="2.4" fill="' + (i < 4 ? '#5ef0a0' : '#4a5553') + '"/>';
-const CAB_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="176" rx="6" fill="#23292a"/><rect x="70" y="26" width="60" height="22" rx="3" fill="#7dd3fc" opacity=".85"/>' + [0, 1, 2, 3, 4, 5].map(slotSvg).join('') + '</svg>';
-const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
+const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v) === String(on) }));
 ---
 <Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="modular-ups/">
-<div class="off rack mod" data-mod>
-  <script type="application/json" data-mod-cfg set:html={JSON.stringify(cfg)} />
+<div class="off rack mod" data-mod data-failok={T.failOk} data-failno={T.failNo} data-redhints={JSON.stringify(T.redHint)}>
+  <script type="application/json" data-mx-cfg set:html={JSON.stringify(cfg)} />
   <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
 
   <section class="hero">
@@ -55,44 +33,78 @@ const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
         <span class="eyebrow">{T.eyebrow}</span>
         <h1>{T.h1a}<em>{T.h1b}</em></h1>
         <p>{T.lead}</p>
-        <div class="hero-cta">
-          <a class="btn primary" href="#models">{T.ctaModels}</a>
-          {builderModels.length > 0 && <a class="btn ghost" href="#builder">{T.ctaBuilder}</a>}
-        </div>
+        <div class="hero-cta"><a class="btn primary" href="#builder">{T.ctaBuilder}</a></div>
       </div>
       <div class="hero-facts">
-        <div><b class="num">{rangeTxt}</b><span>{T.facts.range}</span></div>
-        <div><b class="num">{modTxt}</b><span>{T.facts.module}</span></div>
+        <div><b class="num">{W.range}</b><span>{T.facts.range}</span></div>
+        <div><b class="num">{W.modules}</b><span>{T.facts.module}</span></div>
         <div><b class="num">N+X</b><span>{T.facts.red}</span></div>
         <div><b class="num">Hot-swap</b><span>{T.facts.swap}</span></div>
       </div>
     </div>
   </section>
 
-  {builderModels.length > 0 && (
-    <section class="block" id="builder">
-      <div class="head"><span class="eyebrow">{T.bEyebrow}</span><h2>{T.bH}</h2><p>{T.bP}</p></div>
-      <div class="sizer">
-        <div class="card bld-in">
-          <label class="bld-f"><span>{T.bLoad}</span>
-            <span class="bld-num"><input type="number" inputmode="decimal" min="1" step="1" value="60" data-load /> <b>{T.kw}</b></span>
-            <input type="range" min="5" max="600" step="5" value="60" data-range aria-label={T.bLoad} />
-          </label>
-          <label class="bld-f"><span>{T.bFuture}</span>
-            <span class="bld-num"><input type="number" inputmode="decimal" min="0" step="1" placeholder="—" data-future /> <b>{T.kw}</b></span>
-          </label>
-          <div class="bld-f"><span>{T.bRed}</span>
-            <div class="rt-chips" data-red>{REDUNDANCY.map((x) => <button type="button" class:list={['chip', { on: x === 1 }]} data-v={x}>{RED[x]}</button>)}</div>
-            <small class="muted" data-redhint>{T.redHint[1]}</small>
+  <section class="block" id="builder">
+    <div class="head"><span class="eyebrow">{X.eyebrow}</span><h2>{X.h}</h2><p>{X.p}</p></div>
+    <div class="mx">
+      <form class="mx-in" data-in onsubmit="return false">
+        <fieldset class="card mx-s">
+          <legend><span class="sn">A</span>{X.sA}</legend>
+          <div class="mx-f"><span>{X.grid}</span>
+            <div class="rt-chips">{chips('g', [['380', '380 V'], ['400', '400 V'], ['415', '415 V'], ['1ph', X.g1], ['208', X.gAm], ['480', X.g480]], '400').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
+            <small class="muted">{X.gridHint}</small>
           </div>
-          <p class="muted">{T.battNote}</p>
+          <div class="mx-row">
+            <div class="mx-f"><span>{X.freq}</span><div class="rt-chips">{chips('f', [['50', '50 Hz'], ['60', '60 Hz']], '50').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+            <label class="mx-f"><span>{X.alt}</span><span class="bld-num"><input type="number" min="0" max="5000" step="100" value="0" data-n="alt" /> <b>{X.unitM}</b></span></label>
+            <label class="mx-f"><span>{X.amb}</span><span class="bld-num"><input type="number" min="-10" max="55" step="1" value="25" data-n="amb" /> <b>{X.unitC}</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">B</span>{X.sB}</legend>
+          <div class="mx-row">
+            <label class="mx-f"><span>{X.load}</span><span class="bld-num"><input type="number" min="1" step="1" value="120" data-n="kw" /> <b>{X.unitKw}</b></span></label>
+            <label class="mx-f"><span>{X.future}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="fut" /> <b>{X.unitKw}</b></span></label>
+          </div>
+          <div class="mx-f"><span>{X.pf}</span><div class="rt-chips">{chips('pf', [['0.8', '0.8'], ['0.9', '0.9'], ['0.95', '0.95'], ['1', '1.0']], '0.9').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <div class="mx-f"><span>{X.type}</span><div class="rt-chips">{chips('lt', [['it', X.tIt], ['mixed', X.tMix], ['motor', X.tMot]], 'it').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <label class="mx-f"><span>{X.inrush}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="inr" /> <b>{X.unitKw}</b></span><small class="muted">{X.inrushHint}</small></label>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">C</span>{X.sC}</legend>
+          <div class="mx-f"><span>{X.red}</span><div class="rt-chips">{chips('r', [['0', 'N'], ['1', 'N+1'], ['2', 'N+2']], '1').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div><small class="muted" data-redhint>{T.redHint[1]}</small></div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">D</span>{X.sD}</legend>
+          <div class="mx-f"><span>{X.rt}</span>
+            <div class="rt-chips">{chips('rt', [['0', X.rtNone], ['5', '5'], ['10', '10'], ['15', '15'], ['30', '30'], ['60', '60'], ['120', '120']], '15').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}<span class="muted">{X.unitMin}</span></div>
+          </div>
+          <div class="mx-f"><span>{X.bt}</span><div class="rt-chips">{chips('bt', [['vrla', X.vrla], ['lfp', X.lfp]], 'vrla').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+          <div class="mx-row">
+            <label class="mx-f"><span>{X.blocks}</span><select data-n="blk">{[30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50].map((b) => <option value={b} selected={b === 40}>{b} × 12 V = {b * 12} V</option>)}</select></label>
+            <label class="mx-f"><span>{X.rech}</span><span class="bld-num"><input type="number" min="2" max="48" step="1" value="8" data-n="rch" /> <b>{X.unitH}</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card mx-s">
+          <legend><span class="sn">E</span>{X.sE}</legend>
+          <div class="rt-chips">{chips('k', [['', X.kAny], ['rack', X.kRack], ['compact', X.kCompact], ['cabinet', X.kCab]], '').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
+        </fieldset>
+      </form>
+
+      <div class="card mx-out" data-out>
+        <div class="mx-head">
+          <span class="eyebrow">{X.resEyebrow}</span>
+          <span class="mx-id" data-id></span>
         </div>
-        <div class="card bld-out">
-          <p class="bld-title" data-title>{T.bNone}</p>
+        <p class="bld-title" data-title>{X.none}</p>
+        <div data-body hidden>
           <div class="bld-row">
             <div class="cab" data-cab aria-live="polite"></div>
             <div class="bld-info">
-              <ul class="bld-facts" data-facts></ul>
               <div class="legend">
                 <span><i class="act"></i>{T.legend.act}</span><span><i class="red"></i>{T.legend.red}</span>
                 <span><i class="fut"></i>{T.legend.fut}</span><span><i class="free"></i>{T.legend.free}</span><span><i class="fail"></i>{T.legend.fail}</span>
@@ -101,84 +113,20 @@ const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
               <button type="button" class="chip" data-reset hidden>{T.reset}</button>
             </div>
           </div>
-          <div class="bld-alt" data-alt></div>
+          <div class="mx-acts">
+            {SITE.whatsapp && <a class="btn primary" data-send href="#" target="_blank" rel="noopener">{X.send}</a>}
+            <button type="button" class="btn line" data-print>{X.print}</button>
+            <button type="button" class="btn line" data-link>{X.link}</button>
+          </div>
+          <div data-sections></div>
         </div>
       </div>
-    </section>
-  )}
-
-  <section class="block" id="models">
-    <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
-    {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
-      <>
-        <div class="filters">
-          <div class="fgroup" data-f="cap"><span>{T.fCap}</span><button type="button" class="chip on" data-v="">{T.fAll}</button><button type="button" class="chip" data-v="1">{T.cap1}</button><button type="button" class="chip" data-v="2">{T.cap2}</button><button type="button" class="chip" data-v="3">{T.cap3}</button></div>
-          {modSizes.length > 1 && <div class="fgroup" data-f="mod"><span>{T.fMod}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{modSizes.map((v) => <button type="button" class="chip" data-v={v}>{v / 1000} kVA</button>)}</div>}
-        </div>
-        <div class="grid">
-          {list.map((x) => {
-            const p = x.p, img = p.images && p.images[0];
-            const eff = specValue(p, 'efficiencyAcMode', lang), ph = specValue(p, 'phase', lang);
-            return (
-              <article class="pcard" data-va={x.va} data-mod={x.m.va || ''}>
-                <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
-                  {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={CAB_SVG} />}
-                  {x.m.n > 0 && <span class="tags"><span class="tag u">{T.slots.replace('{n}', x.m.n)}</span></span>}
-                </a>
-                <div class="pbody">
-                  <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
-                  {fmtCap(x) && <span class="va">{fmtCap(x)}</span>}
-                  <ul>
-                    {x.m.va > 0 && <li>{T.cModules} <b>{x.m.n ? `${x.m.n} × ` : ''}{kva(x.m.va)}</b></li>}
-                    {ph && <li>{T.cPhase} <b>{ph}</b></li>}
-                    {x.pf > 0 && <li>{T.cPf} <b>{x.pf}</b></li>}
-                    {eff && <li>{T.cEff} <b>{eff}</b></li>}
-                  </ul>
-                  <div class="pact">
-                    <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
-                    <a class="btn sm dark" href={wa(qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        <p class="empty" data-empty hidden>{T.noMatch}</p>
-      </>
-    )}
+    </div>
   </section>
 
   <section class="block">
     <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
     <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
-  </section>
-
-  <section class="block">
-    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
-    <div class="vs two">
-      {(['tower', 'mod'] as const).map((k) => (
-        <div class:list={['card', { hi: k === 'mod' }]}><span class:list={['tag', k === 'mod' ? 'on' : 'vs-li']}>{T.vs[k].tag}</span><h3>{T.vs[k].h}</h3>
-          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span>{b}</li>)}</ul>
-          <p class="best">{T.vs[k].best}</p></div>
-      ))}
-    </div>
-  </section>
-
-  {list.length > 0 && compareRows.length > 0 && (
-    <section class="block">
-      <div class="head"><span class="eyebrow">{T.compareEyebrow}</span><h2>{T.compareH}</h2></div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>{T.spec.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
-        <tbody>
-          {compareRows.map((f) => <tr><th>{T.spec[f]}</th>{list.map((x) => <td class="num">{f === 'outputPower' && !specValue(x.p, f, lang) ? fmtCap(x) || '—' : cell(x.p, f)}</td>)}</tr>)}
-        </tbody>
-      </table></div>
-    </section>
-  )}
-
-  <section class="block">
-    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
-    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} />{a}</div>)}</div>
   </section>
 
   <section class="block">
@@ -205,97 +153,189 @@ const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
 </div>
 </Base>
 
-<script is:inline>
-(function () {
-  var root = document.querySelector('[data-mod]'); if (!root) return;
-  var c = JSON.parse(root.querySelector('[data-mod-cfg]').textContent);
-  var $ = function (s) { return root.querySelector(s); };
-  // 列表筛选：容量区间 + 模块规格；选了容量后按容量从小到大
-  var f = { cap: '', mod: '' };
-  var grid = $('.grid');
-  var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('.pcard')) : [];
-  cards.forEach(function (el, i) { el.dataset.ord = i; });
-  function filter() {
-    if (grid) { var l = cards.slice(); if (f.cap) l.sort(function (a, b) { return (a.dataset.va - b.dataset.va) || (a.dataset.ord - b.dataset.ord); }); l.forEach(function (el) { grid.appendChild(el); }); }
-    var n = 0;
-    cards.forEach(function (el) {
-      var va = +el.dataset.va;
-      var ok = (!f.mod || el.dataset.mod === f.mod) && (!f.cap || (f.cap === '1' ? va <= 100000 : f.cap === '2' ? va > 100000 && va <= 300000 : va > 300000));
-      el.hidden = !ok; if (ok) n++;
-    });
-    var e = $('[data-empty]'); if (e) e.hidden = n > 0;
-  }
-  root.querySelectorAll('[data-f]').forEach(function (g) {
-    g.addEventListener('click', function (e) {
-      var b = e.target.closest('.chip'); if (!b) return;
-      g.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
-      f[g.dataset.f] = b.dataset.v; filter();
-    });
-  });
+<script>
+  import { catalog } from '../../data/modular-catalog.mjs';
+  import { configure, configId, ASSUME } from '../../lib/modular-engine.mjs';
 
-  // 系统配置器
-  if (!$('[data-cab]')) return;
-  var red = 1, failed = -1, cur = null;
-  var kvaTxt = function (v) { return (+(v / 1000).toFixed(1)) + ' kVA'; };
-  function fmt(s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); }
-  function plan(load, future) {
-    var X = red, L = load * 1000, F = Math.max(load, future || 0) * 1000;
-    var ok = c.models.map(function (m) {
-      var act = Math.max(1, Math.ceil(L / m.mw)), need = act + X, fneed = Math.max(1, Math.ceil(F / m.mw)) + X;
-      return { m: m, act: act, need: need, fneed: fneed, fits: need <= m.n, ffits: fneed <= m.n };
-    }).filter(function (o) { return o.fits; }).sort(function (a, b) { return (b.ffits - a.ffits) || (a.m.va - b.m.va) || (b.m.mw - a.m.mw); });
-    return ok;
+  const root = document.querySelector('[data-mod]') as HTMLElement;
+  const C = JSON.parse((root.querySelector('[data-mx-cfg]') as HTMLElement).textContent || '{}');
+  const X = C.x;
+  const CAT = catalog();
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const fmt = (s: string, o: Record<string, unknown>) => String(s).replace(/\{(\w+)\}/g, (_, k) => (o[k] !== undefined ? String(o[k]) : ''));
+  const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const norm = (s: string) => String(s || '').toUpperCase().replace(/[\s_-]+/g, '');
+  const kindName: Record<string, string> = { rack: X.kRack, compact: X.kCompact, cabinet: X.kCab };
+
+  // —— 输入状态（同时写进网址，方便分享 / 复现）——
+  const st: Record<string, string> = { g: '400', f: '50', pf: '0.9', lt: 'it', r: '1', rt: '15', bt: 'vrla', k: '' };
+  const num: Record<string, string> = { alt: '0', amb: '25', kw: '120', fut: '', inr: '', blk: '40', rch: '8' };
+  let pick = '', failed = false, lastText = '';
+  const failMsg = $('[data-failmsg]'); failMsg.dataset.t = failMsg.textContent || '';
+  try {
+    const u = new URLSearchParams(location.search);
+    for (const k of Object.keys(st)) if (u.has(k)) st[k] = u.get(k) || '';
+    for (const k of Object.keys(num)) if (u.has(k)) num[k] = u.get(k) || '';
+    pick = u.get('m') || '';
+  } catch (e) { /* 忽略 */ }
+  root.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', st[(b as HTMLElement).dataset.k!] === (b as HTMLElement).dataset.v));
+  root.querySelectorAll('[data-n]').forEach((el) => { const k = (el as HTMLInputElement).dataset.n!; if (num[k] !== '') (el as HTMLInputElement).value = num[k]; });
+
+  function query() {
+    return {
+      grid: st.g, freq: +st.f, loadKw: +num.kw || 0, pf: +st.pf, loadType: st.lt, inrushKw: +num.inr || 0, futureKw: +num.fut || 0,
+      red: +st.r, altitude: +num.alt || 0, ambient: num.amb === '' ? 25 : +num.amb, minutes: +st.rt, battType: st.bt, blocks: +num.blk || 40,
+      rechargeH: +num.rch || 8, kind: st.k,
+    };
   }
-  function draw() {
-    var load = parseFloat($('[data-load]').value) || 0, future = parseFloat($('[data-future]').value) || 0;
-    var cab = $('[data-cab]'), facts = $('[data-facts]'), title = $('[data-title]'), alt = $('[data-alt]');
-    failed = -1; $('[data-reset]').hidden = true; $('[data-failmsg]').textContent = c.t.tryFail; $('[data-failmsg]').className = 'bld-fail';
-    if (!(load > 0)) { title.textContent = c.t.none; cab.innerHTML = ''; facts.innerHTML = ''; alt.innerHTML = ''; cur = null; return; }
-    var opts = plan(load, future);
-    if (!opts.length) {
-      var maxKw = Math.max.apply(null, c.models.map(function (m) { return (m.n - red) * m.mw / 1000; }));
-      title.textContent = fmt(c.t.tooBig, { kw: Math.max(0, Math.round(maxKw)) }); cab.innerHTML = ''; facts.innerHTML = ''; alt.innerHTML = ''; cur = null; return;
-    }
-    var o = cur = opts[0], m = o.m;
-    title.innerHTML = '<a href="/' + c.lang + '/p/' + m.slug + '/">' + fmt(c.t.result, { m: m.m, n: o.need, mod: kvaTxt(m.mva) }) + '</a>';
-    var futureAdd = o.ffits ? o.fneed - o.need : 0, free = m.n - o.need - futureAdd;
-    var html = '<div class="cab-top"><span></span></div><div class="cab-slots' + (m.n > 10 ? ' two' : '') + '">';
-    for (var i = 0; i < m.n; i++) {
-      var st = i < o.act ? 'act' : i < o.need ? 'red' : i < o.need + futureAdd ? 'fut' : 'free';
-      html += '<button type="button" class="slot ' + st + '" data-i="' + i + '"' + (st === 'act' || st === 'red' ? '' : ' disabled') + '><i></i><span>' + (st === 'free' ? '' : kvaTxt(m.mva)) + '</span></button>';
-    }
-    cab.innerHTML = html + '</div>';
-    var pct = Math.round(load * 1000 / (o.need * m.mw) * 100);
-    var li = ['<li><b>' + fmt(c.t.split, { a: o.act, r: red }) + '</b></li>', '<li>' + fmt(c.t.pct, { p: pct }) + '</li>'];
-    if (futureAdd > 0) li.push('<li>' + fmt(c.t.fut, { kw: Math.max(load, future), n: futureAdd }) + '</li>');
-    if (free > 0) li.push('<li>' + fmt(c.t.free, { f: free }) + '</li>');
-    facts.innerHTML = li.join('');
-    var more = opts.slice(1, 3);
-    alt.innerHTML = more.length ? '<span class="muted">' + c.t.alt + '</span>' + more.map(function (x) {
-      return '<a href="/' + c.lang + '/p/' + x.m.slug + '/"><b>' + x.m.m + '</b><span>' + x.need + ' × ' + kvaTxt(x.m.mva) + ' · ' + fmt(c.t.slots, { n: x.m.n }) + '</span></a>';
-    }).join('') : '';
+  function saveUrl() {
+    try {
+      const u = new URLSearchParams();
+      for (const k of Object.keys(st)) u.set(k, st[k]);
+      for (const k of Object.keys(num)) if (num[k] !== '') u.set(k, num[k]);
+      if (pick) u.set('m', pick);
+      history.replaceState(null, '', location.pathname + '?' + u.toString() + '#builder');
+    } catch (e) { /* 预览环境可能不允许 */ }
   }
-  // 点模块模拟故障：有冗余 → 负载继续；没有冗余 → 转旁路
-  $('[data-cab]').addEventListener('click', function (e) {
-    var b = e.target.closest('.slot'); if (!b || b.disabled || failed >= 0) return;
-    failed = +b.dataset.i; b.classList.add('fail');
-    var msg = $('[data-failmsg]');
-    msg.textContent = red > 0 ? c.t.failOk : c.t.failNo; msg.className = 'bld-fail ' + (red > 0 ? 'ok' : 'bad');
-    if (red > 0) { var r = $('[data-cab] .slot.red'); if (r && r !== b) r.classList.add('takeover'); }
-    $('[data-reset]').hidden = false;
+
+  const row = (k: string, v: unknown) => (v === '' || v === null || v === undefined ? '' : `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`);
+  const sec = (title: string, body: string, open = true) => `<details class="mx-sec"${open ? ' open' : ''}><summary>${esc(title)}</summary>${body}</details>`;
+  const kva = (v: number) => `${+(+v).toFixed(1)} kVA`;
+
+  function sld(s: any, r: any) {
+    const b = X.sld, e = s.elec, hasB = !!r.batt;
+    return `<svg class="mx-sld" viewBox="0 -14 640 244" role="img" aria-label="${esc(X.secSld)}">
+      <g class="ln"><path d="M20 70H150"/><path d="M20 30H330V60"/><path d="M290 150V185"/><path d="M370 110H500"/><path d="M500 110H620"/><path d="M20 30V10H560V110" class="mb"/></g>
+      <g class="tx"><text x="20" y="88">${b.mains}</text><text x="20" y="24">${b.byp}</text><text x="520" y="-2">${b.mbs}</text><text x="600" y="100">${b.load}</text></g>
+      <g class="br"><rect x="80" y="62" width="22" height="16"/><text x="91" y="95">Q1 ${e.brIn} A</text><rect x="200" y="22" width="22" height="16"/><text x="211" y="55">Q2 ${e.brByp} A</text><rect x="430" y="102" width="22" height="16"/><text x="441" y="135">Q3 ${e.brOut} A</text>
+        ${hasB ? `<rect x="279" y="160" width="22" height="16"/><text x="320" y="172" style="text-anchor:start">QF ${r.batt.breakerDc} A DC</text>` : ''}</g>
+      <rect class="ups" x="150" y="60" width="220" height="90" rx="8"/><text class="c b" x="260" y="86">${esc(s.fr.model)}</text>
+      <text class="c" x="260" y="106">${s.inst} × ${s.fr.moduleKva} kVA</text><text class="c" x="260" y="126">${esc(b.ups)} · ${['N', 'N+1', 'N+2'][+st.r]}</text>
+      ${hasB ? `<rect class="bat" x="250" y="185" width="80" height="34" rx="4"/><text class="c" x="290" y="207">${r.batt.type === 'lfp' ? 'LFP' : `${r.batt.strings} × ${r.blocks} × 12V`}</text>` : ''}
+    </svg>`;
+  }
+
+  function render() {
+    const q = query();
+    const r = configure(q, CAT);
+    const id = configId(q);
+    $('[data-id]').textContent = `${X.cfgId} ${id}`;
+    const title = $('[data-title]'), body = $('[data-body]');
+    failed = false; ($('[data-reset]') as HTMLElement).hidden = true;
+    failMsg.textContent = failMsg.dataset.t || ''; failMsg.className = 'bld-fail';
+    if (!(q.loadKw > 0)) { title.textContent = X.none; body.hidden = true; saveUrl(); return; }
+    let s = r.options.find((o: any) => o.fr.model === pick) || r.best;
+    if (!s) {
+      title.innerHTML = esc(X.noFit) + (r.parallel ? '<br><small>' + esc(fmt(X.parallel, { u: r.parallel.units, m: r.parallel.model })) + '</small>' : '');
+      body.hidden = true; saveUrl(); return;
+    }
+    body.hidden = false;
+    const fr = s.fr, slug = C.links[norm(fr.model).replace('MIMI', 'MINI')];
+    title.innerHTML = (slug ? `<a href="/${C.lang}/p/${slug}/">${esc(fr.model)}</a>` : esc(fr.model)) + ` · ${s.inst} × ${fr.moduleKva} kVA`;
+    // 槽位图
+    const futAdd = s.futureFits ? s.nFut - s.inst : 0;
+    let h = `<div class="cab-top"><span></span></div><div class="cab-slots${fr.slots > 8 ? ' two' : ''}">`;
+    for (let i = 0; i < fr.slots; i++) {
+      const c = i >= fr.usable ? 'free' : i < s.nNow ? 'act' : i < s.inst ? 'red' : i < s.inst + futAdd ? 'fut' : 'free';
+      h += `<button type="button" class="slot ${c}" data-i="${i}"${c === 'act' || c === 'red' ? '' : ' disabled'}><i></i><span>${c === 'free' ? '' : fr.moduleKva + ' kVA'}</span></button>`;
+    }
+    $('[data-cab]').innerHTML = h + '</div>';
+
+    // —— 各部分 ——
+    const B = X.b, BT = X.bt2, E = X.e, I = X.i;
+    const growth = q.futureKw > q.loadKw ? (s.futureFits ? fmt(X.growthOk, { n: s.nFut - s.inst }) : X.growthNo) : '';
+    const bom = `<dl class="mx-dl">${row(B.frame, esc(fr.model) + (slug ? ` · <a href="/${C.lang}/p/${slug}/">↗</a>` : ''))}${row(B.series, esc(kindName[fr.kind] + ' · ' + fr.series))}
+      ${row(B.modules, `${fr.moduleKva} kVA / ${fr.moduleKva} kW · ${fr.module.dims} mm · ${fr.module.kg} kg`)}
+      ${row(B.installed, esc(fmt(X.installedTxt, { n: s.inst, m: fr.moduleKva, a: s.nNow, r: q.red })))}
+      ${row(B.free, String(s.free))}
+      ${row(B.kva, kva(r.need.kva))}
+      ${row(B.usable, kva(s.capInst) + (r.need.altF < 1 ? ` (×${r.need.altF})` : ''))}
+      ${row(B.util, Math.round(s.util * 100) + '%')}
+      ${row(B.growth, growth ? esc(q.futureKw + ' kW: ' + growth) : '')}
+      ${row(B.grid, q.grid === '1ph' ? '1-ph 220/230/240 V' : '3-ph 380/400/415 V · 3W+N+PE')}
+      ${row(B.options, esc(X.optTxt))}</dl>`;
+
+    let batt = '';
+    if (r.batt) {
+      const b = r.batt;
+      batt = `<dl class="mx-dl">${row(BT.string, fmt(X.stringTxt, { n: r.blocks, v: b.vNom }))}${row(BT.vNom, `${b.vNom} V / ${Math.round(b.vEnd)} V`)}
+        ${row(BT.pBatt, Math.round(b.pW / 100) / 10 + ' kW')}${row(BT.wcell, Math.round(b.wCell) + ' W/cell')}
+        ${row(fmt(BT.wdesign, { e: ASSUME.endV, t: q.minutes }), `<b class="hl">${Math.round(b.wCellDesign)} W/cell</b>`)}
+        ${row(BT.factors, fmt(X.factorsTxt, { a: ASSUME.aging, m: ASSUME.margin, t: b.tempF.toFixed(2) }))}
+        ${b.type === 'lfp' ? row(BT.kwh, b.kwh + ' kWh') + row(BT.crate, b.cRate + 'C') : row(BT.est, esc(fmt(X.estTxt, { s: b.strings, n: r.blocks, ah: b.ah, total: b.blocksTotal }))) + row(BT.weight, '≈ ' + b.kg + ' kg')}
+        ${row(BT.idc, Math.round(b.iEnd) + ' A')}${row(BT.brdc, '≥ ' + b.breakerDc + ' A DC')}
+        ${s.charge ? row(BT.charge, fmt(X.chargeTxt, { a: s.charge.avail, c: s.charge.c })) + row(BT.recharge, s.charge.ok ? fmt(X.rechargeTxt, { h: s.charge.hours, t: q.rechargeH }) : `<span class="bad">${esc(fmt(X.rechargeNo, { h: s.charge.hours, n: Math.max(0, s.charge.needA - s.charge.avail) }))}</span>`) : ''}
+        </dl><p class="mx-note">${esc(b.type === 'lfp' ? X.lfpNote : fmt(X.battNote, { e: ASSUME.endV }))}</p>`;
+    }
+    const e = s.elec;
+    const elec = `<dl class="mx-dl">${row(E.iin, `${e.iInNow} A / ${e.iInFrame} A`)}${row(E.brin, e.brIn + ' A')}${row(E.brbyp, e.brByp + ' A')}
+      ${row(E.iout, e.iOut + ' A')}${row(E.brout, e.brOut + ' A')}${row(E.gen, fmt(X.genTxt, { a: e.genKva[0], b: e.genKva[1] }))}
+      ${row(E.heat, fmt(X.heatTxt, { w: e.heatW.toLocaleString(), btu: e.btu.toLocaleString() }))}${row(E.neutral, esc(X.neutralTxt))}</dl>`;
+    const inst = `<dl class="mx-dl">${row(I.dims, `${fr.dims.d} × ${fr.dims.w} × ${fr.dims.h} mm`)}${fr.rackU ? row(I.rackU, fr.rackU + 'U') : ''}
+      ${row(I.weight, '≈ ' + s.install.kg + ' kg')}${row(I.floor, '≈ ' + s.install.floor + ' kg/m²')}${row(I.module, `${fr.module.dims} mm / ${fr.module.kg} kg`)}
+      ${r.batt && r.batt.kg ? row(I.battW, '≈ ' + r.batt.kg + ' kg') : ''}${fr.alt ? row(I.alt, esc(fr.alt)) : ''}</dl>`;
+    // 检查项
+    const K = X.chk;
+    const items: [string, string][] = [];
+    for (const w of r.warnings) items.push([w.level, fmt(K[w.id], w)]);
+    for (const c of s.checks) {
+      if (c.id === 'inrush') items.push([c.level, fmt(K.inrush, c) + ' ' + (c.level === 'bad' ? K.inrushBad : K.inrushOk)]);
+      else if (c.id === 'lowUtil') items.push([c.level, fmt(K.lowUtil, c)]);
+      else if (c.id === 'charge') items.push([c.level, fmt(K.charge, c)]);
+    }
+    const order: Record<string, number> = { bad: 0, warn: 1, info: 2, ok: 3 };
+    items.sort((a, b) => order[a[0]] - order[b[0]]);
+    const chk = `<ul class="mx-chk">${items.map(([l, t]) => `<li class="${l}"><i></i>${esc(t)}</li>`).join('')}</ul>`;
+    // 备选
+    const alt = `<p class="muted">${esc(X.altT.pick)}</p><div class="tbl-wrap"><table class="mx-alt"><thead><tr>${X.altT.cols.map((c: string) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+      r.options.map((o: any) => `<tr data-m="${esc(o.fr.model)}" class="${o.fr.model === fr.model ? 'sel' : ''}"><td><b>${esc(o.fr.model)}</b></td><td class="num">${o.inst} × ${o.fr.moduleKva}</td><td class="num">${Math.round(o.util * 100)}%</td><td class="num">${o.free}</td><td class="num">${o.fr.ratingKva} kVA</td><td class="num">${o.fr.dims.d}×${o.fr.dims.w}×${o.fr.dims.h}</td><td class="num">${o.charge ? o.charge.hours + ' h' : '—'}</td></tr>`).join('') + '</tbody></table></div>';
+    const ass = `<ul class="mx-ass">${X.assTxt.map((t: string) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    $('[data-sections]').innerHTML = sec(X.secChk, chk) + sec(X.secBom, bom) + (batt ? sec(X.secBatt, batt) : '') + sec(X.secElec, elec) + sec(X.secInst, inst) + sec(X.secSld, sld(s, r)) + sec(X.secAlt, alt, false) + sec(X.secAss, ass, false);
+
+    // 发送 / 分享文本
+    const lines = [
+      fmt(X.msgHead, { id }),
+      `• ${X.load}: ${q.loadKw} kW, PF ${q.pf}${q.futureKw > q.loadKw ? ` → ${q.futureKw} kW` : ''}`,
+      `• ${X.grid}: ${q.grid === '1ph' ? '1-ph' : q.grid + ' V'} ${q.freq} Hz · ${X.alt} ${q.altitude} m · ${q.ambient} °C`,
+      `• ${B.frame}: ${fr.model} · ${fmt(X.installedTxt, { n: s.inst, m: fr.moduleKva, a: s.nNow, r: q.red })}`,
+      r.batt ? `• ${X.rt}: ${q.minutes} min · ${r.blocks} × 12 V · ${Math.round(r.batt.wCellDesign)} W/cell @ ${ASSUME.endV} V/cell${r.batt.type === 'lfp' ? ` · LFP ${r.batt.kwh} kWh` : ` · ≈ ${r.batt.strings} × ${r.batt.ah} Ah`}` : '',
+      `• Q1 ${e.brIn} A · Q2 ${e.brByp} A · Q3 ${e.brOut} A${r.batt ? ` · QF ${r.batt.breakerDc} A DC` : ''}`,
+    ].filter(Boolean);
+    saveUrl();
+    lastText = lines.join('\n') + '\n' + location.href;
+    const send = root.querySelector('[data-send]') as HTMLAnchorElement | null;
+    if (send) send.href = `https://wa.me/${C.wa}?text=${encodeURIComponent(lastText)}`;
+  }
+
+  // —— 事件 ——
+  root.querySelector('[data-in]')!.addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('[data-k]') as HTMLElement | null; if (!b) return;
+    const k = b.dataset.k!; st[k] = b.dataset.v!; pick = '';
+    root.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.toggle('on', x === b));
+    if (k === 'r') { const hint = root.querySelector('[data-redhint]'); const H = JSON.parse(root.dataset.redhints || '{}'); if (hint && H[st.r]) hint.textContent = H[st.r]; }
+    render();
   });
-  $('[data-reset]').addEventListener('click', draw);
-  var load = $('[data-load]'), range = $('[data-range]');
-  load.addEventListener('input', function () { range.value = Math.min(600, Math.max(5, +load.value || 5)); draw(); });
-  range.addEventListener('input', function () { load.value = range.value; draw(); });
-  $('[data-future]').addEventListener('input', draw);
-  $('[data-red]').addEventListener('click', function (e) {
-    var b = e.target.closest('.chip'); if (!b) return;
-    this.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
-    red = +b.dataset.v; $('[data-redhint]').textContent = c.t.redHint[red]; draw();
+  root.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('input', () => { num[(el as HTMLInputElement).dataset.n!] = (el as HTMLInputElement).value; pick = ''; render(); }));
+  root.querySelector('[data-sections]')!.addEventListener('click', (ev) => {
+    const tr = (ev.target as HTMLElement).closest('tr[data-m]') as HTMLElement | null; if (!tr) return;
+    pick = tr.dataset.m!; render(); $('[data-out]').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  draw();
-})();
+  $('[data-cab]').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('.slot') as HTMLButtonElement | null; if (!b || b.disabled || failed) return;
+    failed = true; b.classList.add('fail');
+    const red = +st.r;
+    failMsg.textContent = red > 0 ? (root.dataset.failok || '') : (root.dataset.failno || '');
+    failMsg.className = 'bld-fail ' + (red > 0 ? 'ok' : 'bad');
+    if (red > 0) { const r = root.querySelector('[data-cab] .slot.red'); if (r && r !== b) r.classList.add('takeover'); }
+    ($('[data-reset]') as HTMLElement).hidden = false;
+  });
+  $('[data-reset]').addEventListener('click', render);
+  $('[data-print]').addEventListener('click', () => { root.querySelectorAll('.mx-sec').forEach((d) => d.setAttribute('open', '')); window.print(); });
+  $('[data-link]').addEventListener('click', () => {
+    const b = $('[data-link]'), o = b.textContent;
+    try { navigator.clipboard.writeText(location.href).then(() => { b.textContent = X.linkOk; setTimeout(() => (b.textContent = o), 1500); }); } catch (e) { /* 忽略 */ }
+  });
+  render();
 </script>
 
 <style>
@@ -487,9 +527,7 @@ const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
   .feat p { margin: 0; font-size: 14px; color: var(--muted); }
   .vs .card.hi { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
-  .mod .sizer { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
-  @media (max-width: 860px) { .mod .sizer { grid-template-columns: minmax(0, 1fr); } }
-  /* —— 模块化专用 —— */
+/* —— 模块化专用 —— */
   .mod .pimg :global(svg) { width: 62%; }
   .vs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 760px) { .vs.two { grid-template-columns: minmax(0, 1fr); } }
@@ -536,4 +574,64 @@ const RED = { 0: 'N', 1: 'N+1', 2: 'N+2' };
   .bld-alt { display: grid; gap: 6px; }
   .bld-alt :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 14px; }
   .bld-alt :global(a span) { color: var(--muted); font: 13px var(--mono); }
+  /* —— 工程选型器 —— */
+  .mx { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .mx { grid-template-columns: minmax(0, 1fr); } }
+  .mx-in { display: grid; gap: 10px; margin: 0; }
+  .mx-s { margin: 0; border: 1px solid var(--line); display: grid; gap: 12px; padding: 14px 16px; min-width: 0; }
+  .mx-s legend { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 0 4px; }
+  .sn { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font: 700 12px var(--mono); flex: none; }
+  .mx-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .mx-f { display: grid; gap: 6px; align-content: start; }
+  .mx-f > span:first-child { font-size: 13px; font-weight: 600; }
+  .mx-f select { font: 14px var(--mono); padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .mx .bld-num input { width: 120px; font-size: 18px; }
+  .mx-out { position: sticky; top: 12px; display: grid; gap: 12px; }
+  @media (max-width: 1000px) { .mx-out { position: static; } }
+  .mx-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .mx-id { font: 600 12px var(--mono); color: var(--muted); }
+  .mx-acts { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .mx-acts .btn { min-height: 40px; font-size: 14px; }
+</style>
+
+<style is:global>
+  .mx .mx-sec { border-top: 1px solid var(--line); padding: 10px 0 2px; }
+  .mx .mx-sec > summary { cursor: pointer; font: 700 14px var(--body); text-transform: uppercase; letter-spacing: .03em; list-style: none; display: flex; justify-content: space-between; }
+  .mx .mx-sec > summary::after { content: '+'; color: var(--muted); }
+  .mx .mx-sec[open] > summary::after { content: '–'; }
+  .mx .mx-dl { margin: 8px 0; display: grid; font-size: 13.5px; }
+  .mx .mx-dl > div { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .mx .mx-dl dt { color: var(--muted); }
+  .mx .mx-dl dd { margin: 0; font-weight: 500; }
+  .mx .mx-dl .hl { color: var(--accent); font-size: 15px; }
+  .mx .mx-dl .bad { color: #a5480b; }
+  .mx .mx-note { font-size: 12.5px; color: var(--muted); margin: 6px 0 8px; }
+  .mx .mx-chk { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+  .mx .mx-chk li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 10px; border-radius: 8px; background: var(--bg); }
+  .mx .mx-chk li i { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: #8d9997; }
+  .mx .mx-chk li.ok i { background: #3ee08a; } .mx .mx-chk li.warn i { background: var(--charge); } .mx .mx-chk li.bad i { background: #e5484d; }
+  .mx .mx-chk li.bad { background: #fdeceb; } .mx .mx-chk li.warn { background: #fdf6e1; }
+  .mx .mx-ass { margin: 8px 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+  .mx .mx-alt { min-width: 620px; font-size: 13px; }
+  .mx .mx-alt tbody tr { cursor: pointer; }
+  .mx .mx-alt tbody tr:hover td { background: var(--bg); }
+  .mx .mx-alt tr.sel td { background: var(--ok-soft); }
+  .mx .bld-title a { color: var(--ink); }
+  .mx .mx-sld { width: 100%; height: auto; margin: 8px 0; }
+  .mx .mx-sld .ln path { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .mx .mx-sld .ln .mb { stroke-dasharray: 6 4; stroke: var(--muted); }
+  .mx .mx-sld .br rect { fill: #fff; stroke: var(--ink); stroke-width: 2; }
+  .mx .mx-sld .ups { fill: var(--ok-soft); stroke: var(--accent); stroke-width: 2; }
+  .mx .mx-sld .bat { fill: #fdf6e1; stroke: var(--charge); stroke-width: 2; }
+  .mx .mx-sld text { font: 11px var(--mono); fill: var(--ink); text-anchor: middle; }
+  .mx .mx-sld .tx { text-anchor: start; }
+  .mx .mx-sld text.c { text-anchor: middle; }
+  .mx .mx-sld text.b { font-weight: 700; }
+  @media print {
+    header.top, footer, .crumbs, .hero, .mx-in, .mx-acts, .legend, .bld-fail, [data-reset], .block:not(#builder), .cta, #builder > .head { display: none !important; }
+    .mx { display: block !important; }
+    .mx-out { position: static !important; border: 0 !important; box-shadow: none !important; }
+    .mx .mx-sec > summary::after { content: '' !important; }
+    body { background: #fff !important; }
+  }
 </style>
