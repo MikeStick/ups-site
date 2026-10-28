@@ -56,7 +56,7 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
         <fieldset class="card mx-s">
           <legend><span class="sn">A</span>{X.sA}</legend>
           <div class="mx-f"><span>{X.grid}</span>
-            <div class="rt-chips">{chips('g', [['380', '380 V'], ['400', '400 V'], ['415', '415 V'], ['1ph', X.g1], ['208', X.gAm], ['480', X.g480]], '400').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
+            <div class="rt-chips">{chips('g', [['380', '380 V'], ['400', '400 V'], ['415', '415 V'], ['480', X.g480]], '400').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
             <small class="muted">{X.gridHint}</small>
           </div>
           <div class="mx-row">
@@ -207,6 +207,8 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
     for (const k of Object.keys(st)) if (u.has(k)) st[k] = u.get(k) || '';
     for (const k of Object.keys(num)) if (u.has(k)) num[k] = u.get(k) || '';
     pick = u.get('m') || '';
+    // 10 kVA 以上都是三相电：旧链接里的单相 / 208 V 选项改回默认 400 V
+    if (!['380', '400', '415', '480'].includes(st.g)) st.g = '400';
   } catch (e) { /* 忽略 */ }
   root.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', st[(b as HTMLElement).dataset.k!] === (b as HTMLElement).dataset.v));
   root.querySelectorAll('[data-n]').forEach((el) => { const k = (el as HTMLInputElement).dataset.n!; if (num[k] !== '') (el as HTMLInputElement).value = num[k]; });
