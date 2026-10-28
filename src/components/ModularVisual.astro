@@ -8,12 +8,25 @@ import ModularBattery from './ModularBattery.astro';
 interface Props { lang: string }
 const { lang } = Astro.props;
 const FRAMES = [2, 3, 4, 6, 8, 10];
+// 选配卡：插在机柜顶部的智能卡槽（最多 4 张），温湿度传感器是外接配件（通过 SNMP 卡接入）
+const SLOTS = 4;
+const CARDS = [
+  { id: 'snmp', tag: 'SNMP', ports: 'rj', en: ['SNMP card', 'Web / SNMP monitoring over Ethernet, e-mail and trap alarms'], es: ['Tarjeta SNMP', 'Monitoreo web / SNMP por Ethernet, alarmas por correo y trap'], ru: ['Карта SNMP', 'Мониторинг через веб / SNMP по Ethernet, оповещения по e-mail и trap'] },
+  { id: 'modbus', tag: 'MODBUS', ports: 'tb3', en: ['Modbus card', 'Modbus RTU / TCP to BMS, DCIM or SCADA'], es: ['Tarjeta Modbus', 'Modbus RTU / TCP hacia BMS, DCIM o SCADA'], ru: ['Карта Modbus', 'Modbus RTU / TCP в BMS, DCIM или SCADA'] },
+  { id: 'dry', tag: 'RELAY', ports: 'tb6', en: ['Dry contact card', 'Relay outputs: mains failure, low battery, bypass, alarm'], es: ['Tarjeta de contactos secos', 'Salidas de relé: falla de red, batería baja, bypass, alarma'], ru: ['Карта сухих контактов', 'Релейные выходы: пропадание сети, разряд батарей, байпас, авария'] },
+  { id: 'rs485', tag: 'RS485', ports: 'db9', en: ['RS485 / RS232 card', 'Serial port for monitoring software'], es: ['Tarjeta RS485 / RS232', 'Puerto serie para software de monitoreo'], ru: ['Карта RS485 / RS232', 'Последовательный порт для ПО мониторинга'] },
+  { id: 'par', tag: 'PARA', ports: 'rj2', en: ['Parallel card', 'Parallel several cabinets for more capacity'], es: ['Tarjeta de paralelo', 'Conecta varios gabinetes en paralelo para más capacidad'], ru: ['Карта параллельной работы', 'Параллельное подключение шкафов для увеличения мощности'] },
+  { id: 'lbs', tag: 'LBS', ports: 'rj2', en: ['LBS card', 'Load bus synchronization: keeps two systems in phase (2N)'], es: ['Tarjeta LBS', 'Sincroniza los buses de carga de dos sistemas (2N)'], ru: ['Карта LBS', 'Синхронизация шин нагрузки двух систем (2N)'] },
+  { id: 'bms', tag: 'BMS', ports: 'tb3', en: ['Battery monitoring card', 'Voltage, internal resistance and temperature of every block'], es: ['Tarjeta de monitoreo de baterías', 'Voltaje, resistencia interna y temperatura de cada bloque'], ru: ['Карта мониторинга батарей', 'Напряжение, внутреннее сопротивление и температура каждого блока'] },
+  { id: 'emd', tag: 'T/H', ext: true, en: ['Temperature & humidity sensor', 'Probe for the UPS / battery room, connects to the SNMP card'], es: ['Sensor de temperatura y humedad', 'Sonda para la sala de UPS / baterías, se conecta a la tarjeta SNMP'], ru: ['Датчик температуры и влажности', 'Датчик для помещения ИБП / батарей, подключается к карте SNMP'] },
+];
+const cards = CARDS.map((c) => ({ id: c.id, tag: c.tag, ports: c.ports || '', ext: !!c.ext, name: (c[lang] || c.en)[0], desc: (c[lang] || c.en)[1] }));
 const MODS = [10, 15, 20, 30, 50, 60, 100];
 const V = {
   en: {
     eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating — modules slide in in real time, one rating per frame. Then size the batteries and send the whole configuration.',
     s1: 'Frame', s1n: 'Up to {n} power modules', slots: '{n} slots', s2: 'Power module', s2n: 'All modules in a frame have the same rating', s3: 'Modules installed', s4: 'Redundancy',
-    total: 'System capacity', usable: 'Usable with N+1', tipL: 'What do N, N+1 and 2N mean?', redTip: [['N', 'No redundant module. All installed modules share the load; if one fails, the system capacity drops by one module. Lowest cost.'], ['N+1', 'One spare module. If any single module fails, the others still carry the full load and the module can be hot-swapped. The usual choice for IT rooms and data centers.'], ['2N', 'Two complete UPS systems in parallel, each able to carry the whole load alone. Even if an entire system (frame, bypass or battery) fails, the load stays protected. Highest reliability.']], usableN: 'No redundant module', usable2N: 'Usable with 2N (one system)', dual: '2N · two systems in parallel', sumUps: 'UPS', sumBat: 'Battery', fixFirst: 'Fix the load above before sending.', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
+    total: 'System capacity', usable: 'Usable with N+1', tipL: 'What do N, N+1 and 2N mean?', redTip: [['N', 'No redundant module. All installed modules share the load; if one fails, the system capacity drops by one module. Lowest cost.'], ['N+1', 'One spare module. If any single module fails, the others still carry the full load and the module can be hot-swapped. The usual choice for IT rooms and data centers.'], ['2N', 'Two complete UPS systems in parallel, each able to carry the whole load alone. Even if an entire system (frame, bypass or battery) fails, the load stays protected. Highest reliability.']], s5: 'Option cards', s5n: 'Up to {n} intelligent card slots', slotsUsed: '{u} / {n} slots', full: 'All card slots are used', needSnmp: 'Needs the SNMP card — added automatically.', lbsHint: 'For 2N we recommend the LBS card so both systems stay synchronized.', ext: 'External', sumCards: 'Cards', noCards: 'None', cardsMsg: '\n• Option cards: {c}', perCab: ' (one set per cabinet)', usableN: 'No redundant module', usable2N: 'Usable with 2N (one system)', dual: '2N · two systems in parallel', sumUps: 'UPS', sumBat: 'Battery', fixFirst: 'Fix the load above before sending.', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
     model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Size the batteries ↓',
     msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)', red2: '\n• Redundancy: 2N — 2 identical systems in parallel (2 × {t} kW, usable {x} kW)',
     hint: 'Click a module to pull it out and see how the others share the load.',
@@ -22,7 +35,7 @@ const V = {
   es: {
     eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo: los módulos se insertan en tiempo real, una sola potencia por gabinete. Luego dimensione las baterías y envíe toda la configuración.',
     s1: 'Gabinete', s1n: 'Hasta {n} módulos de potencia', slots: '{n} ranuras', s2: 'Módulo de potencia', s2n: 'Todos los módulos de un gabinete tienen la misma potencia', s3: 'Módulos instalados', s4: 'Redundancia',
-    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', tipL: '¿Qué significan N, N+1 y 2N?', redTip: [['N', 'Sin módulo de reserva. Todos los módulos comparten la carga; si uno falla, la capacidad baja en un módulo. El menor costo.'], ['N+1', 'Un módulo de reserva. Si falla cualquier módulo, los demás siguen soportando toda la carga y se cambia en caliente. Lo habitual en salas de TI y centros de datos.'], ['2N', 'Dos sistemas UPS completos en paralelo, cada uno capaz de soportar solo toda la carga. Aunque falle un sistema entero (gabinete, bypass o baterías), la carga sigue protegida. Máxima confiabilidad.']], usableN: 'Sin módulo de reserva', usable2N: 'Utilizable con 2N (un sistema)', dual: '2N · dos sistemas en paralelo', sumUps: 'UPS', sumBat: 'Baterías', fixFirst: 'Corrija la carga antes de enviar.', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
+    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', tipL: '¿Qué significan N, N+1 y 2N?', redTip: [['N', 'Sin módulo de reserva. Todos los módulos comparten la carga; si uno falla, la capacidad baja en un módulo. El menor costo.'], ['N+1', 'Un módulo de reserva. Si falla cualquier módulo, los demás siguen soportando toda la carga y se cambia en caliente. Lo habitual en salas de TI y centros de datos.'], ['2N', 'Dos sistemas UPS completos en paralelo, cada uno capaz de soportar solo toda la carga. Aunque falle un sistema entero (gabinete, bypass o baterías), la carga sigue protegida. Máxima confiabilidad.']], s5: 'Tarjetas opcionales', s5n: 'Hasta {n} ranuras inteligentes', slotsUsed: '{u} / {n} ranuras', full: 'Todas las ranuras están ocupadas', needSnmp: 'Requiere la tarjeta SNMP: se añadió automáticamente.', lbsHint: 'Para 2N recomendamos la tarjeta LBS para mantener ambos sistemas sincronizados.', ext: 'Externo', sumCards: 'Tarjetas', noCards: 'Ninguna', cardsMsg: '\n• Tarjetas opcionales: {c}', perCab: ' (un juego por gabinete)', usableN: 'Sin módulo de reserva', usable2N: 'Utilizable con 2N (un sistema)', dual: '2N · dos sistemas en paralelo', sumUps: 'UPS', sumBat: 'Baterías', fixFirst: 'Corrija la carga antes de enviar.', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
     model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Calcular las baterías ↓',
     msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)', red2: '\n• Redundancia: 2N — 2 sistemas iguales en paralelo (2 × {t} kW, utilizable {x} kW)',
     hint: 'Haga clic en un módulo para retirarlo y ver cómo los demás reparten la carga.',
@@ -31,7 +44,7 @@ const V = {
   ru: {
     eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля — модули устанавливаются в реальном времени, в одном шкафу одна мощность. Затем рассчитайте батареи и отправьте всю конфигурацию.',
     s1: 'Шкаф', s1n: 'До {n} силовых модулей', slots: '{n} слотов', s2: 'Силовой модуль', s2n: 'Все модули в шкафу одной мощности', s3: 'Установлено модулей', s4: 'Резервирование',
-    total: 'Мощность системы', usable: 'Доступно при N+1', tipL: 'Что означают N, N+1 и 2N?', redTip: [['N', 'Без резервного модуля. Все модули делят нагрузку; при отказе одного мощность системы снижается на один модуль. Самый дешёвый вариант.'], ['N+1', 'Один резервный модуль. При отказе любого модуля остальные несут всю нагрузку, модуль меняется в горячем режиме. Обычный выбор для серверных и ЦОД.'], ['2N', 'Две полноценные системы ИБП параллельно, каждая может одна нести всю нагрузку. Даже при отказе целой системы (шкаф, байпас или батареи) нагрузка остаётся защищённой. Максимальная надёжность.']], usableN: 'Без резервного модуля', usable2N: 'Доступно при 2N (одна система)', dual: '2N · две системы параллельно', sumUps: 'ИБП', sumBat: 'Батареи', fixFirst: 'Сначала исправьте нагрузку.', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
+    total: 'Мощность системы', usable: 'Доступно при N+1', tipL: 'Что означают N, N+1 и 2N?', redTip: [['N', 'Без резервного модуля. Все модули делят нагрузку; при отказе одного мощность системы снижается на один модуль. Самый дешёвый вариант.'], ['N+1', 'Один резервный модуль. При отказе любого модуля остальные несут всю нагрузку, модуль меняется в горячем режиме. Обычный выбор для серверных и ЦОД.'], ['2N', 'Две полноценные системы ИБП параллельно, каждая может одна нести всю нагрузку. Даже при отказе целой системы (шкаф, байпас или батареи) нагрузка остаётся защищённой. Максимальная надёжность.']], s5: 'Опциональные карты', s5n: 'До {n} интеллектуальных слотов', slotsUsed: '{u} / {n} слотов', full: 'Все слоты заняты', needSnmp: 'Нужна карта SNMP — добавлена автоматически.', lbsHint: 'Для 2N рекомендуем карту LBS — обе системы будут синхронизированы.', ext: 'Внешний', sumCards: 'Карты', noCards: 'Нет', cardsMsg: '\n• Опциональные карты: {c}', perCab: ' (комплект на каждый шкаф)', usableN: 'Без резервного модуля', usable2N: 'Доступно при 2N (одна система)', dual: '2N · две системы параллельно', sumUps: 'ИБП', sumBat: 'Батареи', fixFirst: 'Сначала исправьте нагрузку.', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
     model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Рассчитать батареи ↓',
     msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)', red2: '\n• Резервирование: 2N — 2 одинаковые системы параллельно (2 × {t} кВт, доступно {x} кВт)',
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
@@ -41,7 +54,7 @@ const V = {
 // 规格书里有的组合：槽位数 + 模块规格 → 型号名（取同组合里第一个，Plus 优先于 PI / Mini 的顺序按目录）
 const models: Record<string, string> = {};
 for (const c of catalog()) { const k = `${c.slots}|${c.moduleKva}`; if (!models[k]) models[k] = c.model; }
-const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
+const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V, cards, slots: SLOTS };
 ---
 <section class="block vb" id="visual" data-vb>
   <script type="application/json" data-vb-cfg set:html={JSON.stringify(cfg)} />
@@ -80,6 +93,20 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
           <div class="vb-seg"><button type="button" class="on" data-red="0">N</button><button type="button" data-red="1">N+1</button><button type="button" data-red="2">2N</button></div>
         </div>
       </div>
+      <div class="vb-grp">
+        <div class="vb-gh"><span class="vb-n">5</span><b>{V.s5}</b><small>{V.s5n.replace('{n}', String(SLOTS))}</small><em class="vb-slotc" data-slotc>0 / {SLOTS}</em></div>
+        <div class="vb-cards">
+          {cards.map((c) => (
+            <button type="button" class="vb-card" data-card={c.id} aria-pressed="false" title={c.desc}>
+              <span class:list={['vb-card-ico', c.ports || 'ext']}><i></i><i></i><i></i></span>
+              <span class="vb-card-t"><b>{c.name}</b><small>{c.desc}</small></span>
+              {c.ext && <em class="vb-card-ext">{V.ext}</em>}
+              <span class="vb-card-ck" aria-hidden="true"></span>
+            </button>
+          ))}
+        </div>
+        <p class="vb-cnote" data-cnote hidden></p>
+      </div>
       <div class="vb-read">
         <div class="vb-big"><span>{V.total}</span><b><output data-total>300</output><small> kW</small></b></div>
         <div class="vb-sub"><span data-usable-l>{V.usableN}</span><b><output data-usable>300</output> kW</b></div>
@@ -90,27 +117,30 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
 
     <div class="vb-view">
       <div class="vb-cabs">
-      <div class="vb-cab" data-vbcab style="--slots:10">
+      <div class="vb-cab" data-vbcab style="--slots:10"><span class="vb-emd" data-emd hidden><i></i><b>24°C · 45%</b></span><span class="vb-bus" aria-hidden="true"></span>
         <div class="vb-top">
-          <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcd>300 kW</span><span class="vb-lcd-c" data-lcd2>10 × 30 kW</span></div>
+          <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcd>300 kW</span><span class="vb-lcd-c" data-lcd2>10 × 30 kW</span><svg class="vb-wave" viewBox="0 0 120 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10 Q7.5 0 15 10 T30 10 T45 10 T60 10 T75 10 T90 10 T105 10 T120 10 T135 10 T150 10"/></svg></div>
           <div class="vb-leds"><i></i><i></i><i></i></div>
         </div>
+        <div class="vb-bay" data-bay></div>
         <div class="vb-slots" data-vbslots></div>
         <div class="vb-base"><span>SKE<em data-cab-a hidden> · A</em></span></div>
       </div>
       <div class="vb-cabb" data-cabb hidden>
-      <div class="vb-cab" data-vbcab2 style="--slots:10">
+      <div class="vb-cab" data-vbcab2 style="--slots:10"><span class="vb-emd" data-emd2 hidden><i></i><b>24°C · 45%</b></span><span class="vb-bus" aria-hidden="true"></span>
         <div class="vb-top">
-          <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcdb>300 kW</span><span class="vb-lcd-c" data-lcdb2>10 × 30 kW</span></div>
+          <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcdb>300 kW</span><span class="vb-lcd-c" data-lcdb2>10 × 30 kW</span><svg class="vb-wave" viewBox="0 0 120 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10 Q7.5 0 15 10 T30 10 T45 10 T60 10 T75 10 T90 10 T105 10 T120 10 T135 10 T150 10"/></svg></div>
           <div class="vb-leds"><i></i><i></i><i></i></div>
         </div>
+        <div class="vb-bay" data-bay2></div>
         <div class="vb-slots" data-vbslots2></div>
         <div class="vb-base"><span>SKE · B</span></div>
       </div>
       </div>
       </div>
       <div class="vb-par" data-par hidden><i></i><span>{V.dual}</span><i></i></div>
-      <div class="vb-floor"></div>
+      <div class="vb-floor"><span class="vb-ring"></span><span class="vb-ring r2"></span></div>
+      <div class="vb-dust" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i style={`--x:${(i * 37) % 100}%;--t:${6 + (i % 5)}s;--d:${-(i * 0.7)}s`}></i>)}</div>
       <p class="vb-hint">{V.hint}</p>
     </div>
     <ModularBattery lang={lang} />
@@ -139,7 +169,8 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   var root = document.querySelector('[data-vb]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-vb-cfg]').textContent), T = c.t;
   var $ = function (s) { return root.querySelector(s); };
-  var st = { n: 10, m: 30, u: 10, red: 0, out: -1, load: 0, bat: null };
+  var st = { n: 10, m: 30, u: 10, red: 0, out: -1, load: 0, bat: null, cards: [] };
+  var CARD = {}; c.cards.forEach(function (x) { CARD[x.id] = x; });
   var fmt = function (s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); };
   var gen = 0;
   var lastMsg = '';
@@ -148,6 +179,49 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
     var from = +el.dataset.v || 0, t0 = performance.now(), d = 450; el.dataset.v = to;
     (function step(t) { var k = Math.min(1, (t - t0) / d); el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
   }
+  // 卡槽：已选的智能卡插在机柜顶部，最新插入的那张有动画
+  var PORTS = { rj: '<i class="p rj"></i>', rj2: '<i class="p rj"></i><i class="p rj"></i>', tb3: '<i class="p tb"></i><i class="p tb"></i><i class="p tb"></i>', tb6: '<i class="p tb"></i><i class="p tb"></i><i class="p tb"></i><i class="p tb"></i><i class="p tb"></i><i class="p tb"></i>', db9: '<i class="p db"></i>' };
+  var lastCard = '';
+  function bay() {
+    var slot = st.cards.filter(function (id) { return !CARD[id].ext; });
+    var h = '';
+    for (var i = 0; i < c.slots; i++) {
+      var id = slot[i];
+      h += id ? '<span class="vb-ic' + (id === lastCard ? ' in' : '') + '"><b>' + CARD[id].tag + '</b><span class="pp">' + (PORTS[CARD[id].ports] || '') + '</span><i class="l"></i></span>' : '<span class="vb-ic empty"></span>';
+    }
+    $('[data-bay]').innerHTML = h; $('[data-bay2]').innerHTML = h;
+    var emd = st.cards.indexOf('emd') >= 0; $('[data-emd]').hidden = !emd; $('[data-emd2]').hidden = !emd;
+    $('[data-slotc]').textContent = fmt(T.slotsUsed, { u: slot.length, n: c.slots });
+    var full = slot.length >= c.slots;
+    root.querySelectorAll('[data-card]').forEach(function (b) {
+      var on = st.cards.indexOf(b.dataset.card) >= 0;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+      var dis = !on && full && !CARD[b.dataset.card].ext; b.disabled = dis; b.classList.toggle('dis', dis);
+    });
+    lastCard = '';
+  }
+  function cardNote() {
+    var n = [];
+    if (st.cnote) n.push(st.cnote);
+    if (st.cards.filter(function (id) { return !CARD[id].ext; }).length >= c.slots) n.push(T.full);
+    if (st.red === 2 && st.cards.indexOf('lbs') < 0) n.push(T.lbsHint);
+    var el = $('[data-cnote]'); el.textContent = n.join(' '); el.hidden = !n.length;
+  }
+  root.querySelectorAll('[data-card]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.card, i = st.cards.indexOf(id), extra = '';
+      if (i >= 0) st.cards.splice(i, 1);
+      else {
+        st.cards.push(id); lastCard = id;
+        // 温湿度传感器要接在 SNMP 卡上
+        if (id === 'emd' && st.cards.indexOf('snmp') < 0) {
+          if (st.cards.filter(function (x) { return !CARD[x].ext; }).length < c.slots) { st.cards.push('snmp'); lastCard = 'snmp'; extra = T.needSnmp; }
+        }
+      }
+      if (id === 'snmp' && i >= 0) { var e = st.cards.indexOf('emd'); if (e >= 0) st.cards.splice(e, 1); }
+      st.cnote = extra; bay(); update();
+    });
+  });
   function build(animate, animB) {
     gen++;
     var box = $('[data-vbslots]'), cab = $('[data-vbcab]');
@@ -195,6 +269,10 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
     var bat = st.bat;
     $('[data-sum]').innerHTML = '<div><span>' + T.sumUps + '</span><b>' + (dual ? '2 × ' : '') + total + ' kW · ' + st.u + ' × ' + st.m + ' kW · ' + (dual ? '2N' : st.red ? 'N+1' : 'N') + (model ? ' · ' + model : '') + '</b></div>' +
       (bat && bat.sum ? '<div><span>' + T.sumBat + '</span><b' + (bat.blocked ? ' class="bad"' : '') + '>' + bat.sum + '</b></div>' : '');
+    var cn = st.cards.map(function (id) { return CARD[id].name; });
+    $('[data-sum]').innerHTML += '<div><span>' + T.sumCards + '</span><b>' + (cn.length ? cn.join(' · ') + (dual ? ' × 2' : '') : T.noCards) + '</b></div>';
+    if (cn.length) lastMsg += fmt(T.cardsMsg, { c: cn.join(', ') + (dual ? T.perCab : '') });
+    if (!quiet) cardNote();
     var blk = !!(bat && bat.blocked), go = $('[data-vb-open]');
     $('[data-blk]').hidden = !blk; if (go) go.disabled = blk;
     // 把当前系统告诉电池选型（负载上限 = 系统容量的 80%）
@@ -275,6 +353,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   document.addEventListener('ske:send', function (e) { var d = e.detail || {}; opener = d.from || null; openPop(d.msg, d.subj); });
   pop.addEventListener('click', function (e) { if (e.target === pop || e.target.closest('[data-vb-close]')) closePop(); else if (e.target.closest('.vb-pop-btn')) setTimeout(closePop, 300); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) closePop(); });
+  bay();
   build(true);
   // 滚动到这里才播放第一次插入动画
   if ('IntersectionObserver' in window) {
@@ -302,6 +381,64 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   .vb-go { min-height: 50px; padding: 0 26px; font-size: 16px; cursor: pointer; box-shadow: 0 10px 30px rgba(94,240,160,.25); }
   .vb-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
   @media (max-width: 520px) { .vb-go { width: 100%; justify-content: center; } }
+  .vb-slotc { margin-left: auto; font: 600 11px var(--mono); font-style: normal; color: #5ef0a0; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(94,240,160,.35); }
+  .vb-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .vb-cards { grid-template-columns: minmax(0, 1fr); } }
+  .vb-card { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; gap: 10px; align-items: center; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); color: #cfdcd8; cursor: pointer; font-family: var(--body); transition: border-color .2s, background .2s, transform .2s, opacity .2s; }
+  .vb-card:hover:not(:disabled) { transform: translateY(-2px); border-color: rgba(94,240,160,.5); }
+  .vb-card.on { border-color: #5ef0a0; background: linear-gradient(135deg, rgba(94,240,160,.16), rgba(94,240,160,.04)); color: #fff; box-shadow: 0 0 0 1px #5ef0a0 inset, 0 8px 24px rgba(94,240,160,.12); }
+  .vb-card.dis { opacity: .38; cursor: not-allowed; }
+  .vb-card-t { display: grid; gap: 2px; min-width: 0; }
+  .vb-card-t b { font-size: 13.5px; }
+  .vb-card-t small { font-size: 11.5px; line-height: 1.35; color: #8fa7a1; }
+  .vb-card-ext { position: absolute; top: 6px; right: 34px; font: 600 9.5px var(--mono); font-style: normal; text-transform: uppercase; color: #facc15; }
+  .vb-card-ico { width: 34px; height: 26px; border-radius: 4px; background: linear-gradient(180deg, #2b3537, #1c2325); box-shadow: inset 0 0 0 1px #46575a; display: flex; align-items: center; justify-content: center; gap: 2px; }
+  .vb-card-ico i { width: 5px; height: 7px; border-radius: 1px; background: #6b7a78; }
+  .vb-card.on .vb-card-ico i { background: #5ef0a0; box-shadow: 0 0 6px #5ef0a0; }
+  .vb-card-ico.ext { border-radius: 50%; width: 26px; justify-self: center; } .vb-card-ico.ext i { width: 3px; height: 3px; border-radius: 50%; }
+  .vb-card-ck { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,.3); position: relative; }
+  .vb-card.on .vb-card-ck { background: #5ef0a0; border-color: #5ef0a0; }
+  .vb-card.on .vb-card-ck::after { content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px; border: solid #062019; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .vb-cnote { margin: 10px 0 0; font-size: 12.5px; color: #facc15; }
+  /* 卡槽（机柜顶部） */
+  .vb-bay { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; padding: 4px; border-radius: 5px; background: #0d1112; box-shadow: inset 0 0 0 1px #2a3436; }
+  .vb-bay :global(.vb-ic) { position: relative; height: 24px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 3px; padding: 0 4px 0 5px; overflow: hidden;
+    background: linear-gradient(180deg, #3d494b, #2b3436); box-shadow: inset 0 0 0 1px #56676a, inset 2px 0 0 #5ef0a0; }
+  .vb-bay :global(.vb-ic.empty) { background: repeating-linear-gradient(90deg, #151b1c 0 4px, #1a2122 4px 8px); box-shadow: inset 0 0 0 1px #262f31; }
+  .vb-bay :global(.vb-ic b) { font: 700 8.5px var(--mono); color: #e6efec; letter-spacing: .02em; white-space: nowrap; }
+  .vb-bay :global(.vb-ic .pp) { display: flex; gap: 1.5px; }
+  .vb-bay :global(.p.rj) { width: 6px; height: 6px; border-radius: 1px; background: #0b0f10; box-shadow: inset 0 -2px 0 #c9a227; }
+  .vb-bay :global(.p.tb) { width: 2.5px; height: 6px; background: #4ade80; border-radius: 1px; }
+  .vb-bay :global(.p.db) { width: 12px; height: 6px; border-radius: 1px 1px 3px 3px; background: #0b0f10; box-shadow: inset 0 0 0 1px #8a9a98; }
+  .vb-bay :global(.vb-ic .l) { position: absolute; right: 2px; top: 2px; width: 3px; height: 3px; border-radius: 50%; background: #5ef0a0; box-shadow: 0 0 5px #5ef0a0; animation: vbBlink 1.4s steps(2) infinite; }
+  .vb-bay :global(.vb-ic.in) { animation: vbCardIn .6s cubic-bezier(.2,.9,.2,1) both; }
+  @keyframes vbCardIn { from { transform: translateY(-140%); opacity: 0; } 70% { transform: translateY(6%); opacity: 1; } }
+  .vb-view.dual .vb-bay :global(.vb-ic b) { font-size: 7px; } .vb-view.dual .vb-bay :global(.vb-ic .pp) { display: none; }
+  /* 温湿度传感器：挂在机柜侧面 */
+  .vb-emd { position: absolute; z-index: 3; right: 14px; top: -30px; display: flex; align-items: center; gap: 5px; }
+  .vb-emd[hidden] { display: none; }
+  .vb-emd i { width: 24px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #e5e7eb, #9ca3af); box-shadow: 0 0 0 1px #6b7280; }
+  .vb-emd b { font: 700 9px var(--mono); color: #facc15; background: rgba(0,0,0,.7); padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+  /* —— 更炫的机柜效果 —— */
+  .vb-cab { box-shadow: inset 0 0 0 2px #3a4648, 24px 30px 60px rgba(0,0,0,.55), 0 0 60px rgba(94,240,160,.12); }
+  .vb-cab::before { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: 12px; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.07) 45%, transparent 55%); background-size: 300% 100%; animation: vbSheen 7s ease-in-out infinite; }
+  @keyframes vbSheen { 0%, 60% { background-position: 120% 0; } 100% { background-position: -80% 0; } }
+  .vb-bus { position: absolute; left: 4px; top: 70px; bottom: 50px; width: 3px; border-radius: 2px; background: linear-gradient(180deg, transparent, #5ef0a0 30%, #5ef0a0 70%, transparent); background-size: 100% 200%; opacity: .7; animation: vbBus 1.8s linear infinite; box-shadow: 0 0 10px rgba(94,240,160,.6); }
+  @keyframes vbBus { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
+  .vb-lcd { position: relative; overflow: hidden; }
+  .vb-lcd::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); pointer-events: none; }
+  .vb-wave { width: 100%; height: 14px; margin-top: 2px; overflow: hidden; }
+  .vb-wave path { fill: none; stroke: #5ef0a0; stroke-width: 1.6; filter: drop-shadow(0 0 3px #5ef0a0); animation: vbWave 1.2s linear infinite; }
+  @keyframes vbWave { to { transform: translateX(-30px); } }
+  .vb-leds i:first-child { animation: vbBlink 2s ease-in-out infinite; }
+  @keyframes vbBlink { 50% { opacity: .3; } }
+  .vb-floor { position: relative; }
+  .vb-ring { position: absolute; left: 50%; top: 50%; width: 70%; height: 60%; border-radius: 50%; border: 1px solid rgba(94,240,160,.45); transform: translate(-50%, -50%) scale(.4); animation: vbRing 3.2s ease-out infinite; }
+  .vb-ring.r2 { animation-delay: 1.6s; }
+  @keyframes vbRing { from { opacity: .9; transform: translate(-50%, -50%) scale(.4); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } }
+  .vb-dust { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .vb-dust i { position: absolute; left: var(--x); bottom: -10px; width: 3px; height: 3px; border-radius: 50%; background: #5ef0a0; box-shadow: 0 0 6px #5ef0a0; opacity: 0; animation: vbDust var(--t) linear var(--d) infinite; }
+  @keyframes vbDust { 10% { opacity: .7; } 90% { opacity: 0; } to { transform: translateY(-520px); opacity: 0; } }
   .vb-gh-tip { position: relative; flex-wrap: nowrap; }
   .vb-tip { position: relative; display: inline-flex; margin-left: auto; align-self: center; }
   .vb-q { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.06); color: #cfdcd8; font: 700 12px/1 var(--mono); cursor: help; padding: 0; }
@@ -441,5 +578,6 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   .vb-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #cfdcd8; font-size: 22px; cursor: pointer; }
   @keyframes vbFade { from { opacity: 0; } }
   @keyframes vbRise { from { transform: translateY(16px) scale(.98); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .vb-cab::before, .vb-bus, .vb-wave path, .vb-ring, .vb-dust i, .vb-bay :global(.vb-ic) { animation: none !important; } }
   @media (prefers-reduced-motion: reduce) { .vb-slots :global(.vb-m.ins), .vb-slots :global(.vb-m.ins::after) { animation: none; } .vb-cab { transform: none; } }
 </style>

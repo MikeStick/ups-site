@@ -19,6 +19,7 @@ const B = {
     eyebrow: 'Battery sizing', h: 'Size the batteries', p: 'Enter the real load and the backup time you need. We size the battery bank for the modular UPS — lead-acid or lithium.',
     s1: 'Actual load power', s1n: 'What the equipment really draws, not the UPS rating', s2: 'Backup time required', s2n: 'Minutes on battery after a power cut', other: 'Other', s3: 'Battery type',
     vrla: 'Lead-acid (VRLA)', vrlaN: 'Lowest cost · 3–5 years in a cool room', lfp: 'Lithium (LiFePO₄)', lfpN: 'Up to 70% lighter · 10+ years · BMS',
+    rack: 'Battery racks', rackN: '{n} × steel rack, {t} tiers × {p} blocks', rackSize: 'Rack L × D × H', blockSize: 'Block L × W × H', cab: 'Battery cabinets', cabN: '{n} × high-voltage cabinet (BMS + 10 modules)', cabSize: 'Cabinet W × D × H', area: 'Floor space incl. service aisle', 
     rec: 'Recommended battery bank', blocks: 'blocks', strings: 'String', stringsN: '{s} × 40 × 12 V', ahBlock: 'Capacity per block', bus: 'DC voltage', weight: 'Weight (approx.)',
     total: 'Total', clusters: 'Cluster', clustersN: '{c} × 512 V · {a} Ah', modules: 'Battery modules', energy: 'Installed energy', need: 'Energy needed', idc: 'Max. DC current', brdc: 'DC breaker',
     spec: 'Matching standard: each cell must deliver ≥ {w} W for {t} min to 1.75 V/cell (25 °C). Check against the battery maker’s constant-power table.',
@@ -41,6 +42,7 @@ const B = {
     eyebrow: 'Dimensionamiento de baterías', h: 'Calcule las baterías', p: 'Indique la carga real y la autonomía que necesita. Dimensionamos el banco de baterías para el UPS modular: plomo-ácido o litio.',
     s1: 'Potencia real de la carga', s1n: 'Lo que consumen los equipos, no la potencia del UPS', s2: 'Autonomía requerida', s2n: 'Minutos con batería tras un corte', other: 'Otra', s3: 'Tipo de batería',
     vrla: 'Plomo-ácido (VRLA)', vrlaN: 'Menor costo · 3–5 años en sala fresca', lfp: 'Litio (LiFePO₄)', lfpN: 'Hasta 70% más liviano · 10+ años · BMS',
+    rack: 'Racks de baterías', rackN: '{n} × rack de acero, {t} niveles × {p} bloques', rackSize: 'Rack L × P × A', blockSize: 'Bloque L × A × H', cab: 'Gabinetes de baterías', cabN: '{n} × gabinete de alto voltaje (BMS + 10 módulos)', cabSize: 'Gabinete A × P × H', area: 'Superficie con pasillo de servicio', 
     rec: 'Banco de baterías recomendado', blocks: 'bloques', strings: 'Cadena', stringsN: '{s} × 40 × 12 V', ahBlock: 'Capacidad por bloque', bus: 'Voltaje CC', weight: 'Peso (aprox.)',
     total: 'Total', clusters: 'Clúster', clustersN: '{c} × 512 V · {a} Ah', modules: 'Módulos de batería', energy: 'Energía instalada', need: 'Energía necesaria', idc: 'Corriente CC máx.', brdc: 'Interruptor CC',
     spec: 'Estándar a cumplir: cada celda debe entregar ≥ {w} W durante {t} min hasta 1,75 V/celda (25 °C). Verifique con la tabla de potencia constante del fabricante.',
@@ -63,6 +65,7 @@ const B = {
     eyebrow: 'Подбор батарей', h: 'Рассчитайте батареи', p: 'Укажите реальную нагрузку и нужное время автономии. Мы подберём батарейный массив для модульного ИБП — свинцово-кислотный или литиевый.',
     s1: 'Реальная мощность нагрузки', s1n: 'Сколько реально потребляет оборудование, а не мощность ИБП', s2: 'Требуемое время автономии', s2n: 'Минут работы от батарей после отключения', other: 'Другое', s3: 'Тип батарей',
     vrla: 'Свинцово-кислотные (VRLA)', vrlaN: 'Дешевле всего · 3–5 лет в прохладном помещении', lfp: 'Литиевые (LiFePO₄)', lfpN: 'До 70% легче · 10+ лет · BMS',
+    rack: 'Стеллажи', rackN: '{n} × стальной стеллаж, {t} яруса × {p} блоков', rackSize: 'Стеллаж Д × Г × В', blockSize: 'Блок Д × Ш × В', cab: 'Батарейные шкафы', cabN: '{n} × высоковольтный шкаф (BMS + 10 модулей)', cabSize: 'Шкаф Ш × Г × В', area: 'Площадь с проходом для обслуживания', 
     rec: 'Рекомендуемый батарейный массив', blocks: 'блоков', strings: 'Цепочки', stringsN: '{s} × 40 × 12 В', ahBlock: 'Ёмкость блока', bus: 'Напряжение DC', weight: 'Масса (прибл.)',
     total: 'Всего', clusters: 'Кластеры', clustersN: '{c} × 512 В · {a} А·ч', modules: 'Батарейные модули', energy: 'Установленная энергия', need: 'Нужная энергия', idc: 'Макс. ток DC', brdc: 'Автомат DC',
     spec: 'Требование для подбора: каждый элемент должен отдавать ≥ {w} Вт в течение {t} мин до 1,75 В/эл. (25 °C). Сверьте с таблицей постоянной мощности производителя.',
@@ -80,7 +83,7 @@ const cfg = { t: B };
       <script type="application/json" data-mb-cfg set:html={JSON.stringify(cfg)} />
       <div class="mb-sec"><span class="mb-eb">{B.eyebrow}</span><small>{B.p}</small></div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">5</span><b>{B.s1}</b><small>{B.s1n}</small></div>
+        <div class="mb-gh"><span class="mb-n">6</span><b>{B.s1}</b><small>{B.s1n}</small></div>
         <div class="mb-kw">
           <input type="range" min="5" max="1200" step="5" value="200" data-kw-r aria-label={B.s1} />
           <label class="mb-num" data-kwbox><input type="number" min="1" max="2000" step="1" value="200" data-kw /><span>{B.kw}</span></label>
@@ -93,14 +96,14 @@ const cfg = { t: B };
         <p class="mb-msg" data-lmsg></p>
       </div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">6</span><b>{B.s2}</b><small>{B.s2n}</small></div>
+        <div class="mb-gh"><span class="mb-n">7</span><b>{B.s2}</b><small>{B.s2n}</small></div>
         <div class="mb-times">
           {TIMES.map((t) => <button type="button" class:list={['mb-t', { on: t === 15 }]} data-t={t} aria-pressed={t === 15 ? 'true' : 'false'}><b>{t}</b><span>{B.min}</span></button>)}
           <label class="mb-num mb-tx"><input type="number" min="1" max="600" step="1" placeholder={B.other} data-tx /><span>{B.min}</span></label>
         </div>
       </div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">7</span><b>{B.s3}</b></div>
+        <div class="mb-gh"><span class="mb-n">8</span><b>{B.s3}</b></div>
         <div class="mb-types">
           <button type="button" class="mb-ty on" data-bt="vrla" aria-pressed="true"><i class="ico pb"></i><b>{B.vrla}</b><small>{B.vrlaN}</small></button>
           <button type="button" class="mb-ty" data-bt="lfp" aria-pressed="false"><i class="ico li"></i><b>{B.lfp}</b><small>{B.lfpN}</small></button>
@@ -120,6 +123,7 @@ const cfg = { t: B };
 
 <script>
   import { batteryPlan } from '../lib/modular-engine.mjs';
+  import { vrlaLayout, lfpCabinet, sceneVrla, sceneLfp } from '../lib/battery-scene.mjs';
   const root = document.querySelector('[data-vb]') as HTMLElement | null; // 和 UPS 可视化选型在同一个面板里
   if (root) {
     const T = JSON.parse(root.querySelector('[data-mb-cfg]')!.textContent || '{}').t;
@@ -132,29 +136,9 @@ const cfg = { t: B };
     let blocked = false;
     const kwN = $('[data-kw]') as HTMLInputElement, kwR = $('[data-kw-r]') as HTMLInputElement, tx = $('[data-tx]') as HTMLInputElement;
 
-    function vis(b: any) {
-      // 最多画 6 串 / 6 簇，多出来的显示 +N
-      const max = 6;
-      if (b.type === 'lfp') {
-        const show = Math.min(max, b.clusters);
-        let h = '';
-        for (let i = 0; i < show; i++) {
-          h += '<div class="rk" style="--d:' + i * 90 + 'ms"><div class="bms">BMS</div>';
-          for (let j = 0; j < 10; j++) h += '<i style="--d:' + (i * 90 + j * 35) + 'ms"></i>';
-          h += '<span>' + b.ah + ' Ah</span></div>';
-        }
-        if (b.clusters > show) h += '<div class="more">+' + (b.clusters - show) + '</div>';
-        return '<div class="lfp">' + h + '</div>';
-      }
-      const show = Math.min(max, b.strings);
-      let h = '';
-      for (let i = 0; i < show; i++) {
-        h += '<div class="st" style="--d:' + i * 70 + 'ms"><em>' + (i + 1) + '</em><div class="cells">';
-        for (let j = 0; j < 40; j++) h += '<i style="--d:' + (i * 70 + j * 12) + 'ms"></i>';
-        h += '</div></div>';
-      }
-      if (b.strings > show) h += '<div class="more">+' + (b.strings - show) + '</div>';
-      return '<div class="vrla">' + h + '</div>';
+    // 电池实景：铅酸 = 钢制电池架 + 电池开关箱；锂电 = 高压电池柜（顶部主控箱 + 10 个模块）
+    function vis(b: any, sets: number) {
+      return b.type === 'lfp' ? sceneLfp(b, { sets }) : sceneVrla(b, vrlaLayout(b.ah), { sets });
     }
     const row = (k: string, v: string, cls = '') => '<div' + (cls ? ' class="' + cls + '"' : '') + '><dt>' + k + '</dt><dd>' + v + '</dd></div>';
 
@@ -204,7 +188,8 @@ const cfg = { t: B };
         $('[data-big]').textContent = String(b.kwhInst);
         $('[data-bigu]').textContent = ' kWh';
         $('[data-dl]').innerHTML = row(T.clusters, fmt(T.clustersN, { c: b.clusters, a: b.ah }), 'hl') + row(T.modules, b.modules + ' × 51.2 V · ' + b.moduleKwh + ' kWh') +
-          row(T.need, b.kwh + ' kWh') + row(T.bus, '512 V (448–584 V)') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
+          row(T.need, b.kwh + ' kWh') + row(T.bus, '512 V (448–584 V)') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg') +
+          (() => { const C = lfpCabinet(b.ah); return row(T.cab, fmt(T.cabN, { n: b.clusters })) + row(T.cabSize, '≈ ' + C.w + ' × ' + C.d + ' × ' + C.h + ' mm') + row(T.area, '≈ ' + (Math.round(b.clusters * C.w / 1000 * (C.d + 1000) / 1000 * 10) / 10) + ' m²'); })();
         $('[data-spec]').textContent = T.lfpSpec + (b.byPower ? ' ' + fmt(T.byPower, { r: b.runMin }) : '');
         sum = b.clusters + ' × 512 V ' + b.ah + ' Ah LFP (' + b.kwhInst + ' kWh)';
         if (two) $('[data-bigu]').textContent = ' kWh × 2';
@@ -212,13 +197,14 @@ const cfg = { t: B };
         $('[data-big]').textContent = String(b.blocksTotal);
         $('[data-bigu]').textContent = ' × 12 V ' + b.ah + ' Ah';
         $('[data-dl]').innerHTML = row(T.strings, fmt(T.stringsN, { s: b.strings }), 'hl') + row(T.ahBlock, b.ah + ' Ah') + row(T.total, b.blocksTotal + ' ' + T.blocks) +
-          row(T.bus, '480 V (420 V ' + T.endV + ')') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
+          row(T.bus, '480 V (420 V ' + T.endV + ')') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg') +
+          (() => { const L = vrlaLayout(b.ah); return row(T.rack, fmt(T.rackN, { n: b.strings * L.racks, t: L.tiers, p: L.perTier })) + row(T.rackSize, '≈ ' + L.len + ' × ' + L.depth + ' × ' + L.height + ' mm') + row(T.blockSize, L.L + ' × ' + L.W + ' × ' + L.H + ' mm') + row(T.area, '≈ ' + (Math.round(b.strings * L.racks * L.area * 10) / 10) + ' m²'); })();
         $('[data-spec]').textContent = fmt(T.spec, { w: n0(b.wCellDesign), t: st.t });
         sum = b.strings + ' × 40 × 12 V ' + b.ah + ' Ah VRLA (' + b.blocksTotal + ' ' + T.blocks + ')';
         if (two) $('[data-bigu]').textContent += ' × 2';
       }
       if (two) { $('[data-dl]').innerHTML = row(T.sets, T.setsN, 'hl') + $('[data-dl]').innerHTML; sum = '2 × [' + sum + ']'; }
-      $('[data-vis]').innerHTML = vis(b);
+      $('[data-vis]').innerHTML = vis(b, two ? 2 : 1);
       // 交给 UPS 面板：底部汇总 + 发送内容
       const msg = fmt(T.msgB, { k: st.kw, p: Math.round(pct) + '%' + (two ? ' ' + T.perUps : ''), t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum });
       document.dispatchEvent(new CustomEvent('ske:load', { detail: { kw: st.kw, t: st.t, blocked: false, msg, sum: sum + ' · ' + st.t + ' min · ' + st.kw + ' kW (' + Math.round(pct) + '%)' } }));
@@ -298,17 +284,46 @@ const cfg = { t: B };
   .mb-big b { font: 700 clamp(44px, 6vw, 64px)/1 var(--display); color: #facc15; text-shadow: 0 0 24px rgba(250,204,21,.35); }
   .mb-big small { font: 600 18px var(--mono); color: #e6e1cf; }
   .mb-vis { display: grid; align-items: center; min-height: 120px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.06); }
-  .mb-vis :global(.vrla) { display: grid; gap: 6px; }
-  .mb-vis :global(.st) { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: center; animation: mbIn .4s var(--d) both; }
-  .mb-vis :global(.st em) { font: 700 11px var(--mono); color: #a7a28f; font-style: normal; }
-  .mb-vis :global(.cells) { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
-  .mb-vis :global(.cells i) { height: 12px; border-radius: 2px; background: linear-gradient(180deg, #facc15, #b98f06); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); animation: mbCell .35s var(--d) both; }
-  .mb-vis :global(.lfp) { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; justify-content: center; }
-  .mb-vis :global(.rk) { width: 62px; padding: 5px; border-radius: 6px; background: #1d2224; box-shadow: inset 0 0 0 1px #3a4648; display: grid; gap: 3px; animation: mbIn .4s var(--d) both; }
-  .mb-vis :global(.rk .bms) { font: 700 9px var(--mono); text-align: center; color: #062019; background: #5ef0a0; border-radius: 3px; padding: 2px 0; }
-  .mb-vis :global(.rk i) { height: 9px; border-radius: 2px; background: linear-gradient(90deg, #2dd4bf, #5ef0a0); box-shadow: 0 0 6px rgba(94,240,160,.35); animation: mbCell .35s var(--d) both; }
-  .mb-vis :global(.rk span) { font: 600 9.5px var(--mono); text-align: center; color: #a7a28f; }
-  .mb-vis :global(.more) { align-self: center; font: 700 18px var(--mono); color: #e6e1cf; padding: 6px 10px; }
+  .mb-vis { padding: 0; overflow: hidden; position: relative; background: radial-gradient(120% 80% at 50% 100%, rgba(250,204,21,.08), transparent 60%), #0c0c09; }
+  .mb-vis :global(.scene) { position: relative; }
+  .mb-vis :global(svg) { display: block; width: 100%; height: auto; max-height: 340px; }
+  .mb-vis :global(.scene-more), .mb-vis :global(.scene-sets) { position: absolute; top: 10px; padding: 3px 9px; border-radius: 999px; font: 700 12px var(--mono); background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2); color: #fff; }
+  .mb-vis :global(.scene-more) { right: 10px; }
+  .mb-vis :global(.scene-sets) { left: 10px; color: #facc15; border-color: rgba(250,204,21,.5); }
+  /* 铅酸电池架 */
+  .mb-vis :global(.post) { fill: #3b4246; } .mb-vis :global(.post.back) { fill: #23282b; }
+  .mb-vis :global(.shelf) { fill: #c8a21a; } .mb-vis :global(.shelf-top) { fill: #5d5426; }
+  .mb-vis :global(.b-face) { fill: #2e3236; stroke: #44494e; stroke-width: .6; }
+  .mb-vis :global(.b-top) { fill: #4a4f54; } .mb-vis :global(.b-side) { fill: #1f2225; }
+  .mb-vis :global(.b-band) { fill: #3a3f44; }
+  .mb-vis :global(.b-label) { fill: #facc15; opacity: .9; }
+  .mb-vis :global(.b-txt) { fill: #1f1a03; font-family: var(--mono); font-weight: 700; text-anchor: middle; }
+  .mb-vis :global(.t-pos) { fill: #ef4444; } .mb-vis :global(.t-neg) { fill: #111; stroke: #666; stroke-width: .5; }
+  .mb-vis :global(.link) { stroke: #d08b3a; stroke-width: 2; stroke-linecap: round; }
+  .mb-vis :global(.cable) { fill: none; stroke: #b91c1c; stroke-width: 2.2; }
+  .mb-vis :global(.brk-box) { fill: #d9dde0; stroke: #8b9196; } .mb-vis :global(.brk-win) { fill: #2b2f33; } .mb-vis :global(.brk-h) { fill: #ef4444; }
+  .mb-vis :global(.brk-t) { fill: #333; font: 700 9px var(--mono); text-anchor: middle; }
+  .mb-vis :global(.rk-no) { fill: #a7a28f; font-family: var(--mono); font-weight: 700; text-anchor: middle; }
+  .mb-vis :global(.shadow) { fill: rgba(0,0,0,.55); filter: blur(6px); }
+  .mb-vis :global(.dc) { fill: none; stroke: #facc15; stroke-width: 2; stroke-dasharray: 6 6; animation: mbFlow 1.2s linear infinite; opacity: .8; }
+  .mb-vis :global(.li .dc) { stroke: #5ef0a0; }
+  .mb-vis :global(.to-ups) { fill: #facc15; font-family: var(--mono); font-weight: 700; text-anchor: end; }
+  .mb-vis :global(.li .to-ups) { fill: #5ef0a0; }
+  .mb-vis :global(.blk), .mb-vis :global(.mod) { animation: mbDrop .45s cubic-bezier(.2,.9,.2,1) var(--d) both; }
+  /* 锂电柜 */
+  .mb-vis :global(.c-face) { fill: #15191b; stroke: #394246; stroke-width: 1; } .mb-vis :global(.c-side) { fill: #0b0e0f; } .mb-vis :global(.c-top) { fill: #2a3134; }
+  .mb-vis :global(.c-ctl) { fill: #20272a; stroke: #3a4549; stroke-width: .8; }
+  .mb-vis :global(.c-scr) { fill: #052019; stroke: #1d4a3c; }
+  .mb-vis :global(.c-soc) { fill: #5ef0a0; font-family: var(--mono); font-weight: 700; text-anchor: middle; }
+  .mb-vis :global(.c-socbar) { fill: #5ef0a0; opacity: .8; }
+  .mb-vis :global(.c-brk) { fill: #30393c; } .mb-vis :global(.c-brkh) { fill: #f59e0b; }
+  .mb-vis :global(.led.ok) { fill: #5ef0a0; } .mb-vis :global(.led.run) { fill: #38bdf8; animation: mbBlink 1.6s ease-in-out infinite; }
+  .mb-vis :global(.m-face) { fill: #262d30; stroke: #3a4549; stroke-width: .6; }
+  .mb-vis :global(.m-hdl) { fill: #6b7a7d; }
+  .mb-vis :global(.m-strip) { fill: #5ef0a0; animation: mbBlink 2.4s ease-in-out infinite; }
+  .mb-vis :global(.m-txt) { fill: #8fa7a1; font-family: var(--mono); text-anchor: middle; }
+  .mb-vis :global(.vent) { fill: #0a0d0e; }
+  .mb-vis :global(.glass) { fill: rgba(255,255,255,.045); pointer-events: none; }
   .mb-dl { margin: 0; display: grid; font-size: 14px; }
   .mb-dl :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,.1); }
   .mb-dl :global(dt) { color: #a7a28f; }
@@ -354,6 +369,9 @@ const cfg = { t: B };
   .mb-out.blocked > :not(.mb-eb):not(.mb-lock) { opacity: .22; filter: grayscale(1); pointer-events: none; }
   .mb-lock { padding: 10px 12px; border-radius: 10px; background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.5); color: #f87171; font-size: 14px; }
   .mb-send:disabled { opacity: .4; cursor: not-allowed; }
+  @keyframes mbDrop { from { opacity: 0; transform: translateY(-14px); } }
+  @keyframes mbFlow { to { stroke-dashoffset: -24; } }
+  @keyframes mbBlink { 50% { opacity: .35; } }
   @keyframes mbIn { from { opacity: 0; transform: translateY(8px); } }
   @keyframes mbCell { from { opacity: 0; transform: scaleY(.2); } }
   @media (prefers-reduced-motion: reduce) { .mb-vis :global(*) { animation: none !important; } }
