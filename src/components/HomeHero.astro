@@ -98,7 +98,7 @@ const cfg = { off: T.off, on: T.on };
           <svg class="hh-ecg" viewBox="0 0 200 60" aria-hidden="true"><path class="beat" d="M0 34h50l8-16 10 32 10-40 8 24h24l6-8 8 8h76" /><path class="flat" d="M0 34h200" /></svg>
         )}
         <figcaption>
-          <span class="hh-status"><i></i><b data-st data-txt={s.status}>{T.on}</b></span>
+          <span class="hh-status"><i></i><b data-st data-txt={s.status}>{s.status}</b></span>
           <span class="hh-label">{s.label}</span>
         </figcaption>
       </figure>
@@ -135,8 +135,25 @@ const cfg = { off: T.off, on: T.on };
   var root = document.querySelector('[data-hh]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-hh-cfg]').textContent);
   var stage = root.querySelector('[data-stage]');
+  // 静态布局版的停电演示：六个画面位置固定不动 → 2 秒后闪烁熄灭 → 中间出现 UPS 和口号，画面依次恢复
   if (stage.classList.contains('static')) {
-    root.querySelectorAll('[data-video]').forEach(function (v) { try { v.play(); } catch (e) {} });
+    var vids = root.querySelectorAll('[data-video]');
+    var playV = function (on) { vids.forEach(function (v) { try { on ? v.play() : v.pause(); } catch (e) {} }); };
+    var tl = Array.prototype.slice.call(root.querySelectorAll('[data-tile]'));
+    var sts = root.querySelectorAll('[data-st]');
+    var setSt = function (txt) { sts.forEach(function (b) { b.textContent = txt === null ? b.dataset.txt : txt; }); };
+    var show = function (on) { ['[data-ups]', '[data-slogan]', '[data-cta]'].forEach(function (q) { var e = root.querySelector(q); if (e) e.classList.toggle('in', on); }); };
+    playV(true);
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setSt(c.on); return; } // 已经是最终画面
+    // 开场：画面正常运行，中间还没有 UPS
+    stage.classList.remove('ups'); show(false); setSt(null);
+    var at = function (ms, fn) { setTimeout(fn, ms); };
+    at(2000, function () { stage.classList.add('flicker'); });
+    at(2900, function () { stage.classList.remove('flicker'); stage.classList.add('dark'); setSt(c.off); playV(false); });
+    at(3600, function () { root.querySelector('[data-ups]').classList.add('in'); stage.classList.add('ups'); });
+    tl.forEach(function (t, i) { at(4100 + i * 130, function () { t.classList.add('back'); }); });
+    at(4100 + tl.length * 130, function () { stage.classList.remove('dark'); tl.forEach(function (t) { t.classList.remove('back'); }); setSt(c.on); playV(true); show(true); });
     return;
   }
   var tiles = Array.prototype.slice.call(root.querySelectorAll('[data-tile]'));
@@ -302,7 +319,8 @@ const cfg = { off: T.off, on: T.on };
   .hh-stage.static .hh-tile.t0 { grid-area: 1 / 1; } .hh-stage.static .hh-tile.t1 { grid-area: 2 / 1; } .hh-stage.static .hh-tile.t2 { grid-area: 3 / 1; }
   .hh-stage.static .hh-tile.t3 { grid-area: 1 / 3; } .hh-stage.static .hh-tile.t4 { grid-area: 2 / 3; } .hh-stage.static .hh-tile.t5 { grid-area: 3 / 3; }
   .hh-stage.static .hh-center { position: relative; left: auto; top: auto; width: auto; height: auto; grid-area: 1 / 2 / 4 / 3; }
-  .hh-stage.static figcaption, .hh-stage.static .hh-label, .hh-stage.static .hh-center > *, .hh-stage.static .hh-center .in { transition: none; }
+  .hh-stage.static figcaption, .hh-stage.static .hh-label { transition: none; }
+  .hh-stage.static .hh-tile { transition: filter .35s; }
   .hh-stage.static .hh-status i { animation: none; }
   .hh-stage.static .hh-q, .hh-stage.static .hh-if, .hh-stage.static .hh-rest { display: none; }
   @media (max-width: 760px) {
