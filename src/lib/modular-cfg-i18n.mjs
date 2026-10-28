@@ -1,6 +1,8 @@
 // 模块化 UPS 工程选型器：界面文字（三语）。{x} 是占位符。
 export const MX = {
   en: {
+    freqFix: '40–70 Hz', freqNote: 'Input frequency range, 50 / 60 Hz detected automatically', futNote: 'Future load may increase', tOther: 'Other — type here', indNote: 'For factories and other industrial applications, please choose a low-frequency (transformer-based) UPS.',
+    pfAss: 'Load entered in kW is treated as kVA (output power factor 1). For loads with a low power factor, enter the kVA value.',
     eyebrow: 'Engineering configurator', h: 'Size a modular UPS system',
     p: 'Enter the site and load data. The configurator derates for altitude, sizes modules with redundancy, defines the battery to the constant-power method, and checks charging, inrush, currents and installation. Every assumption is listed below the result.',
     sA: 'Site and grid', sB: 'Load', sC: 'Redundancy', sD: 'Battery', sE: 'Cabinet type',
@@ -54,6 +56,8 @@ export const MX = {
     print: 'Print / save PDF', link: 'Copy link', linkOk: 'Link copied', send: 'Send to SKE', msgHead: 'Modular UPS configuration {id}',
   },
   es: {
+    freqFix: '40–70 Hz', freqNote: 'Rango de frecuencia de entrada, 50 / 60 Hz se detecta automáticamente', futNote: 'La carga futura puede aumentar', tOther: 'Otro: escriba aquí', indNote: 'Para fábricas y otras aplicaciones industriales, elija un UPS de baja frecuencia (con transformador).',
+    pfAss: 'La carga en kW se toma como kVA (factor de potencia de salida 1). Para cargas con bajo factor de potencia, ingrese el valor en kVA.',
     eyebrow: 'Configurador de ingeniería', h: 'Dimensione un sistema UPS modular',
     p: 'Ingrese los datos del sitio y de la carga. El configurador aplica la reducción por altitud, dimensiona los módulos con redundancia, define la batería por el método de potencia constante y verifica carga, arranques, corrientes e instalación. Todas las suposiciones se listan debajo del resultado.',
     sA: 'Sitio y red', sB: 'Carga', sC: 'Redundancia', sD: 'Batería', sE: 'Tipo de gabinete',
@@ -107,6 +111,8 @@ export const MX = {
     print: 'Imprimir / guardar PDF', link: 'Copiar enlace', linkOk: 'Enlace copiado', send: 'Enviar a SKE', msgHead: 'Configuración de UPS modular {id}',
   },
   ru: {
+    freqFix: '40–70 Гц', freqNote: 'Диапазон входной частоты, 50 / 60 Гц определяется автоматически', futNote: 'Нагрузка в будущем может вырасти', tOther: 'Другое — впишите', indNote: 'Для заводов и других промышленных применений выбирайте низкочастотный (трансформаторный) ИБП.',
+    pfAss: 'Нагрузка в кВт принимается равной кВА (выходной коэффициент мощности 1). Для нагрузки с низким коэффициентом мощности вводите значение в кВА.',
     eyebrow: 'Инженерный конфигуратор', h: 'Подбор модульной системы ИБП',
     p: 'Введите данные объекта и нагрузки. Конфигуратор учитывает снижение мощности на высоте, подбирает модули с резервированием, задаёт батарею методом постоянной мощности и проверяет заряд, пусковые токи, токи и установку. Все допущения перечислены под результатом.',
     sA: 'Объект и сеть', sB: 'Нагрузка', sC: 'Резервирование', sD: 'Батарея', sE: 'Тип шкафа',

@@ -57,10 +57,9 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
           <legend><span class="sn">A</span>{X.sA}</legend>
           <div class="mx-f"><span>{X.grid}</span>
             <div class="rt-chips">{chips('g', [['380', '380 V'], ['400', '400 V'], ['415', '415 V'], ['480', X.g480]], '400').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div>
-            <small class="muted">{X.gridHint}</small>
           </div>
           <div class="mx-row">
-            <div class="mx-f"><span>{X.freq}</span><div class="rt-chips">{chips('f', [['50', '50 Hz'], ['60', '60 Hz']], '50').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
+            <div class="mx-f"><span>{X.freq}</span><div class="rt-chips"><span class="chip fixed" title={X.freqNote}>{X.freqFix}</span></div></div>
             <label class="mx-f"><span>{X.alt}</span><span class="bld-num"><input type="number" min="0" max="5000" step="100" value="0" data-n="alt" /> <b>{X.unitM}</b></span></label>
             <label class="mx-f"><span>{X.amb}</span><span class="bld-num"><input type="number" min="-10" max="55" step="1" value="25" data-n="amb" /> <b>{X.unitC}</b></span></label>
           </div>
@@ -70,11 +69,14 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
           <legend><span class="sn">B</span>{X.sB}</legend>
           <div class="mx-row">
             <label class="mx-f"><span>{X.load}</span><span class="bld-num"><input type="number" min="1" step="1" value="120" data-n="kw" /> <b>{X.unitKw}</b></span></label>
-            <label class="mx-f"><span>{X.future}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="fut" /> <b>{X.unitKw}</b></span></label>
+            <label class="mx-f"><span>{X.future}</span><span class="bld-num"><input type="number" min="0" step="10" placeholder="—" data-n="fut" /> <b>{X.unitKw}</b></span><small class="muted">{X.futNote}</small></label>
           </div>
-          <div class="mx-f"><span>{X.pf}</span><div class="rt-chips">{chips('pf', [['0.8', '0.8'], ['0.9', '0.9'], ['0.95', '0.95'], ['1', '1.0']], '0.9').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
-          <div class="mx-f"><span>{X.type}</span><div class="rt-chips">{chips('lt', [['it', X.tIt], ['mixed', X.tMix], ['motor', X.tMot]], 'it').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}</div></div>
-          <label class="mx-f"><span>{X.inrush}</span><span class="bld-num"><input type="number" min="0" step="1" placeholder="—" data-n="inr" /> <b>{X.unitKw}</b></span><small class="muted">{X.inrushHint}</small></label>
+          <div class="mx-f"><span>{X.type}</span>
+            <div class="rt-chips">{chips('lt', [['it', X.tIt], ['mixed', X.tMix]], 'it').map((c) => <button type="button" class:list={['chip', { on: c.on }]} data-k={c.key} data-v={c.v}>{c.l}</button>)}
+              <input class="mx-other" type="text" maxlength="60" placeholder={X.tOther} data-n="ltx" />
+            </div>
+          </div>
+          <small class="muted mx-ind">{X.indNote}</small>
         </fieldset>
 
         <fieldset class="card mx-s">
@@ -198,8 +200,8 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
   const kindName: Record<string, string> = { rack: X.kRack, compact: X.kCompact, cabinet: X.kCab };
 
   // —— 输入状态（同时写进网址，方便分享 / 复现）——
-  const st: Record<string, string> = { g: '400', f: '50', pf: '0.9', lt: 'it', r: '1', rt: '15', bt: 'vrla', k: '' };
-  const num: Record<string, string> = { alt: '0', amb: '25', kw: '120', fut: '', inr: '', blk: '40', rch: '8' };
+  const st: Record<string, string> = { g: '400', lt: 'it', r: '1', rt: '15', bt: 'vrla', k: '' };
+  const num: Record<string, string> = { alt: '0', amb: '25', kw: '120', fut: '', ltx: '', blk: '40', rch: '8' };
   let pick = '', failed = false, lastText = '';
   const failMsg = $('[data-failmsg]'); failMsg.dataset.t = failMsg.textContent || '';
   try {
@@ -215,7 +217,8 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
 
   function query() {
     return {
-      grid: st.g, freq: +st.f, loadKw: +num.kw || 0, pf: +st.pf, loadType: st.lt, inrushKw: +num.inr || 0, futureKw: +num.fut || 0,
+      // 不再问功率因数和启动冲击：负载 kW 按 kVA 计（输出功率因数 1），其它负载类型手写
+      grid: st.g, loadKw: +num.kw || 0, pf: 1, loadType: num.ltx.trim() ? 'other' : st.lt, inrushKw: 0, futureKw: +num.fut || 0,
       red: +st.r, altitude: +num.alt || 0, ambient: num.amb === '' ? 25 : +num.amb, minutes: +st.rt, battType: st.bt, blocks: +num.blk || 40,
       rechargeH: +num.rch || 8, kind: st.k,
     };
@@ -321,14 +324,14 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
     // 备选
     const alt = `<p class="muted">${esc(X.altT.pick)}</p><div class="tbl-wrap"><table class="mx-alt"><thead><tr>${X.altT.cols.map((c: string) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
       r.options.map((o: any) => `<tr data-m="${esc(o.fr.model)}" class="${o.fr.model === fr.model ? 'sel' : ''}"><td><b>${esc(o.fr.model)}</b></td><td class="num">${o.inst} × ${o.fr.moduleKva}</td><td class="num">${Math.round(o.util * 100)}%</td><td class="num">${o.free}</td><td class="num">${o.fr.ratingKva} kVA</td><td class="num">${o.fr.dims.d}×${o.fr.dims.w}×${o.fr.dims.h}</td><td class="num">${o.charge ? o.charge.hours + ' h' : '—'}</td></tr>`).join('') + '</tbody></table></div>';
-    const ass = `<ul class="mx-ass">${X.assTxt.map((t: string) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    const ass = `<ul class="mx-ass">${[X.pfAss, ...X.assTxt].map((t: string) => `<li>${esc(t)}</li>`).join('')}</ul>`;
     $('[data-sections]').innerHTML = sec(X.secChk, chk) + sec(X.secBom, bom) + (batt ? sec(X.secBatt, batt) : '') + sec(X.secElec, elec) + sec(X.secInst, inst) + sec(X.secSld, sld(s, r)) + sec(X.secAlt, alt, false) + sec(X.secAss, ass, false);
 
     // 发送 / 分享文本
     const lines = [
       fmt(X.msgHead, { id }),
-      `• ${X.load}: ${q.loadKw} kW, PF ${q.pf}${q.futureKw > q.loadKw ? ` → ${q.futureKw} kW` : ''}`,
-      `• ${X.grid}: ${q.grid === '1ph' ? '1-ph' : q.grid + ' V'} ${q.freq} Hz · ${X.alt} ${q.altitude} m · ${q.ambient} °C`,
+      `• ${X.load}: ${q.loadKw} kW${q.futureKw > q.loadKw ? ` → ${q.futureKw} kW` : ''} · ${num.ltx.trim() || (st.lt === 'mixed' ? X.tMix : X.tIt)}`,
+      `• ${X.grid}: ${q.grid} V 3-ph ${X.freqFix} · ${X.alt} ${q.altitude} m · ${q.ambient} °C`,
       `• ${B.frame}: ${fr.model} · ${fmt(X.installedTxt, { n: s.inst, m: fr.moduleKva, a: s.nNow, r: q.red })}`,
       r.batt ? `• ${X.rt}: ${q.minutes} min · ${r.blocks} × 12 V · ${Math.round(r.batt.wCellDesign)} W/cell @ ${ASSUME.endV} V/cell${r.batt.type === 'lfp' ? ` · LFP ${r.batt.kwh} kWh` : ` · ≈ ${r.batt.strings} × ${r.batt.ah} Ah`}` : '',
       `• Q1 ${e.brIn} A · Q2 ${e.brByp} A · Q3 ${e.brOut} A${r.batt ? ` · QF ${r.batt.breakerDc} A DC` : ''}`,
@@ -343,11 +346,17 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
   root.querySelector('[data-in]')!.addEventListener('click', (ev) => {
     const b = (ev.target as HTMLElement).closest('[data-k]') as HTMLElement | null; if (!b) return;
     const k = b.dataset.k!; st[k] = b.dataset.v!; pick = '';
+    if (k === 'lt') { num.ltx = ''; const o = root.querySelector('[data-n="ltx"]') as HTMLInputElement | null; if (o) o.value = ''; }
     root.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.toggle('on', x === b));
     if (k === 'r') { const hint = root.querySelector('[data-redhint]'); const H = JSON.parse(root.dataset.redhints || '{}'); if (hint && H[st.r]) hint.textContent = H[st.r]; }
     render();
   });
-  root.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('input', () => { num[(el as HTMLInputElement).dataset.n!] = (el as HTMLInputElement).value; pick = ''; render(); }));
+  root.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('input', () => {
+    const k = (el as HTMLInputElement).dataset.n!; num[k] = (el as HTMLInputElement).value; pick = '';
+    if (k === 'ltx') root.querySelectorAll('[data-k="lt"]').forEach((x) => x.classList.toggle('on', !num.ltx.trim() && (x as HTMLElement).dataset.v === st.lt));
+    render();
+  }));
+  if (num.ltx.trim()) root.querySelectorAll('[data-k="lt"]').forEach((x) => x.classList.remove('on'));
   root.querySelector('[data-sections]')!.addEventListener('click', (ev) => {
     const tr = (ev.target as HTMLElement).closest('tr[data-m]') as HTMLElement | null; if (!tr) return;
     pick = tr.dataset.m!; render(); $('[data-out]').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -616,6 +625,9 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
   .mx-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
   .mx-f { display: grid; gap: 6px; align-content: start; }
   .mx-f > span:first-child { font-size: 13px; font-weight: 600; }
+  .mx .chip.fixed { cursor: default; background: var(--bg); }
+  .mx-other { font: 14px var(--body); padding: 6px 12px; border: 1px solid var(--line); border-radius: 99px; min-width: 170px; flex: 1 1 170px; }
+  .mx-ind { display: block; padding-top: 4px; border-top: 1px dashed var(--line); }
   .mx-f select { font: 14px var(--mono); padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
   .mx .bld-num input { width: 120px; font-size: 18px; }
   .mx-out { position: sticky; top: 12px; display: grid; gap: 12px; }
