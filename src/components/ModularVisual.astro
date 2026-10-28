@@ -16,6 +16,7 @@ const V = {
     model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Detailed engineering sizing ↓',
     msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)',
     hint: 'Click a module to pull it out and see how the others share the load.',
+    popH: 'Send this configuration', popP: 'Choose how you want to send it. The configuration below is filled in for you.', viaWa: 'WhatsApp message', viaMail: 'Email', subj: 'Modular UPS configuration', close: 'Close',
   },
   es: {
     eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo. Los módulos se insertan en tiempo real: una sola potencia por gabinete, sin mezclar.',
@@ -24,6 +25,7 @@ const V = {
     model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Dimensionamiento de ingeniería detallado ↓',
     msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)',
     hint: 'Haga clic en un módulo para retirarlo y ver cómo los demás reparten la carga.',
+    popH: 'Enviar esta configuración', popP: 'Elija cómo enviarla. La configuración de abajo ya está completada.', viaWa: 'Mensaje de WhatsApp', viaMail: 'Correo electrónico', subj: 'Configuración de UPS modular', close: 'Cerrar',
   },
   ru: {
     eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля. Модули устанавливаются в реальном времени — в одном шкафу только одна мощность, без смешивания.',
@@ -32,12 +34,13 @@ const V = {
     model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Подробный инженерный расчёт ↓',
     msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)',
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
+    popH: 'Отправить конфигурацию', popP: 'Выберите способ отправки. Конфигурация ниже уже заполнена.', viaWa: 'Сообщение в WhatsApp', viaMail: 'Электронная почта', subj: 'Конфигурация модульного ИБП', close: 'Закрыть',
   },
 }[lang] || {};
 // 规格书里有的组合：槽位数 + 模块规格 → 型号名（取同组合里第一个，Plus 优先于 PI / Mini 的顺序按目录）
 const models: Record<string, string> = {};
 for (const c of catalog()) { const k = `${c.slots}|${c.moduleKva}`; if (!models[k]) models[k] = c.model; }
-const cfg = { models, wa: SITE.whatsapp, t: V };
+const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
 ---
 <section class="block vb" id="visual" data-vb>
   <script type="application/json" data-vb-cfg set:html={JSON.stringify(cfg)} />
@@ -77,7 +80,7 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
         <div class="vb-sub"><span>{V.frame}</span><b data-used></b></div>
         <div class="vb-model" data-model></div>
         <div class="vb-acts">
-          {SITE.whatsapp && <a class="vb-btn primary" data-vb-send href="#" target="_blank" rel="noopener">{V.send}</a>}
+          {(SITE.whatsapp || SITE.email) && <button type="button" class="vb-btn primary" data-vb-open aria-haspopup="dialog">{V.send}</button>}
           <a class="vb-btn" href="#builder">{V.more}</a>
         </div>
       </div>
@@ -96,6 +99,18 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
       <p class="vb-hint">{V.hint}</p>
     </div>
   </div>
+  <div class="vb-pop" data-vb-pop hidden role="dialog" aria-modal="true" aria-labelledby="vb-pop-h">
+    <div class="vb-pop-box">
+      <button type="button" class="vb-pop-x" data-vb-close aria-label={V.close}>×</button>
+      <h3 id="vb-pop-h">{V.popH}</h3>
+      <p>{V.popP}</p>
+      <pre data-vb-msg></pre>
+      <div class="vb-pop-acts">
+        {SITE.whatsapp && <a class="vb-pop-btn wa" data-vb-wa href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.6c-.5-.8-.9-1.8-.9-2.7s.5-1.7.8-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.8-.1 1.4z"/></svg>{V.viaWa}</a>}
+        {SITE.email && <a class="vb-pop-btn mail" data-vb-mail href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3-8-5.3zM5.6 7l6.4 4.2L18.4 7H5.6z"/></svg>{V.viaMail}<small>{SITE.email}</small></a>}
+      </div>
+    </div>
+  </div>
 </section>
 
 <script is:inline>
@@ -106,6 +121,7 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
   var st = { n: 10, m: 30, u: 10, red: 1, out: -1 };
   var fmt = function (s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); };
   var gen = 0;
+  var lastMsg = '';
   // 数字滚动
   function countTo(el, to) {
     var from = +el.dataset.v || 0, t0 = performance.now(), d = 450; el.dataset.v = to;
@@ -143,8 +159,7 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
     // 每个模块的负载条：假设系统带着"可用容量"的 70% 负载，平均分到在线的模块上
     var load = 0.7 * Math.max(st.m, usable || st.m), share = active ? load / active / st.m : 0;
     root.querySelectorAll('.vb-m').forEach(function (b) { var l = b.querySelector('.ld'); l.style.setProperty('--l', b.classList.contains('out') ? '0%' : Math.min(100, Math.round(share * 100)) + '%'); b.classList.toggle('hot', share > 1); });
-    var send = $('[data-vb-send]');
-    if (send) send.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(fmt(T.msg, { n: st.n, u: st.u, m: st.m, t: total, r: st.red ? fmt(T.red, { x: usable }) : '' }) + (model ? '\n• Model: ' + model : ''));
+    lastMsg = fmt(T.msg, { n: st.n, u: st.u, m: st.m, t: total, r: st.red ? fmt(T.red, { x: usable }) : '' }) + (model ? '\n• Model: ' + model : '');
   }
   root.querySelectorAll('[data-frame]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -197,6 +212,20 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
     if (st.out >= 0) b.classList.add('out');
     update();
   });
+  // 发送配置：弹出选择框 —— WhatsApp 或邮件，内容已经填好
+  var pop = $('[data-vb-pop]'), opener = null;
+  function openPop() {
+    $('[data-vb-msg]').textContent = lastMsg;
+    var wa = $('[data-vb-wa]'), mail = $('[data-vb-mail]');
+    if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
+    if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(T.subj + ' · ' + st.u + ' × ' + st.m + ' kW') + '&body=' + encodeURIComponent(lastMsg);
+    pop.hidden = false; document.body.style.overflow = 'hidden';
+    var f = pop.querySelector('.vb-pop-btn'); if (f) f.focus();
+  }
+  function closePop() { pop.hidden = true; document.body.style.overflow = ''; if (opener) opener.focus(); }
+  var ob = $('[data-vb-open]'); if (ob) ob.addEventListener('click', function () { opener = ob; openPop(); });
+  pop.addEventListener('click', function (e) { if (e.target === pop || e.target.closest('[data-vb-close]')) closePop(); else if (e.target.closest('.vb-pop-btn')) setTimeout(closePop, 300); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) closePop(); });
   build(true);
   // 滚动到这里才播放第一次插入动画
   if ('IntersectionObserver' in window) {
@@ -309,5 +338,22 @@ const cfg = { models, wa: SITE.whatsapp, t: V };
     .vb-base { height: 30px; margin: 8px -10px 0; }
     .vb-hint { margin-top: 8px; }
   }
+  .vb-btn { cursor: pointer; font-family: var(--body); }
+  .vb-pop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(3, 8, 8, .72); backdrop-filter: blur(4px); animation: vbFade .2s ease-out; }
+  .vb-pop[hidden] { display: none; }
+  .vb-pop-box { position: relative; width: min(460px, 100%); padding: 24px; border-radius: 16px; color: #e6efec; background: linear-gradient(180deg, #12302b, #0a1514); border: 1px solid rgba(94,240,160,.3); box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: vbRise .25s cubic-bezier(.2,.9,.2,1); }
+  .vb-pop-box h3 { margin: 0 0 6px; font: 700 24px var(--display); text-transform: uppercase; }
+  .vb-pop-box > p { margin: 0 0 12px; font-size: 14px; color: #8fa7a1; }
+  .vb-pop-box pre { margin: 0 0 16px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; color: #cfdcd8; max-height: 200px; overflow: auto; }
+  .vb-pop-acts { display: grid; gap: 10px; }
+  .vb-pop-btn { display: grid; grid-template-columns: 26px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 13px 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; transition: transform .15s, box-shadow .15s; }
+  .vb-pop-btn svg { width: 26px; height: 26px; grid-row: 1 / 3; fill: currentColor; }
+  .vb-pop-btn small { grid-column: 2; font: 500 12px var(--mono); opacity: .75; }
+  .vb-pop-btn:hover { transform: translateY(-2px); }
+  .vb-pop-btn.wa { background: #25d366; color: #062019; box-shadow: 0 10px 26px rgba(37,211,102,.25); }
+  .vb-pop-btn.mail { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .vb-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #cfdcd8; font-size: 22px; cursor: pointer; }
+  @keyframes vbFade { from { opacity: 0; } }
+  @keyframes vbRise { from { transform: translateY(16px) scale(.98); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .vb-slots :global(.vb-m.ins), .vb-slots :global(.vb-m.ins::after) { animation: none; } .vb-cab { transform: none; } }
 </style>
