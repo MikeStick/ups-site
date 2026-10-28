@@ -4,6 +4,7 @@
 // 计算：src/lib/modular-engine.mjs（测试：node scripts/test-modular-engine.mjs）
 // 页面只负责收集输入、显示引擎结果；所有数字的规则和假设在引擎里，并在结果下方列出。
 import Base from '../../layouts/Base.astro';
+import ModularVisual from '../../components/ModularVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { MT, MW } from '../../lib/modular-i18n.mjs';
 import { MX } from '../../lib/modular-cfg-i18n.mjs';
@@ -48,6 +49,8 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
       </div>
     </div>
   </section>
+
+  <ModularVisual lang={lang} />
 
   <section class="block" id="builder">
     <div class="head"><span class="eyebrow">{X.eyebrow}</span><h2>{X.h}</h2><p>{X.p}</p></div>
