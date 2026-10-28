@@ -13,7 +13,7 @@ const V = {
     eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating. Modules slide into the frame in real time — one rating per frame, no mixing.',
     s1: 'Frame', s1n: 'Up to {n} power modules', slots: '{n} slots', s2: 'Power module', s2n: 'All modules in a frame have the same rating', s3: 'Modules installed', s4: 'Redundancy',
     total: 'System capacity', usable: 'Usable with N+1', usableN: 'No redundant module', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
-    model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Detailed engineering sizing ↓',
+    model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Size the batteries ↓',
     msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)',
     hint: 'Click a module to pull it out and see how the others share the load.',
     popH: 'Send this configuration', popP: 'Choose how you want to send it. The configuration below is filled in for you.', viaWa: 'WhatsApp message', viaMail: 'Email', subj: 'Modular UPS configuration', close: 'Close',
@@ -22,7 +22,7 @@ const V = {
     eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo. Los módulos se insertan en tiempo real: una sola potencia por gabinete, sin mezclar.',
     s1: 'Gabinete', s1n: 'Hasta {n} módulos de potencia', slots: '{n} ranuras', s2: 'Módulo de potencia', s2n: 'Todos los módulos de un gabinete tienen la misma potencia', s3: 'Módulos instalados', s4: 'Redundancia',
     total: 'Capacidad del sistema', usable: 'Utilizable con N+1', usableN: 'Sin módulo de reserva', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
-    model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Dimensionamiento de ingeniería detallado ↓',
+    model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Calcular las baterías ↓',
     msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)',
     hint: 'Haga clic en un módulo para retirarlo y ver cómo los demás reparten la carga.',
     popH: 'Enviar esta configuración', popP: 'Elija cómo enviarla. La configuración de abajo ya está completada.', viaWa: 'Mensaje de WhatsApp', viaMail: 'Correo electrónico', subj: 'Configuración de UPS modular', close: 'Cerrar',
@@ -31,7 +31,7 @@ const V = {
     eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля. Модули устанавливаются в реальном времени — в одном шкафу только одна мощность, без смешивания.',
     s1: 'Шкаф', s1n: 'До {n} силовых модулей', slots: '{n} слотов', s2: 'Силовой модуль', s2n: 'Все модули в шкафу одной мощности', s3: 'Установлено модулей', s4: 'Резервирование',
     total: 'Мощность системы', usable: 'Доступно при N+1', usableN: 'Без резервного модуля', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
-    model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Подробный инженерный расчёт ↓',
+    model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Рассчитать батареи ↓',
     msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)',
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
     popH: 'Отправить конфигурацию', popP: 'Выберите способ отправки. Конфигурация ниже уже заполнена.', viaWa: 'Сообщение в WhatsApp', viaMail: 'Электронная почта', subj: 'Конфигурация модульного ИБП', close: 'Закрыть',
@@ -81,7 +81,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
         <div class="vb-model" data-model></div>
         <div class="vb-acts">
           {(SITE.whatsapp || SITE.email) && <button type="button" class="vb-btn primary" data-vb-open aria-haspopup="dialog">{V.send}</button>}
-          <a class="vb-btn" href="#builder">{V.more}</a>
+          <a class="vb-btn" href="#battery">{V.more}</a>
         </div>
       </div>
     </div>
@@ -214,16 +214,19 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   });
   // 发送配置：弹出选择框 —— WhatsApp 或邮件，内容已经填好
   var pop = $('[data-vb-pop]'), opener = null;
-  function openPop() {
-    $('[data-vb-msg]').textContent = lastMsg;
+  function openPop(msg, subj) {
+    msg = msg || lastMsg; subj = subj || (T.subj + ' · ' + st.u + ' × ' + st.m + ' kW');
+    $('[data-vb-msg]').textContent = msg;
     var wa = $('[data-vb-wa]'), mail = $('[data-vb-mail]');
-    if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
-    if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(T.subj + ' · ' + st.u + ' × ' + st.m + ' kW') + '&body=' + encodeURIComponent(lastMsg);
+    if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
+    if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(msg);
     pop.hidden = false; document.body.style.overflow = 'hidden';
     var f = pop.querySelector('.vb-pop-btn'); if (f) f.focus();
   }
   function closePop() { pop.hidden = true; document.body.style.overflow = ''; if (opener) opener.focus(); }
   var ob = $('[data-vb-open]'); if (ob) ob.addEventListener('click', function () { opener = ob; openPop(); });
+  // 页面上其它选型器（电池选型）也用这个弹窗：document.dispatchEvent(new CustomEvent('ske:send', { detail: { msg, subj, from } }))
+  document.addEventListener('ske:send', function (e) { var d = e.detail || {}; opener = d.from || null; openPop(d.msg, d.subj); });
   pop.addEventListener('click', function (e) { if (e.target === pop || e.target.closest('[data-vb-close]')) closePop(); else if (e.target.closest('.vb-pop-btn')) setTimeout(closePop, 300); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) closePop(); });
   build(true);

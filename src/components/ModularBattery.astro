@@ -1,0 +1,251 @@
+---
+// 模块化 UPS 电池选型：只问三件事 —— 实际负载功率、所需备电时间、铅酸还是锂电
+// 计算在 src/lib/modular-engine.mjs 的 batteryPlan（恒功率法；锂电按 512 V 高压簇 + 3C 放电能力）
+// 右侧实时画出电池组：铅酸 = 每串 40 节 12 V；锂电 = 每簇 10 个电池模块 + BMS
+import { SITE } from '../config.mjs';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const TIMES = [5, 10, 15, 30, 60, 120];
+const B = {
+  en: {
+    eyebrow: 'Battery sizing', h: 'Size the batteries', p: 'Enter the real load and the backup time you need. We size the battery bank for the modular UPS — lead-acid or lithium.',
+    s1: 'Actual load power', s1n: 'What the equipment really draws, not the UPS rating', s2: 'Backup time required', s2n: 'Minutes on battery after a power cut', other: 'Other', s3: 'Battery type',
+    vrla: 'Lead-acid (VRLA)', vrlaN: 'Lowest cost · 3–5 years in a cool room', lfp: 'Lithium (LiFePO₄)', lfpN: 'Up to 70% lighter · 10+ years · BMS',
+    rec: 'Recommended battery bank', blocks: 'blocks', strings: 'String', stringsN: '{s} × 40 × 12 V', ahBlock: 'Capacity per block', bus: 'DC voltage', weight: 'Weight (approx.)',
+    total: 'Total', clusters: 'Cluster', clustersN: '{c} × 512 V · {a} Ah', modules: 'Battery modules', energy: 'Installed energy', need: 'Energy needed', idc: 'Max. DC current', brdc: 'DC breaker',
+    spec: 'Matching standard: each cell must deliver ≥ {w} W for {t} min to 1.75 V/cell (25 °C). Check against the battery maker’s constant-power table.',
+    byPower: 'Sized by discharge current (max. 3C), so this bank gives about {r} min at this load.',
+    lfpSpec: 'High-voltage LFP with BMS, voltage window 448–584 V, inside the UPS range 360–600 V DC.',
+    note: 'Includes aging (×1.25), design margin (×1.10) and 95% battery-mode efficiency. For reference only — final selection is confirmed by our engineers.',
+    endV: 'end', send: 'Send this battery plan', min: 'min', kw: 'kW',
+    msg: 'Hello, please quote batteries for a modular UPS:\n• Actual load: {k} kW\n• Backup time: {t} min\n• Battery type: {b}\n• Suggested: {s}',
+    subj: 'Modular UPS battery plan',
+  },
+  es: {
+    eyebrow: 'Dimensionamiento de baterías', h: 'Calcule las baterías', p: 'Indique la carga real y la autonomía que necesita. Dimensionamos el banco de baterías para el UPS modular: plomo-ácido o litio.',
+    s1: 'Potencia real de la carga', s1n: 'Lo que consumen los equipos, no la potencia del UPS', s2: 'Autonomía requerida', s2n: 'Minutos con batería tras un corte', other: 'Otra', s3: 'Tipo de batería',
+    vrla: 'Plomo-ácido (VRLA)', vrlaN: 'Menor costo · 3–5 años en sala fresca', lfp: 'Litio (LiFePO₄)', lfpN: 'Hasta 70% más liviano · 10+ años · BMS',
+    rec: 'Banco de baterías recomendado', blocks: 'bloques', strings: 'Cadena', stringsN: '{s} × 40 × 12 V', ahBlock: 'Capacidad por bloque', bus: 'Voltaje CC', weight: 'Peso (aprox.)',
+    total: 'Total', clusters: 'Clúster', clustersN: '{c} × 512 V · {a} Ah', modules: 'Módulos de batería', energy: 'Energía instalada', need: 'Energía necesaria', idc: 'Corriente CC máx.', brdc: 'Interruptor CC',
+    spec: 'Estándar a cumplir: cada celda debe entregar ≥ {w} W durante {t} min hasta 1,75 V/celda (25 °C). Verifique con la tabla de potencia constante del fabricante.',
+    byPower: 'Dimensionado por corriente de descarga (máx. 3C); este banco da unos {r} min con esta carga.',
+    lfpSpec: 'LFP de alto voltaje con BMS, ventana 448–584 V, dentro del rango del UPS 360–600 V CC.',
+    note: 'Incluye envejecimiento (×1,25), margen de diseño (×1,10) y 95% de eficiencia en modo batería. Solo referencia: la selección final la confirman nuestros ingenieros.',
+    endV: 'final', send: 'Enviar este plan de baterías', min: 'min', kw: 'kW',
+    msg: 'Hola, por favor coticen baterías para un UPS modular:\n• Carga real: {k} kW\n• Autonomía: {t} min\n• Tipo de batería: {b}\n• Sugerido: {s}',
+    subj: 'Plan de baterías para UPS modular',
+  },
+  ru: {
+    eyebrow: 'Подбор батарей', h: 'Рассчитайте батареи', p: 'Укажите реальную нагрузку и нужное время автономии. Мы подберём батарейный массив для модульного ИБП — свинцово-кислотный или литиевый.',
+    s1: 'Реальная мощность нагрузки', s1n: 'Сколько реально потребляет оборудование, а не мощность ИБП', s2: 'Требуемое время автономии', s2n: 'Минут работы от батарей после отключения', other: 'Другое', s3: 'Тип батарей',
+    vrla: 'Свинцово-кислотные (VRLA)', vrlaN: 'Дешевле всего · 3–5 лет в прохладном помещении', lfp: 'Литиевые (LiFePO₄)', lfpN: 'До 70% легче · 10+ лет · BMS',
+    rec: 'Рекомендуемый батарейный массив', blocks: 'блоков', strings: 'Цепочки', stringsN: '{s} × 40 × 12 В', ahBlock: 'Ёмкость блока', bus: 'Напряжение DC', weight: 'Масса (прибл.)',
+    total: 'Всего', clusters: 'Кластеры', clustersN: '{c} × 512 В · {a} А·ч', modules: 'Батарейные модули', energy: 'Установленная энергия', need: 'Нужная энергия', idc: 'Макс. ток DC', brdc: 'Автомат DC',
+    spec: 'Требование для подбора: каждый элемент должен отдавать ≥ {w} Вт в течение {t} мин до 1,75 В/эл. (25 °C). Сверьте с таблицей постоянной мощности производителя.',
+    byPower: 'Подобрано по току разряда (макс. 3C), поэтому массив даёт около {r} мин при этой нагрузке.',
+    lfpSpec: 'Высоковольтный LFP с BMS, окно 448–584 В, в пределах диапазона ИБП 360–600 В DC.',
+    note: 'С учётом старения (×1,25), запаса (×1,10) и КПД 95% в режиме батареи. Только для ориентира — окончательный подбор подтверждают наши инженеры.',
+    endV: 'конец разряда', send: 'Отправить расчёт батарей', min: 'мин', kw: 'кВт',
+    msg: 'Здравствуйте, прошу предложение на батареи для модульного ИБП:\n• Реальная нагрузка: {k} кВт\n• Время автономии: {t} мин\n• Тип батарей: {b}\n• Предложено: {s}',
+    subj: 'Расчёт батарей для модульного ИБП',
+  },
+}[lang] || {};
+const cfg = { t: B };
+---
+<section class="block mb" id="battery" data-mb>
+  <script type="application/json" data-mb-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{B.eyebrow}</span><h2>{B.h}</h2><p>{B.p}</p></div>
+  <div class="mb-stage">
+    <div class="mb-ctl">
+      <div class="mb-grp">
+        <div class="mb-gh"><span class="mb-n">1</span><b>{B.s1}</b><small>{B.s1n}</small></div>
+        <div class="mb-kw">
+          <input type="range" min="5" max="1200" step="5" value="100" data-kw-r aria-label={B.s1} />
+          <label class="mb-num"><input type="number" min="1" max="2000" step="1" value="100" data-kw /><span>{B.kw}</span></label>
+        </div>
+      </div>
+      <div class="mb-grp">
+        <div class="mb-gh"><span class="mb-n">2</span><b>{B.s2}</b><small>{B.s2n}</small></div>
+        <div class="mb-times">
+          {TIMES.map((t) => <button type="button" class:list={['mb-t', { on: t === 15 }]} data-t={t} aria-pressed={t === 15 ? 'true' : 'false'}><b>{t}</b><span>{B.min}</span></button>)}
+          <label class="mb-num mb-tx"><input type="number" min="1" max="600" step="1" placeholder={B.other} data-tx /><span>{B.min}</span></label>
+        </div>
+      </div>
+      <div class="mb-grp">
+        <div class="mb-gh"><span class="mb-n">3</span><b>{B.s3}</b></div>
+        <div class="mb-types">
+          <button type="button" class="mb-ty on" data-bt="vrla" aria-pressed="true"><i class="ico pb"></i><b>{B.vrla}</b><small>{B.vrlaN}</small></button>
+          <button type="button" class="mb-ty" data-bt="lfp" aria-pressed="false"><i class="ico li"></i><b>{B.lfp}</b><small>{B.lfpN}</small></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-out" aria-live="polite">
+      <span class="mb-eb">{B.rec}</span>
+      <div class="mb-big"><b data-big></b><small data-bigu></small></div>
+      <div class="mb-vis" data-vis></div>
+      <dl class="mb-dl" data-dl></dl>
+      <p class="mb-spec" data-spec></p>
+      <p class="mb-note">{B.note}</p>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="mb-send" data-mb-send>{B.send}</button>}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { batteryPlan } from '../lib/modular-engine.mjs';
+  const root = document.querySelector('[data-mb]') as HTMLElement | null;
+  if (root) {
+    const T = JSON.parse(root.querySelector('[data-mb-cfg]')!.textContent || '{}').t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const fmt = (s: string, o: Record<string, any>) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
+    const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
+    const st = { kw: 100, t: 15, bt: 'vrla' };
+    let lastMsg = '';
+    const kwN = $('[data-kw]') as HTMLInputElement, kwR = $('[data-kw-r]') as HTMLInputElement, tx = $('[data-tx]') as HTMLInputElement;
+
+    function vis(b: any) {
+      // 最多画 6 串 / 6 簇，多出来的显示 +N
+      const max = 6;
+      if (b.type === 'lfp') {
+        const show = Math.min(max, b.clusters);
+        let h = '';
+        for (let i = 0; i < show; i++) {
+          h += '<div class="rk" style="--d:' + i * 90 + 'ms"><div class="bms">BMS</div>';
+          for (let j = 0; j < 10; j++) h += '<i style="--d:' + (i * 90 + j * 35) + 'ms"></i>';
+          h += '<span>' + b.ah + ' Ah</span></div>';
+        }
+        if (b.clusters > show) h += '<div class="more">+' + (b.clusters - show) + '</div>';
+        return '<div class="lfp">' + h + '</div>';
+      }
+      const show = Math.min(max, b.strings);
+      let h = '';
+      for (let i = 0; i < show; i++) {
+        h += '<div class="st" style="--d:' + i * 70 + 'ms"><em>' + (i + 1) + '</em><div class="cells">';
+        for (let j = 0; j < 40; j++) h += '<i style="--d:' + (i * 70 + j * 12) + 'ms"></i>';
+        h += '</div></div>';
+      }
+      if (b.strings > show) h += '<div class="more">+' + (b.strings - show) + '</div>';
+      return '<div class="vrla">' + h + '</div>';
+    }
+    const row = (k: string, v: string, cls = '') => '<div' + (cls ? ' class="' + cls + '"' : '') + '><dt>' + k + '</dt><dd>' + v + '</dd></div>';
+
+    function update() {
+      const b: any = batteryPlan({ loadKw: st.kw, minutes: st.t, blocks: 40, type: st.bt });
+      if (!b) return;
+      let sum = '';
+      if (b.type === 'lfp') {
+        $('[data-big]').textContent = String(b.kwhInst);
+        $('[data-bigu]').textContent = ' kWh';
+        $('[data-dl]').innerHTML = row(T.clusters, fmt(T.clustersN, { c: b.clusters, a: b.ah }), 'hl') + row(T.modules, b.modules + ' × 51.2 V · ' + b.moduleKwh + ' kWh') +
+          row(T.need, b.kwh + ' kWh') + row(T.bus, '512 V (448–584 V)') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
+        $('[data-spec]').textContent = T.lfpSpec + (b.byPower ? ' ' + fmt(T.byPower, { r: b.runMin }) : '');
+        sum = b.clusters + ' × 512 V ' + b.ah + ' Ah LFP (' + b.kwhInst + ' kWh)';
+      } else {
+        $('[data-big]').textContent = String(b.blocksTotal);
+        $('[data-bigu]').textContent = ' × 12 V ' + b.ah + ' Ah';
+        $('[data-dl]').innerHTML = row(T.strings, fmt(T.stringsN, { s: b.strings }), 'hl') + row(T.ahBlock, b.ah + ' Ah') + row(T.total, b.blocksTotal + ' ' + T.blocks) +
+          row(T.bus, '480 V (420 V ' + T.endV + ')') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
+        $('[data-spec]').textContent = fmt(T.spec, { w: n0(b.wCellDesign), t: st.t });
+        sum = b.strings + ' × 40 × 12 V ' + b.ah + ' Ah VRLA (' + b.blocksTotal + ' ' + T.blocks + ')';
+      }
+      $('[data-vis]').innerHTML = vis(b);
+      lastMsg = fmt(T.msg, { k: st.kw, t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum });
+    }
+
+    const setKw = (v: number, from?: HTMLInputElement) => {
+      if (!(v > 0)) return;
+      st.kw = Math.min(2000, v);
+      if (from !== kwN) kwN.value = String(st.kw);
+      if (from !== kwR) kwR.value = String(Math.min(1200, st.kw));
+      update();
+    };
+    kwN.addEventListener('input', () => setKw(parseFloat(kwN.value), kwN));
+    kwR.addEventListener('input', () => setKw(parseFloat(kwR.value), kwR));
+    const pickT = (t: number | null) => root.querySelectorAll('[data-t]').forEach((x) => { const on = Number((x as HTMLElement).dataset.t) === t; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    root.querySelectorAll('[data-t]').forEach((x) => x.addEventListener('click', () => { st.t = Number((x as HTMLElement).dataset.t); tx.value = ''; pickT(st.t); update(); }));
+    tx.addEventListener('input', () => { const v = parseFloat(tx.value); if (v > 0) { st.t = Math.min(600, v); pickT(null); update(); } });
+    root.querySelectorAll('[data-bt]').forEach((x) => x.addEventListener('click', () => {
+      st.bt = (x as HTMLElement).dataset.bt!;
+      root.querySelectorAll('[data-bt]').forEach((y) => { y.classList.toggle('on', y === x); y.setAttribute('aria-pressed', y === x ? 'true' : 'false'); });
+      update();
+    }));
+    // 发送：用可视化选型里的同一个弹窗（WhatsApp / 邮件）
+    const send = root.querySelector('[data-mb-send]');
+    if (send) send.addEventListener('click', () => document.dispatchEvent(new CustomEvent('ske:send', { detail: { msg: lastMsg, subj: T.subj + ' · ' + st.kw + ' kW · ' + st.t + ' min', from: send } })));
+    update();
+  }
+</script>
+
+<style>
+  .mb-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px; border-radius: 18px; overflow: hidden; color: #e6efec;
+    background: radial-gradient(120% 90% at 75% 40%, #2b2a12 0%, #14130a 55%, #0b0b07 100%); }
+  .mb-stage::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, rgba(250,204,21,.05) 0 1px, transparent 1px 48px), repeating-linear-gradient(0deg, rgba(250,204,21,.05) 0 1px, transparent 1px 48px);
+    mask-image: radial-gradient(80% 70% at 70% 50%, #000 30%, transparent 80%); }
+  @media (max-width: 900px) { .mb-stage { grid-template-columns: minmax(0, 1fr); padding: 18px; } }
+  .mb-ctl { position: relative; display: grid; gap: 14px; align-content: start; }
+  .mb-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; }
+  .mb-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .mb-gh b { font-size: 15px; }
+  .mb-gh small { color: #a7a28f; font-size: 12px; }
+  .mb-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #facc15; color: #1f1a03; flex: none; align-self: center; }
+  .mb-kw { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+  .mb-kw input[type=range] { width: 100%; accent-color: #facc15; }
+  .mb-num { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.3); }
+  .mb-num input { width: 76px; border: 0; background: transparent; color: #fff; font: 700 20px var(--mono); outline: none; }
+  .mb-num span { font: 600 12px var(--mono); color: #a7a28f; }
+  .mb-num:focus-within { border-color: #facc15; }
+  .mb-num input::-webkit-outer-spin-button, .mb-num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .mb-num input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+  .mb-times { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) minmax(0, 1.5fr); gap: 6px; }
+  .mb-tx { grid-column: span 1; padding: 0 6px; height: auto; }
+  .mb-tx input { width: 100%; min-width: 0; font-size: 15px; }
+  .mb-tx input::placeholder { color: #a7a28f; font-weight: 500; font-size: 12px; }
+  @media (max-width: 520px) { .mb-times { grid-template-columns: repeat(4, minmax(0, 1fr)); } .mb-tx { grid-column: span 2; } }
+  .mb-t { display: grid; justify-items: center; padding: 9px 2px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); color: #e6e1cf; cursor: pointer; transition: all .2s; }
+  .mb-t b { font: 700 20px/1 var(--display); }
+  .mb-t span { font: 600 10px var(--mono); color: #a7a28f; }
+  .mb-t:hover { transform: translateY(-2px); }
+  .mb-t.on { background: #facc15; border-color: #facc15; color: #1f1a03; box-shadow: 0 8px 22px rgba(250,204,21,.3); }
+  .mb-t.on span { color: #1f1a03; }
+  .mb-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .mb-types { grid-template-columns: 1fr; } }
+  .mb-ty { display: grid; grid-template-columns: 34px 1fr; column-gap: 10px; align-items: center; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.25); color: #e6e1cf; cursor: pointer; font-family: var(--body); transition: all .2s; }
+  .mb-ty b { font-size: 14.5px; }
+  .mb-ty small { grid-column: 2; font-size: 12px; color: #a7a28f; }
+  .mb-ty .ico { grid-row: 1 / 3; width: 30px; height: 34px; border-radius: 5px; position: relative; border: 2px solid currentColor; }
+  .mb-ty .ico::before { content: ""; position: absolute; top: -6px; left: 7px; width: 12px; height: 4px; border-radius: 2px 2px 0 0; background: currentColor; }
+  .mb-ty .ico::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 55%; border-radius: 2px; background: currentColor; opacity: .6; }
+  .mb-ty.on { border-color: #facc15; background: rgba(250,204,21,.1); color: #fff; box-shadow: 0 0 0 1px #facc15; }
+  .mb-ty.on .ico { color: #facc15; }
+  .mb-ty.on .li { color: #5ef0a0; }
+
+  .mb-out { position: relative; display: grid; gap: 10px; align-content: start; padding: 18px; border-radius: 14px; background: linear-gradient(135deg, rgba(250,204,21,.1), rgba(250,204,21,.02)); border: 1px solid rgba(250,204,21,.25); }
+  .mb-eb { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #facc15; }
+  .mb-big b { font: 700 clamp(44px, 6vw, 64px)/1 var(--display); color: #facc15; text-shadow: 0 0 24px rgba(250,204,21,.35); }
+  .mb-big small { font: 600 18px var(--mono); color: #e6e1cf; }
+  .mb-vis { display: grid; align-items: center; min-height: 120px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.06); }
+  .mb-vis :global(.vrla) { display: grid; gap: 6px; }
+  .mb-vis :global(.st) { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: center; animation: mbIn .4s var(--d) both; }
+  .mb-vis :global(.st em) { font: 700 11px var(--mono); color: #a7a28f; font-style: normal; }
+  .mb-vis :global(.cells) { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
+  .mb-vis :global(.cells i) { height: 12px; border-radius: 2px; background: linear-gradient(180deg, #facc15, #b98f06); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); animation: mbCell .35s var(--d) both; }
+  .mb-vis :global(.lfp) { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; justify-content: center; }
+  .mb-vis :global(.rk) { width: 62px; padding: 5px; border-radius: 6px; background: #1d2224; box-shadow: inset 0 0 0 1px #3a4648; display: grid; gap: 3px; animation: mbIn .4s var(--d) both; }
+  .mb-vis :global(.rk .bms) { font: 700 9px var(--mono); text-align: center; color: #062019; background: #5ef0a0; border-radius: 3px; padding: 2px 0; }
+  .mb-vis :global(.rk i) { height: 9px; border-radius: 2px; background: linear-gradient(90deg, #2dd4bf, #5ef0a0); box-shadow: 0 0 6px rgba(94,240,160,.35); animation: mbCell .35s var(--d) both; }
+  .mb-vis :global(.rk span) { font: 600 9.5px var(--mono); text-align: center; color: #a7a28f; }
+  .mb-vis :global(.more) { align-self: center; font: 700 18px var(--mono); color: #e6e1cf; padding: 6px 10px; }
+  .mb-dl { margin: 0; display: grid; font-size: 14px; }
+  .mb-dl :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,.1); }
+  .mb-dl :global(dt) { color: #a7a28f; }
+  .mb-dl :global(dd) { margin: 0; font-family: var(--mono); text-align: right; }
+  .mb-dl :global(.hl dd) { color: #facc15; font-weight: 700; }
+  .mb-spec { margin: 0; font-size: 13px; color: #e6e1cf; padding: 10px 12px; border-radius: 10px; background: rgba(250,204,21,.08); border-left: 3px solid #facc15; }
+  .mb-note { margin: 0; font-size: 12px; color: #a7a28f; }
+  .mb-send { justify-self: start; min-height: 42px; padding: 0 16px; border-radius: 9px; border: 0; background: #facc15; color: #1f1a03; font: 700 14px var(--body); cursor: pointer; }
+  @keyframes mbIn { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes mbCell { from { opacity: 0; transform: scaleY(.2); } }
+  @media (prefers-reduced-motion: reduce) { .mb-vis :global(*) { animation: none !important; } }
+</style>

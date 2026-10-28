@@ -15,11 +15,16 @@ export const ASSUME = {
   vrlaKgPerAh: 0.30,   // 12V VRLA 每 Ah 约 0.3 kg（估算地面荷载用）
   genRatio: [1.25, 1.5], // 发电机 / UPS 输入容量比（输入 THDi ≤ 3%，取低值即可）
   lfpDod: 0.9, lfpAging: 1.1,
+  lfpCells: 160, lfpVCell: 3.2, lfpEndV: 2.8, // 高压锂电：160 节 LFP 串联 = 512 V 标称（放电末 448 V，落在 UPS 360–600 VDC 范围内）
+  lfpMaxC: 3,          // UPS 专用高倍率 LFP 按 3C 放电能力算（短时备电时电流比能量更先成为限制）
+  lfpKgPerKwh: 10,     // 含模块外壳和电池架，粗估
+
 };
 
 // 典型高倍率 VRLA：放电到 1.75 V/cell、25 °C 时，每 Ah 额定容量能给出的 W/cell（随时间插值）。
 // 只用来估算"大概需要多大 Ah 的电池"，最终必须用具体电池型号的放电表核对。
 const VRLA_W_PER_AH = [[5, 5.0], [10, 3.6], [15, 2.8], [20, 2.3], [30, 1.7], [45, 1.25], [60, 1.0], [90, 0.72], [120, 0.57], [180, 0.40], [240, 0.31], [480, 0.17]];
+export const LFP_AH = [50, 100, 150, 200, 280];
 export const STD_AH = [7, 9, 12, 17, 24, 26, 33, 38, 40, 45, 50, 55, 65, 70, 80, 90, 100, 120, 134, 150, 160, 180, 200];
 export const STD_BREAKER = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000];
 
@@ -59,7 +64,17 @@ export function batteryPlan({ loadKw, minutes, blocks, type = 'vrla', ambient = 
   const out = { pW, cells, wCell, wCellDesign, tempF, vNom: blocks * 12, vEnd, iEnd, breakerDc: up(STD_BREAKER, iEnd * 1.25) };
   if (type === 'lfp') {
     const kwh = pW * minutes / 60 / 1000 / ASSUME.lfpDod * ASSUME.lfpAging;
-    return { ...out, type, kwh: r1(kwh), cRate: r1(pW / 1000 / kwh) };
+    // 簇（cluster）= 160 节串联 512 V，单簇容量从标准电芯里选；同时满足能量和最大放电倍率
+    const vNomL = ASSUME.lfpCells * ASSUME.lfpVCell, vEndL = ASSUME.lfpCells * ASSUME.lfpEndV;
+    const iL = pW / vEndL;
+    const ahE = kwh * 1000 / vNomL, ahC = iL / ASSUME.lfpMaxC;
+    const ahNeed = Math.max(ahE, ahC);
+    const clusters = Math.max(1, Math.ceil(ahNeed / LFP_AH[LFP_AH.length - 1]));
+    const ah = up(LFP_AH, ahNeed / clusters) || LFP_AH[LFP_AH.length - 1];
+    const kwhInst = r1(clusters * ah * vNomL / 1000);
+    return { ...out, type, kwh: r1(kwh), cRate: r1(pW / 1000 / kwh), vNom: vNomL, vEnd: vEndL, iEnd: iL, breakerDc: up(STD_BREAKER, iL * 1.25),
+      clusters, ah, kwhInst, modules: clusters * 10, moduleKwh: r1(ah * vNomL / 10 / 1000), byPower: ahC > ahE, cInst: r1(iL / (clusters * ah)),
+      kg: Math.round(kwhInst * ASSUME.lfpKgPerKwh), runMin: Math.round(clusters * ah * vNomL * ASSUME.lfpDod / ASSUME.lfpAging / pW * 60) };
   }
   const perAh = interp(VRLA_W_PER_AH, minutes);
   const ahTotal = wCellDesign / perAh;
