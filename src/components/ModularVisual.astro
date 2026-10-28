@@ -13,7 +13,7 @@ const V = {
   en: {
     eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating — modules slide in in real time, one rating per frame. Then size the batteries and send the whole configuration.',
     s1: 'Frame', s1n: 'Up to {n} power modules', slots: '{n} slots', s2: 'Power module', s2n: 'All modules in a frame have the same rating', s3: 'Modules installed', s4: 'Redundancy',
-    total: 'System capacity', usable: 'Usable with N+1', usableN: 'No redundant module', usable2N: 'Usable with 2N (one system)', dual: '2N · two systems in parallel', sumUps: 'UPS', sumBat: 'Battery', fixFirst: 'Fix the load above before sending.', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
+    total: 'System capacity', usable: 'Usable with N+1', tipL: 'What do N, N+1 and 2N mean?', redTip: [['N', 'No redundant module. All installed modules share the load; if one fails, the system capacity drops by one module. Lowest cost.'], ['N+1', 'One spare module. If any single module fails, the others still carry the full load and the module can be hot-swapped. The usual choice for IT rooms and data centers.'], ['2N', 'Two complete UPS systems in parallel, each able to carry the whole load alone. Even if an entire system (frame, bypass or battery) fails, the load stays protected. Highest reliability.']], usableN: 'No redundant module', usable2N: 'Usable with 2N (one system)', dual: '2N · two systems in parallel', sumUps: 'UPS', sumBat: 'Battery', fixFirst: 'Fix the load above before sending.', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
     model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Size the batteries ↓',
     msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)', red2: '\n• Redundancy: 2N — 2 identical systems in parallel (2 × {t} kW, usable {x} kW)',
     hint: 'Click a module to pull it out and see how the others share the load.',
@@ -22,7 +22,7 @@ const V = {
   es: {
     eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo: los módulos se insertan en tiempo real, una sola potencia por gabinete. Luego dimensione las baterías y envíe toda la configuración.',
     s1: 'Gabinete', s1n: 'Hasta {n} módulos de potencia', slots: '{n} ranuras', s2: 'Módulo de potencia', s2n: 'Todos los módulos de un gabinete tienen la misma potencia', s3: 'Módulos instalados', s4: 'Redundancia',
-    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', usableN: 'Sin módulo de reserva', usable2N: 'Utilizable con 2N (un sistema)', dual: '2N · dos sistemas en paralelo', sumUps: 'UPS', sumBat: 'Baterías', fixFirst: 'Corrija la carga antes de enviar.', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
+    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', tipL: '¿Qué significan N, N+1 y 2N?', redTip: [['N', 'Sin módulo de reserva. Todos los módulos comparten la carga; si uno falla, la capacidad baja en un módulo. El menor costo.'], ['N+1', 'Un módulo de reserva. Si falla cualquier módulo, los demás siguen soportando toda la carga y se cambia en caliente. Lo habitual en salas de TI y centros de datos.'], ['2N', 'Dos sistemas UPS completos en paralelo, cada uno capaz de soportar solo toda la carga. Aunque falle un sistema entero (gabinete, bypass o baterías), la carga sigue protegida. Máxima confiabilidad.']], usableN: 'Sin módulo de reserva', usable2N: 'Utilizable con 2N (un sistema)', dual: '2N · dos sistemas en paralelo', sumUps: 'UPS', sumBat: 'Baterías', fixFirst: 'Corrija la carga antes de enviar.', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
     model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Calcular las baterías ↓',
     msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)', red2: '\n• Redundancia: 2N — 2 sistemas iguales en paralelo (2 × {t} kW, utilizable {x} kW)',
     hint: 'Haga clic en un módulo para retirarlo y ver cómo los demás reparten la carga.',
@@ -31,7 +31,7 @@ const V = {
   ru: {
     eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля — модули устанавливаются в реальном времени, в одном шкафу одна мощность. Затем рассчитайте батареи и отправьте всю конфигурацию.',
     s1: 'Шкаф', s1n: 'До {n} силовых модулей', slots: '{n} слотов', s2: 'Силовой модуль', s2n: 'Все модули в шкафу одной мощности', s3: 'Установлено модулей', s4: 'Резервирование',
-    total: 'Мощность системы', usable: 'Доступно при N+1', usableN: 'Без резервного модуля', usable2N: 'Доступно при 2N (одна система)', dual: '2N · две системы параллельно', sumUps: 'ИБП', sumBat: 'Батареи', fixFirst: 'Сначала исправьте нагрузку.', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
+    total: 'Мощность системы', usable: 'Доступно при N+1', tipL: 'Что означают N, N+1 и 2N?', redTip: [['N', 'Без резервного модуля. Все модули делят нагрузку; при отказе одного мощность системы снижается на один модуль. Самый дешёвый вариант.'], ['N+1', 'Один резервный модуль. При отказе любого модуля остальные несут всю нагрузку, модуль меняется в горячем режиме. Обычный выбор для серверных и ЦОД.'], ['2N', 'Две полноценные системы ИБП параллельно, каждая может одна нести всю нагрузку. Даже при отказе целой системы (шкаф, байпас или батареи) нагрузка остаётся защищённой. Максимальная надёжность.']], usableN: 'Без резервного модуля', usable2N: 'Доступно при 2N (одна система)', dual: '2N · две системы параллельно', sumUps: 'ИБП', sumBat: 'Батареи', fixFirst: 'Сначала исправьте нагрузку.', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
     model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Рассчитать батареи ↓',
     msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)', red2: '\n• Резервирование: 2N — 2 одинаковые системы параллельно (2 × {t} кВт, доступно {x} кВт)',
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
@@ -71,13 +71,18 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
           <div class="vb-step"><button type="button" data-cnt="-1" aria-label="−">−</button><output data-count>10</output><button type="button" data-cnt="1" aria-label="+">+</button></div>
         </div>
         <div>
-          <div class="vb-gh"><span class="vb-n">4</span><b>{V.s4}</b></div>
-          <div class="vb-seg"><button type="button" class="on" data-red="1">N+1</button><button type="button" data-red="0">N</button><button type="button" data-red="2">2N</button></div>
+          <div class="vb-gh vb-gh-tip"><span class="vb-n">4</span><b>{V.s4}</b>
+            <span class="vb-tip">
+              <button type="button" class="vb-q" aria-label={V.tipL} aria-describedby="vb-red-tip">?</button>
+              <span class="vb-tipbox" id="vb-red-tip" role="tooltip">{V.redTip.map(([k, t]) => <span class="vb-tipr"><b>{k}</b><span>{t}</span></span>)}</span>
+            </span>
+          </div>
+          <div class="vb-seg"><button type="button" class="on" data-red="0">N</button><button type="button" data-red="1">N+1</button><button type="button" data-red="2">2N</button></div>
         </div>
       </div>
       <div class="vb-read">
         <div class="vb-big"><span>{V.total}</span><b><output data-total>300</output><small> kW</small></b></div>
-        <div class="vb-sub"><span data-usable-l>{V.usable}</span><b><output data-usable>270</output> kW</b></div>
+        <div class="vb-sub"><span data-usable-l>{V.usableN}</span><b><output data-usable>300</output> kW</b></div>
         <div class="vb-sub"><span>{V.frame}</span><b data-used></b></div>
         <div class="vb-model" data-model></div>
       </div>
@@ -134,7 +139,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   var root = document.querySelector('[data-vb]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-vb-cfg]').textContent), T = c.t;
   var $ = function (s) { return root.querySelector(s); };
-  var st = { n: 10, m: 30, u: 10, red: 1, out: -1, load: 0, bat: null };
+  var st = { n: 10, m: 30, u: 10, red: 0, out: -1, load: 0, bat: null };
   var fmt = function (s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); };
   var gen = 0;
   var lastMsg = '';
@@ -297,6 +302,16 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   .vb-go { min-height: 50px; padding: 0 26px; font-size: 16px; cursor: pointer; box-shadow: 0 10px 30px rgba(94,240,160,.25); }
   .vb-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
   @media (max-width: 520px) { .vb-go { width: 100%; justify-content: center; } }
+  .vb-gh-tip { position: relative; flex-wrap: nowrap; }
+  .vb-tip { position: relative; display: inline-flex; margin-left: auto; align-self: center; }
+  .vb-q { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.06); color: #cfdcd8; font: 700 12px/1 var(--mono); cursor: help; padding: 0; }
+  .vb-q:hover, .vb-q:focus-visible { border-color: #5ef0a0; color: #5ef0a0; outline: none; }
+  .vb-tipbox { position: absolute; z-index: 30; right: -8px; top: calc(100% + 10px); width: min(340px, 84vw); display: grid; gap: 10px; padding: 14px; border-radius: 12px; text-align: left;
+    background: #0d1f1c; border: 1px solid rgba(94,240,160,.35); box-shadow: 0 18px 40px rgba(0,0,0,.55); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .15s, transform .15s, visibility .15s; }
+  .vb-tipbox::before { content: ""; position: absolute; top: -6px; right: 14px; width: 10px; height: 10px; background: #0d1f1c; border-left: 1px solid rgba(94,240,160,.35); border-top: 1px solid rgba(94,240,160,.35); transform: rotate(45deg); }
+  .vb-tip:hover .vb-tipbox, .vb-tip:focus-within .vb-tipbox { opacity: 1; visibility: visible; transform: none; }
+  .vb-tipr { display: grid; grid-template-columns: 40px 1fr; gap: 8px; font-size: 12.5px; line-height: 1.45; color: #cfdcd8; }
+  .vb-tipr b { font: 700 13px var(--mono); color: #5ef0a0; }
   .vb-cabs { display: flex; gap: 34px; align-items: flex-end; justify-content: center; }
   .vb-cabb { display: contents; }
   .vb-cabb[hidden] { display: none; }
@@ -312,7 +327,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   .vb-par i:last-child { background: linear-gradient(90deg, #5ef0a0, transparent); }
   .vb-ctl { position: relative; display: grid; gap: 14px; align-content: start; }
   .vb-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; backdrop-filter: blur(6px); }
-  .vb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .vb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; position: relative; z-index: 5; }
   .vb-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .vb-gh b { font-size: 15px; }
   .vb-gh small { color: #8fa7a1; font-size: 12px; }

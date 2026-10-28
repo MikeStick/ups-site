@@ -128,7 +128,7 @@ const cfg = { t: B };
     const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
     const st = { kw: 200, t: 15, bt: 'vrla' };
     // 当前模块化系统（来自上面的可视化选型）；没有就按 10 × 30 kW N+1
-    let sys: any = (window as any).__skeSys || { total: 300, usable: 270, u: 10, m: 30, red: 1, model: '' };
+    let sys: any = (window as any).__skeSys || { total: 300, usable: 300, u: 10, m: 30, red: 0, model: '' };
     let blocked = false;
     const kwN = $('[data-kw]') as HTMLInputElement, kwR = $('[data-kw-r]') as HTMLInputElement, tx = $('[data-tx]') as HTMLInputElement;
 
