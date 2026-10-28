@@ -4,35 +4,36 @@
 // 机框 + 模块规格能对上规格书里的型号时显示型号名；对不上的提示"可定制"。
 import { SITE } from '../config.mjs';
 import { catalog } from '../data/modular-catalog.mjs';
+import ModularBattery from './ModularBattery.astro';
 interface Props { lang: string }
 const { lang } = Astro.props;
 const FRAMES = [2, 3, 4, 6, 8, 10];
 const MODS = [10, 15, 20, 30, 50, 60, 100];
 const V = {
   en: {
-    eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating. Modules slide into the frame in real time — one rating per frame, no mixing.',
+    eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating — modules slide in in real time, one rating per frame. Then size the batteries and send the whole configuration.',
     s1: 'Frame', s1n: 'Up to {n} power modules', slots: '{n} slots', s2: 'Power module', s2n: 'All modules in a frame have the same rating', s3: 'Modules installed', s4: 'Redundancy',
-    total: 'System capacity', usable: 'Usable with N+1', usableN: 'No redundant module', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
+    total: 'System capacity', usable: 'Usable with N+1', usableN: 'No redundant module', usable2N: 'Usable with 2N (one system)', dual: '2N · two systems in parallel', sumUps: 'UPS', sumBat: 'Battery', fixFirst: 'Fix the load above before sending.', frame: 'Frame', used: '{u} of {n} slots used', free: '{f} free for future growth',
     model: 'Matching model', custom: 'Custom frame — ask us for this combination', lcd: 'ONLINE', send: 'Send this configuration', more: 'Size the batteries ↓',
-    msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)',
+    msg: 'Hello, I am interested in this modular UPS configuration:\n• Frame: {n} slots\n• Power modules: {u} × {m} kW (same rating)\n• System capacity: {t} kW{r}', red: '\n• Redundancy: N+1 (usable {x} kW)', red2: '\n• Redundancy: 2N — 2 identical systems in parallel (2 × {t} kW, usable {x} kW)',
     hint: 'Click a module to pull it out and see how the others share the load.',
     popH: 'Send this configuration', popP: 'Choose how you want to send it. The configuration below is filled in for you.', viaWa: 'WhatsApp message', viaMail: 'Email', subj: 'Modular UPS configuration', close: 'Close',
   },
   es: {
-    eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo. Los módulos se insertan en tiempo real: una sola potencia por gabinete, sin mezclar.',
+    eyebrow: 'Configurador visual', h: 'Arme su sistema, ranura por ranura', p: 'Elija un gabinete y la potencia del módulo: los módulos se insertan en tiempo real, una sola potencia por gabinete. Luego dimensione las baterías y envíe toda la configuración.',
     s1: 'Gabinete', s1n: 'Hasta {n} módulos de potencia', slots: '{n} ranuras', s2: 'Módulo de potencia', s2n: 'Todos los módulos de un gabinete tienen la misma potencia', s3: 'Módulos instalados', s4: 'Redundancia',
-    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', usableN: 'Sin módulo de reserva', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
+    total: 'Capacidad del sistema', usable: 'Utilizable con N+1', usableN: 'Sin módulo de reserva', usable2N: 'Utilizable con 2N (un sistema)', dual: '2N · dos sistemas en paralelo', sumUps: 'UPS', sumBat: 'Baterías', fixFirst: 'Corrija la carga antes de enviar.', frame: 'Gabinete', used: '{u} de {n} ranuras en uso', free: '{f} libres para crecer',
     model: 'Modelo correspondiente', custom: 'Gabinete a medida: consúltenos esta combinación', lcd: 'ONLINE', send: 'Enviar esta configuración', more: 'Calcular las baterías ↓',
-    msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)',
+    msg: 'Hola, me interesa esta configuración de UPS modular:\n• Gabinete: {n} ranuras\n• Módulos: {u} × {m} kW (misma potencia)\n• Capacidad: {t} kW{r}', red: '\n• Redundancia: N+1 (utilizable {x} kW)', red2: '\n• Redundancia: 2N — 2 sistemas iguales en paralelo (2 × {t} kW, utilizable {x} kW)',
     hint: 'Haga clic en un módulo para retirarlo y ver cómo los demás reparten la carga.',
     popH: 'Enviar esta configuración', popP: 'Elija cómo enviarla. La configuración de abajo ya está completada.', viaWa: 'Mensaje de WhatsApp', viaMail: 'Correo electrónico', subj: 'Configuración de UPS modular', close: 'Cerrar',
   },
   ru: {
-    eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля. Модули устанавливаются в реальном времени — в одном шкафу только одна мощность, без смешивания.',
+    eyebrow: 'Визуальный конфигуратор', h: 'Соберите систему слот за слотом', p: 'Выберите шкаф и мощность модуля — модули устанавливаются в реальном времени, в одном шкафу одна мощность. Затем рассчитайте батареи и отправьте всю конфигурацию.',
     s1: 'Шкаф', s1n: 'До {n} силовых модулей', slots: '{n} слотов', s2: 'Силовой модуль', s2n: 'Все модули в шкафу одной мощности', s3: 'Установлено модулей', s4: 'Резервирование',
-    total: 'Мощность системы', usable: 'Доступно при N+1', usableN: 'Без резервного модуля', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
+    total: 'Мощность системы', usable: 'Доступно при N+1', usableN: 'Без резервного модуля', usable2N: 'Доступно при 2N (одна система)', dual: '2N · две системы параллельно', sumUps: 'ИБП', sumBat: 'Батареи', fixFirst: 'Сначала исправьте нагрузку.', frame: 'Шкаф', used: 'занято {u} из {n} слотов', free: '{f} свободно для роста',
     model: 'Соответствующая модель', custom: 'Шкаф под заказ — уточните у нас эту комбинацию', lcd: 'ONLINE', send: 'Отправить конфигурацию', more: 'Рассчитать батареи ↓',
-    msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)',
+    msg: 'Здравствуйте, интересует конфигурация модульного ИБП:\n• Шкаф: {n} слотов\n• Модули: {u} × {m} кВт (одна мощность)\n• Мощность системы: {t} кВт{r}', red: '\n• Резервирование: N+1 (доступно {x} кВт)', red2: '\n• Резервирование: 2N — 2 одинаковые системы параллельно (2 × {t} кВт, доступно {x} кВт)',
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
     popH: 'Отправить конфигурацию', popP: 'Выберите способ отправки. Конфигурация ниже уже заполнена.', viaWa: 'Сообщение в WhatsApp', viaMail: 'Электронная почта', subj: 'Конфигурация модульного ИБП', close: 'Закрыть',
   },
@@ -71,7 +72,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
         </div>
         <div>
           <div class="vb-gh"><span class="vb-n">4</span><b>{V.s4}</b></div>
-          <div class="vb-seg"><button type="button" class="on" data-red="1">N+1</button><button type="button" data-red="0">N</button></div>
+          <div class="vb-seg"><button type="button" class="on" data-red="1">N+1</button><button type="button" data-red="0">N</button><button type="button" data-red="2">2N</button></div>
         </div>
       </div>
       <div class="vb-read">
@@ -79,24 +80,39 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
         <div class="vb-sub"><span data-usable-l>{V.usable}</span><b><output data-usable>270</output> kW</b></div>
         <div class="vb-sub"><span>{V.frame}</span><b data-used></b></div>
         <div class="vb-model" data-model></div>
-        <div class="vb-acts">
-          {(SITE.whatsapp || SITE.email) && <button type="button" class="vb-btn primary" data-vb-open aria-haspopup="dialog">{V.send}</button>}
-          <a class="vb-btn" href="#battery">{V.more}</a>
-        </div>
       </div>
     </div>
 
     <div class="vb-view">
+      <div class="vb-cabs">
       <div class="vb-cab" data-vbcab style="--slots:10">
         <div class="vb-top">
           <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcd>300 kW</span><span class="vb-lcd-c" data-lcd2>10 × 30 kW</span></div>
           <div class="vb-leds"><i></i><i></i><i></i></div>
         </div>
         <div class="vb-slots" data-vbslots></div>
-        <div class="vb-base"><span>SKE</span></div>
+        <div class="vb-base"><span>SKE<em data-cab-a hidden> · A</em></span></div>
       </div>
+      <div class="vb-cabb" data-cabb hidden>
+      <div class="vb-cab" data-vbcab2 style="--slots:10">
+        <div class="vb-top">
+          <div class="vb-lcd"><span class="vb-lcd-a">{V.lcd}</span><span class="vb-lcd-b" data-lcdb>300 kW</span><span class="vb-lcd-c" data-lcdb2>10 × 30 kW</span></div>
+          <div class="vb-leds"><i></i><i></i><i></i></div>
+        </div>
+        <div class="vb-slots" data-vbslots2></div>
+        <div class="vb-base"><span>SKE · B</span></div>
+      </div>
+      </div>
+      </div>
+      <div class="vb-par" data-par hidden><i></i><span>{V.dual}</span><i></i></div>
       <div class="vb-floor"></div>
       <p class="vb-hint">{V.hint}</p>
+    </div>
+    <ModularBattery lang={lang} />
+    <div class="vb-final">
+      <div class="vb-sum" data-sum></div>
+      <p class="vb-blk" data-blk hidden>{V.fixFirst}</p>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="vb-btn primary vb-go" data-vb-open aria-haspopup="dialog">{V.send}</button>}
     </div>
   </div>
   <div class="vb-pop" data-vb-pop hidden role="dialog" aria-modal="true" aria-labelledby="vb-pop-h">
@@ -118,7 +134,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   var root = document.querySelector('[data-vb]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-vb-cfg]').textContent), T = c.t;
   var $ = function (s) { return root.querySelector(s); };
-  var st = { n: 10, m: 30, u: 10, red: 1, out: -1, load: 0 };
+  var st = { n: 10, m: 30, u: 10, red: 1, out: -1, load: 0, bat: null };
   var fmt = function (s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); };
   var gen = 0;
   var lastMsg = '';
@@ -127,7 +143,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
     var from = +el.dataset.v || 0, t0 = performance.now(), d = 450; el.dataset.v = to;
     (function step(t) { var k = Math.min(1, (t - t0) / d); el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
   }
-  function build(animate) {
+  function build(animate, animB) {
     gen++;
     var box = $('[data-vbslots]'), cab = $('[data-vbcab]');
     cab.style.setProperty('--slots', st.n);
@@ -142,14 +158,21 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
       }
     }
     box.innerHTML = h;
+    // 2N：第二台是同样配置的镜像（不能单独拔模块）
+    var b2 = $('[data-vbslots2]'); $('[data-vbcab2]').style.setProperty('--slots', st.n);
+    if (st.red === 2) b2.innerHTML = (animate || animB ? h.replace(/vb-m m/g, 'vb-m ins m') : h.replace(/ ins/g, '')).replace(/ out/g, ''); else b2.innerHTML = '';
     update();
   }
   function update() {
     var active = st.u - (st.out >= 0 ? 1 : 0);
-    var total = st.u * st.m, usable = Math.max(0, (st.u - st.red) * st.m);
+    var dual = st.red === 2;
+    var total = st.u * st.m, usable = dual ? total : Math.max(0, (st.u - st.red) * st.m);
     countTo($('[data-total]'), total);
     countTo($('[data-usable]'), usable);
-    $('[data-usable-l]').textContent = st.red ? T.usable : T.usableN;
+    $('[data-usable-l]').textContent = dual ? T.usable2N : st.red ? T.usable : T.usableN;
+    $('[data-cabb]').hidden = !dual; $('[data-par]').hidden = !dual; $('[data-cab-a]').hidden = !dual;
+    root.querySelector('.vb-view').classList.toggle('dual', dual);
+    $('[data-lcdb]').textContent = (st.u * st.m) + ' kW'; $('[data-lcdb2]').textContent = st.u + ' × ' + st.m + ' kW';
     $('[data-used]').textContent = fmt(T.used, { u: st.u, n: st.n }) + (st.n - st.u > 0 ? ' · ' + fmt(T.free, { f: st.n - st.u }) : '');
     $('[data-lcd]').textContent = (active * st.m) + ' kW';
     $('[data-lcd2]').textContent = active + ' × ' + st.m + ' kW';
@@ -158,18 +181,26 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
     $('[data-model]').innerHTML = model ? '<span>' + T.model + '</span><b>' + model + '</b>' : '<span class="cu">' + T.custom + '</span>';
     // 每个模块的负载条：假设系统带着"可用容量"的 70% 负载，平均分到在线的模块上
     // 有电池选型里填的实际负载就用它，否则假设带"可用容量"的 70%
-    var load = st.load > 0 ? st.load : 0.7 * Math.max(st.m, usable || st.m), share = active ? load / active / st.m : 0;
+    var load = st.load > 0 ? st.load : 0.7 * Math.max(st.m, usable || st.m);
+    if (dual) load = load / 2; // 2N：两台各带一半
+    var share = active ? load / active / st.m : 0;
     root.querySelectorAll('.vb-m').forEach(function (b) { var l = b.querySelector('.ld'); l.style.setProperty('--l', b.classList.contains('out') ? '0%' : Math.min(100, Math.round(share * 100)) + '%'); b.classList.toggle('hot', share > 1); });
-    lastMsg = fmt(T.msg, { n: st.n, u: st.u, m: st.m, t: total, r: st.red ? fmt(T.red, { x: usable }) : '' }) + (model ? '\n• Model: ' + model : '');
+    lastMsg = fmt(T.msg, { n: st.n, u: st.u, m: st.m, t: total, r: dual ? fmt(T.red2, { t: total, x: usable }) : st.red ? fmt(T.red, { x: usable }) : '' }) + (model ? '\n• Model: ' + model + (dual ? ' × 2' : '') : '');
+    // 底部汇总：UPS + 电池，全部填完再发送
+    var bat = st.bat;
+    $('[data-sum]').innerHTML = '<div><span>' + T.sumUps + '</span><b>' + (dual ? '2 × ' : '') + total + ' kW · ' + st.u + ' × ' + st.m + ' kW · ' + (dual ? '2N' : st.red ? 'N+1' : 'N') + (model ? ' · ' + model : '') + '</b></div>' +
+      (bat && bat.sum ? '<div><span>' + T.sumBat + '</span><b' + (bat.blocked ? ' class="bad"' : '') + '>' + bat.sum + '</b></div>' : '');
+    var blk = !!(bat && bat.blocked), go = $('[data-vb-open]');
+    $('[data-blk]').hidden = !blk; if (go) go.disabled = blk;
     // 把当前系统告诉电池选型（负载上限 = 系统容量的 80%）
-    var sys = { total: total, usable: usable, n: st.n, u: st.u, m: st.m, red: st.red, model: model || '' };
+    var sys = { total: total, usable: usable, n: st.n, u: st.u, m: st.m, red: st.red, model: model ? model + (dual ? ' × 2' : '') : '' };
     window.__skeSys = sys;
     if (!quiet) document.dispatchEvent(new CustomEvent('ske:system', { detail: sys }));
   }
   // 电池选型里改实际负载 → 模块负载条跟着变
   // quiet：这次刷新是电池选型触发的，不再回发 ske:system，避免来回循环
   var quiet = false;
-  document.addEventListener('ske:load', function (e) { st.load = +(e.detail && e.detail.kw) || 0; quiet = true; update(); quiet = false; });
+  document.addEventListener('ske:load', function (e) { st.load = +(e.detail && e.detail.kw) || 0; st.bat = e.detail || null; quiet = true; update(); quiet = false; });
   root.querySelectorAll('[data-frame]').forEach(function (b) {
     b.addEventListener('click', function () {
       var n = +b.dataset.frame; if (n === st.n) return;
@@ -203,9 +234,10 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   });
   root.querySelectorAll('[data-red]').forEach(function (b) {
     b.addEventListener('click', function () {
-      st.red = +b.dataset.red;
+      var was = st.red; st.red = +b.dataset.red; if (was === st.red) return;
       root.querySelectorAll('[data-red]').forEach(function (x) { x.classList.toggle('on', x === b); });
-      update();
+      // 进出 2N 要重画第二台机柜（进入时第二台的模块逐个插入）
+      if (was === 2 || st.red === 2) build(false, st.red === 2); else update();
     });
   });
   // 点模块：拔出 / 插回，看其余模块分担负载
@@ -224,7 +256,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   // 发送配置：弹出选择框 —— WhatsApp 或邮件，内容已经填好
   var pop = $('[data-vb-pop]'), opener = null;
   function openPop(msg, subj) {
-    msg = msg || lastMsg; subj = subj || (T.subj + ' · ' + st.u + ' × ' + st.m + ' kW');
+    msg = msg || (lastMsg + (st.bat && st.bat.msg ? st.bat.msg : '')); subj = subj || (T.subj + ' · ' + (st.red === 2 ? '2N · 2 × ' : '') + st.u + ' × ' + st.m + ' kW' + (st.bat && st.bat.t ? ' · ' + st.bat.t + ' min' : ''));
     $('[data-vb-msg]').textContent = msg;
     var wa = $('[data-vb-wa]'), mail = $('[data-vb-mail]');
     if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
@@ -248,12 +280,36 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
 </script>
 
 <style>
-  .vb-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px; border-radius: 18px; overflow: hidden; color: #e6efec;
+  .vb-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl view" "bctl bout" "fin fin"; gap: 24px; padding: 28px; border-radius: 18px; overflow: hidden; color: #e6efec;
     background: radial-gradient(120% 90% at 75% 40%, #12302b 0%, #0a1514 55%, #070d0d 100%); }
   .vb-stage::before { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(90deg, rgba(94,240,160,.05) 0 1px, transparent 1px 48px), repeating-linear-gradient(0deg, rgba(94,240,160,.05) 0 1px, transparent 1px 48px);
     mask-image: radial-gradient(80% 70% at 70% 50%, #000 30%, transparent 80%); }
-  @media (max-width: 900px) { .vb-stage { grid-template-columns: minmax(0, 1fr); padding: 18px; } }
+  @media (max-width: 900px) { .vb-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "view" "ctl" "bctl" "bout" "fin"; padding: 18px; } }
+  .vb-ctl { grid-area: ctl; } .vb-view { grid-area: view; }
+  .vb-final { grid-area: fin; position: relative; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .vb-sum { flex: 1 1 380px; display: grid; gap: 4px; font-size: 14px; }
+  .vb-sum :global(div) { display: flex; gap: 10px; flex-wrap: wrap; }
+  .vb-sum :global(span) { min-width: 64px; color: #8fa7a1; font: 600 12px/20px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .vb-sum :global(b) { font-family: var(--mono); font-weight: 600; }
+  .vb-sum :global(b.bad) { color: #f87171; }
+  .vb-blk { margin: 0; flex-basis: 100%; order: 3; font-size: 13px; color: #f87171; }
+  .vb-go { min-height: 50px; padding: 0 26px; font-size: 16px; cursor: pointer; box-shadow: 0 10px 30px rgba(94,240,160,.25); }
+  .vb-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  @media (max-width: 520px) { .vb-go { width: 100%; justify-content: center; } }
+  .vb-cabs { display: flex; gap: 34px; align-items: flex-end; justify-content: center; }
+  .vb-cabb { display: contents; }
+  .vb-cabb[hidden] { display: none; }
+  .vb-view.dual .vb-cab { width: min(230px, 40vw); padding: 10px 10px 0; }
+  .vb-view.dual .vb-lcd { min-width: 0; padding: 6px 8px; }
+  .vb-view.dual .vb-lcd-b { font-size: 17px; }
+  .vb-view.dual .vb-leds { display: none; }
+  .vb-view.dual .vb-slots :global(.vb-m) { grid-template-columns: 10px 1fr auto 12px; gap: 6px; padding: 0 7px; }
+  .vb-base em { font-style: normal; }
+  .vb-par { display: flex; align-items: center; gap: 10px; width: min(460px, 92%); margin-top: 14px; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #5ef0a0; }
+  .vb-par[hidden] { display: none; }
+  .vb-par i { flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #5ef0a0); box-shadow: 0 0 8px #5ef0a0; }
+  .vb-par i:last-child { background: linear-gradient(90deg, #5ef0a0, transparent); }
   .vb-ctl { position: relative; display: grid; gap: 14px; align-content: start; }
   .vb-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; backdrop-filter: blur(6px); }
   .vb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -340,7 +396,10 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   .vb-hint { margin: 18px 0 0; font-size: 12.5px; color: #8fa7a1; text-align: center; }
   /* 手机：机柜放在选项上面、缩小一些，选的时候能直接看到变化 */
   @media (max-width: 900px) {
-    .vb-view { order: -1; min-height: 0; padding-top: 6px; }
+    .vb-view { min-height: 0; padding-top: 6px; }
+    .vb-view.dual .vb-cab { width: min(170px, 36vw); padding: 8px 8px 0; }
+    .vb-view.dual .vb-cab::after { right: -14px; width: 14px; }
+    .vb-cabs { gap: 22px; }
     .vb-cab { width: min(260px, 74vw); padding: 10px 10px 0; transform: rotateY(-10deg) rotateX(2deg); }
     .vb-slots :global(.vb-m), .vb-slots :global(.vb-empty) { height: 26px; }
     .vb-slots { gap: 4px; }

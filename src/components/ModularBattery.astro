@@ -14,7 +14,8 @@ const B = {
     overWhy: 'Above 80% there is no headroom for start-up surges or growth, the modules run hot and their service life drops.',
     low: 'Below 30% the UPS runs inefficiently — a smaller system would be enough.', ok: 'In the recommended range.', hi: 'Allowed, but above the recommended range — little room for surges and growth.', under: 'Below the recommended range — spare capacity for future growth.',
     indNote: 'For factories and heavy motor loads we recommend a low-frequency (transformer) UPS.', blocked: 'Choose a larger system first',
-    msgSys: '\n• System: {s}\n• Load ratio: {p}%',
+    msgSys: '', band2: 'Recommended {a}–{b}% per UPS', over2: 'Not allowed: with 2N either UPS must carry the full load alone if the other fails — max. {max} kW. Please choose a larger capacity above.', sets: 'Battery sets', setsN: '2 — one per UPS, each sized for the full load', perUps: 'per UPS',
+    msgB: '\n\nBattery:\n• Actual load: {k} kW (load ratio {p})\n• Backup time: {t} min\n• Battery type: {b}\n• Suggested: {s}',
     eyebrow: 'Battery sizing', h: 'Size the batteries', p: 'Enter the real load and the backup time you need. We size the battery bank for the modular UPS — lead-acid or lithium.',
     s1: 'Actual load power', s1n: 'What the equipment really draws, not the UPS rating', s2: 'Backup time required', s2n: 'Minutes on battery after a power cut', other: 'Other', s3: 'Battery type',
     vrla: 'Lead-acid (VRLA)', vrlaN: 'Lowest cost · 3–5 years in a cool room', lfp: 'Lithium (LiFePO₄)', lfpN: 'Up to 70% lighter · 10+ years · BMS',
@@ -35,7 +36,8 @@ const B = {
     overWhy: 'Por encima del 80% no queda margen para picos de arranque ni crecimiento, los módulos trabajan calientes y su vida útil baja.',
     low: 'Por debajo del 30% el UPS trabaja con baja eficiencia: bastaría un sistema más pequeño.', ok: 'Dentro del rango recomendado.', hi: 'Permitido, pero sobre el rango recomendado: poco margen para picos y crecimiento.', under: 'Por debajo del rango recomendado: capacidad libre para crecer.',
     indNote: 'Para fábricas y cargas con motores grandes recomendamos un UPS de baja frecuencia (con transformador).', blocked: 'Primero elija un sistema mayor',
-    msgSys: '\n• Sistema: {s}\n• Nivel de carga: {p}%',
+    msgSys: '', band2: 'Recomendado {a}–{b}% por UPS', over2: 'No permitido: con 2N cada UPS debe soportar sola toda la carga si la otra falla — máx. {max} kW. Elija una capacidad mayor arriba.', sets: 'Juegos de baterías', setsN: '2 — uno por UPS, cada uno para la carga completa', perUps: 'por UPS',
+    msgB: '\n\nBaterías:\n• Carga real: {k} kW (nivel de carga {p})\n• Autonomía: {t} min\n• Tipo de batería: {b}\n• Sugerido: {s}',
     eyebrow: 'Dimensionamiento de baterías', h: 'Calcule las baterías', p: 'Indique la carga real y la autonomía que necesita. Dimensionamos el banco de baterías para el UPS modular: plomo-ácido o litio.',
     s1: 'Potencia real de la carga', s1n: 'Lo que consumen los equipos, no la potencia del UPS', s2: 'Autonomía requerida', s2n: 'Minutos con batería tras un corte', other: 'Otra', s3: 'Tipo de batería',
     vrla: 'Plomo-ácido (VRLA)', vrlaN: 'Menor costo · 3–5 años en sala fresca', lfp: 'Litio (LiFePO₄)', lfpN: 'Hasta 70% más liviano · 10+ años · BMS',
@@ -56,7 +58,8 @@ const B = {
     overWhy: 'Выше 80% нет запаса на пусковые токи и рост, модули перегреваются и срок службы сокращается.',
     low: 'Ниже 30% ИБП работает с низким КПД — хватит системы поменьше.', ok: 'В рекомендуемом диапазоне.', hi: 'Допустимо, но выше рекомендуемого — мало запаса на пуски и рост.', under: 'Ниже рекомендуемого — запас мощности на будущее.',
     indNote: 'Для заводов и мощных двигателей рекомендуем низкочастотный (трансформаторный) ИБП.', blocked: 'Сначала выберите систему мощнее',
-    msgSys: '\n• Система: {s}\n• Загрузка: {p}%',
+    msgSys: '', band2: 'Рекомендуется {a}–{b}% на каждый ИБП', over2: 'Недопустимо: при 2N каждый ИБП должен один нести всю нагрузку при отказе другого — макс. {max} кВт. Выберите систему большей мощности выше.', sets: 'Комплекты батарей', setsN: '2 — по одному на ИБП, каждый на полную нагрузку', perUps: 'на ИБП',
+    msgB: '\n\nБатареи:\n• Реальная нагрузка: {k} кВт (загрузка {p})\n• Время автономии: {t} мин\n• Тип батарей: {b}\n• Предложено: {s}',
     eyebrow: 'Подбор батарей', h: 'Рассчитайте батареи', p: 'Укажите реальную нагрузку и нужное время автономии. Мы подберём батарейный массив для модульного ИБП — свинцово-кислотный или литиевый.',
     s1: 'Реальная мощность нагрузки', s1n: 'Сколько реально потребляет оборудование, а не мощность ИБП', s2: 'Требуемое время автономии', s2n: 'Минут работы от батарей после отключения', other: 'Другое', s3: 'Тип батарей',
     vrla: 'Свинцово-кислотные (VRLA)', vrlaN: 'Дешевле всего · 3–5 лет в прохладном помещении', lfp: 'Литиевые (LiFePO₄)', lfpN: 'До 70% легче · 10+ лет · BMS',
@@ -73,36 +76,31 @@ const B = {
 }[lang] || {};
 const cfg = { t: B };
 ---
-<section class="block mb" id="battery" data-mb>
-  <script type="application/json" data-mb-cfg set:html={JSON.stringify(cfg)} />
-  <div class="head"><span class="eyebrow">{B.eyebrow}</span><h2>{B.h}</h2><p>{B.p}</p></div>
-  <div class="mb-stage">
-    <div class="mb-ctl">
+<div class="mb-ctl" id="battery" data-mb>
+      <script type="application/json" data-mb-cfg set:html={JSON.stringify(cfg)} />
+      <div class="mb-sec"><span class="mb-eb">{B.eyebrow}</span><small>{B.p}</small></div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">1</span><b>{B.s1}</b><small>{B.s1n}</small></div>
+        <div class="mb-gh"><span class="mb-n">5</span><b>{B.s1}</b><small>{B.s1n}</small></div>
         <div class="mb-kw">
           <input type="range" min="5" max="1200" step="5" value="200" data-kw-r aria-label={B.s1} />
           <label class="mb-num" data-kwbox><input type="number" min="1" max="2000" step="1" value="200" data-kw /><span>{B.kw}</span></label>
         </div>
-        <div class="mb-sys"><span>{B.sys}</span><b data-sys></b><a href="#visual">{B.change}</a></div>
         <div class="mb-meter" data-meter>
-          <div class="mb-bar"><i class="z lo"></i><i class="z rec" data-zrec></i><i class="z cap"></i><span class="mk" data-mk></span></div>
-          <div class="mb-scale"><span>0</span><span style="left:30%">30%</span><span style="left:80%">80%</span><span style="left:100%">100%</span></div>
+          <div class="mb-bar"><i class="z lo" data-zlo></i><i class="z rec" data-zrec></i><i class="z cap" data-zcap></i><span class="mk" data-mk></span></div>
+          <div class="mb-scale"><span>0</span><span data-slo style="left:30%">30%</span><span data-scap style="left:80%">80%</span><span style="left:100%">100%</span></div>
           <div class="mb-ratio"><span>{B.ratio} <b data-pct></b></span><small data-band></small></div>
         </div>
-        <div class="mb-lt"><span>{B.lt}</span><div class="mb-seg"><button type="button" class="on" data-lt="it">{B.ltIt}</button><button type="button" data-lt="ind">{B.ltInd}</button></div></div>
         <p class="mb-msg" data-lmsg></p>
-        <p class="mb-ind" data-ind hidden>{B.indNote}</p>
       </div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">2</span><b>{B.s2}</b><small>{B.s2n}</small></div>
+        <div class="mb-gh"><span class="mb-n">6</span><b>{B.s2}</b><small>{B.s2n}</small></div>
         <div class="mb-times">
           {TIMES.map((t) => <button type="button" class:list={['mb-t', { on: t === 15 }]} data-t={t} aria-pressed={t === 15 ? 'true' : 'false'}><b>{t}</b><span>{B.min}</span></button>)}
           <label class="mb-num mb-tx"><input type="number" min="1" max="600" step="1" placeholder={B.other} data-tx /><span>{B.min}</span></label>
         </div>
       </div>
       <div class="mb-grp">
-        <div class="mb-gh"><span class="mb-n">3</span><b>{B.s3}</b></div>
+        <div class="mb-gh"><span class="mb-n">7</span><b>{B.s3}</b></div>
         <div class="mb-types">
           <button type="button" class="mb-ty on" data-bt="vrla" aria-pressed="true"><i class="ico pb"></i><b>{B.vrla}</b><small>{B.vrlaN}</small></button>
           <button type="button" class="mb-ty" data-bt="lfp" aria-pressed="false"><i class="ico li"></i><b>{B.lfp}</b><small>{B.lfpN}</small></button>
@@ -110,7 +108,7 @@ const cfg = { t: B };
       </div>
     </div>
 
-    <div class="mb-out" aria-live="polite">
+    <div class="mb-out" data-mbout aria-live="polite">
       <span class="mb-eb">{B.rec}</span>
       <div class="mb-lock" data-lock hidden><b>{B.blocked}</b></div>
       <div class="mb-big"><b data-big></b><small data-bigu></small></div>
@@ -118,24 +116,20 @@ const cfg = { t: B };
       <dl class="mb-dl" data-dl></dl>
       <p class="mb-spec" data-spec></p>
       <p class="mb-note">{B.note}</p>
-      {(SITE.whatsapp || SITE.email) && <button type="button" class="mb-send" data-mb-send>{B.send}</button>}
     </div>
-  </div>
-</section>
 
 <script>
   import { batteryPlan } from '../lib/modular-engine.mjs';
-  const root = document.querySelector('[data-mb]') as HTMLElement | null;
+  const root = document.querySelector('[data-vb]') as HTMLElement | null; // 和 UPS 可视化选型在同一个面板里
   if (root) {
     const T = JSON.parse(root.querySelector('[data-mb-cfg]')!.textContent || '{}').t;
     const $ = (s: string) => root.querySelector(s) as HTMLElement;
     const fmt = (s: string, o: Record<string, any>) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
-    const st = { kw: 200, t: 15, bt: 'vrla', lt: 'it' };
+    const st = { kw: 200, t: 15, bt: 'vrla' };
     // 当前模块化系统（来自上面的可视化选型）；没有就按 10 × 30 kW N+1
     let sys: any = (window as any).__skeSys || { total: 300, usable: 270, u: 10, m: 30, red: 1, model: '' };
     let blocked = false;
-    let lastMsg = '';
     const kwN = $('[data-kw]') as HTMLInputElement, kwR = $('[data-kw-r]') as HTMLInputElement, tx = $('[data-tx]') as HTMLInputElement;
 
     function vis(b: any) {
@@ -166,40 +160,43 @@ const cfg = { t: B };
 
     // 负载率规则：长期负载 ≤ 系统容量 80%；N+1 时还要 ≤ 坏一个模块后的容量
     // 推荐区间：IT / 数据中心 60–75%（无冗余 60–70%），工业冲击负载 50–65%；尽量不低于 30%
+    // 2N：两台各带一半，坏一台时另一台独自带全部 → 负载 ≤ 一台的容量，每台平时 ≤ 50%，推荐每台 40–50%
+    // 负载率显示：N / N+1 = 负载 ÷ 系统容量；2N = 每台的负载率（负载 ÷ 2 ÷ 一台容量）
     function limits() {
+      if (sys.red === 2) return { max: sys.total, why: 'over2', band: [40, 50], cap: 50, lo: 20, div: sys.total * 2 };
       const cap80 = Math.floor(sys.total * 0.8);
       const byN = sys.red && sys.usable < cap80;
-      const max = byN ? sys.usable : cap80;
-      const band = st.lt === 'ind' ? [50, 65] : (sys.red ? [60, 75] : [60, 70]);
-      return { max, byN, band };
+      return { max: byN ? sys.usable : cap80, why: byN ? 'overN' : 'over', band: sys.red ? [60, 75] : [60, 70], cap: 80, lo: 30, div: sys.total };
     }
     function loadCheck() {
-      const L = limits(), pct = sys.total ? st.kw / sys.total * 100 : 0;
+      const L = limits(), pct = L.div ? st.kw / L.div * 100 : 0;
       blocked = st.kw > L.max;
-      $('[data-sys]').textContent = fmt(T.sysN, { t: sys.total, u: sys.u, m: sys.m, r: sys.red ? 'N+1' : 'N' }) + (sys.model ? ' · ' + sys.model : '');
       $('[data-pct]').textContent = Math.round(pct) + '%';
-      $('[data-band]').textContent = fmt(T.band, { a: L.band[0], b: L.band[1] });
+      $('[data-band]').textContent = fmt(sys.red === 2 ? T.band2 : T.band, { a: L.band[0], b: L.band[1] });
+      $('[data-zlo]').style.width = L.lo + '%'; $('[data-zcap]').style.left = L.cap + '%';
+      const slo = $('[data-slo]'), scap = $('[data-scap]'); slo.style.left = L.lo + '%'; slo.textContent = L.lo + '%'; scap.style.left = L.cap + '%'; scap.textContent = L.cap + '%';
       const zr = $('[data-zrec]'); zr.style.left = L.band[0] + '%'; zr.style.width = (L.band[1] - L.band[0]) + '%';
       $('[data-mk]').style.left = Math.min(100, pct) + '%';
       kwR.max = String(Math.max(1, L.max));
       let cls = 'ok', msg = T.ok;
-      if (blocked) { cls = 'bad'; msg = fmt(L.byN ? T.overN : T.over, { max: L.max, t: sys.total }) + ' ' + T.overWhy; }
-      else if (pct < 30) { cls = 'warn'; msg = T.low; }
+      if (blocked) { cls = 'bad'; msg = fmt(T[L.why], { max: L.max, t: sys.total }) + ' ' + T.overWhy; }
+      else if (pct < L.lo) { cls = 'warn'; msg = T.low; }
       else if (pct > L.band[1]) { cls = 'warn'; msg = T.hi; }
       else if (pct < L.band[0]) { cls = 'info'; msg = T.under; }
       const m = $('[data-lmsg]'); m.className = 'mb-msg ' + cls; m.textContent = msg;
       $('[data-meter]').className = 'mb-meter ' + cls;
       $('[data-kwbox]').classList.toggle('bad', blocked);
-      root.classList.toggle('is-blocked', blocked);
+      $('[data-mbout]').classList.toggle('blocked', blocked);
       $('[data-lock]').hidden = !blocked;
-      const sb = root.querySelector('[data-mb-send]') as HTMLButtonElement | null; if (sb) sb.disabled = blocked;
-      $('[data-ind]').hidden = st.lt !== 'ind';
       return pct;
     }
     function update() {
       const pct = loadCheck();
-      document.dispatchEvent(new CustomEvent('ske:load', { detail: { kw: st.kw } }));
-      if (blocked) return;
+      if (blocked) {
+        document.dispatchEvent(new CustomEvent('ske:load', { detail: { kw: st.kw, t: st.t, blocked: true, sum: st.kw + ' kW · ' + Math.round(pct) + '% — ' + T.blocked } }));
+        return;
+      }
+      const two = sys.red === 2;
       const b: any = batteryPlan({ loadKw: st.kw, minutes: st.t, blocks: 40, type: st.bt });
       if (!b) return;
       let sum = '';
@@ -210,6 +207,7 @@ const cfg = { t: B };
           row(T.need, b.kwh + ' kWh') + row(T.bus, '512 V (448–584 V)') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
         $('[data-spec]').textContent = T.lfpSpec + (b.byPower ? ' ' + fmt(T.byPower, { r: b.runMin }) : '');
         sum = b.clusters + ' × 512 V ' + b.ah + ' Ah LFP (' + b.kwhInst + ' kWh)';
+        if (two) $('[data-bigu]').textContent = ' kWh × 2';
       } else {
         $('[data-big]').textContent = String(b.blocksTotal);
         $('[data-bigu]').textContent = ' × 12 V ' + b.ah + ' Ah';
@@ -217,10 +215,13 @@ const cfg = { t: B };
           row(T.bus, '480 V (420 V ' + T.endV + ')') + row(T.idc, n0(b.iEnd) + ' A') + row(T.brdc, b.breakerDc ? b.breakerDc + ' A' : '—') + row(T.weight, '≈ ' + n0(b.kg) + ' kg');
         $('[data-spec]').textContent = fmt(T.spec, { w: n0(b.wCellDesign), t: st.t });
         sum = b.strings + ' × 40 × 12 V ' + b.ah + ' Ah VRLA (' + b.blocksTotal + ' ' + T.blocks + ')';
+        if (two) $('[data-bigu]').textContent += ' × 2';
       }
+      if (two) { $('[data-dl]').innerHTML = row(T.sets, T.setsN, 'hl') + $('[data-dl]').innerHTML; sum = '2 × [' + sum + ']'; }
       $('[data-vis]').innerHTML = vis(b);
-      lastMsg = fmt(T.msg, { k: st.kw, t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum }) +
-        fmt(T.msgSys, { s: fmt(T.sysN, { t: sys.total, u: sys.u, m: sys.m, r: sys.red ? 'N+1' : 'N' }) + (sys.model ? ' · ' + sys.model : ''), p: Math.round(pct) });
+      // 交给 UPS 面板：底部汇总 + 发送内容
+      const msg = fmt(T.msgB, { k: st.kw, p: Math.round(pct) + '%' + (two ? ' ' + T.perUps : ''), t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum });
+      document.dispatchEvent(new CustomEvent('ske:load', { detail: { kw: st.kw, t: st.t, blocked: false, msg, sum: sum + ' · ' + st.t + ' min · ' + st.kw + ' kW (' + Math.round(pct) + '%)' } }));
     }
 
     const setKw = (v: number, from?: HTMLInputElement) => {
@@ -232,11 +233,6 @@ const cfg = { t: B };
     };
     kwN.addEventListener('input', () => setKw(parseFloat(kwN.value), kwN));
     // 超过上限：输入框变红、不出电池方案、不能发送，直到客户把负载改小或在上面选更大的系统
-    root.querySelectorAll('[data-lt]').forEach((x) => x.addEventListener('click', () => {
-      st.lt = (x as HTMLElement).dataset.lt!;
-      root.querySelectorAll('[data-lt]').forEach((y) => y.classList.toggle('on', y === x));
-      update();
-    }));
     document.addEventListener('ske:system', (e: any) => { sys = e.detail; update(); });
     kwR.addEventListener('input', () => setKw(parseFloat(kwR.value), kwR));
     const pickT = (t: number | null) => root.querySelectorAll('[data-t]').forEach((x) => { const on = Number((x as HTMLElement).dataset.t) === t; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -247,21 +243,20 @@ const cfg = { t: B };
       root.querySelectorAll('[data-bt]').forEach((y) => { y.classList.toggle('on', y === x); y.setAttribute('aria-pressed', y === x ? 'true' : 'false'); });
       update();
     }));
-    // 发送：用可视化选型里的同一个弹窗（WhatsApp / 邮件）
-    const send = root.querySelector('[data-mb-send]');
-    if (send) send.addEventListener('click', () => document.dispatchEvent(new CustomEvent('ske:send', { detail: { msg: lastMsg, subj: T.subj + ' · ' + st.kw + ' kW · ' + st.t + ' min', from: send } })));
     update();
   }
 </script>
 
 <style>
-  .mb-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px; border-radius: 18px; overflow: hidden; color: #e6efec;
+  .mb-unused { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px; border-radius: 18px; overflow: hidden; color: #e6efec;
     background: radial-gradient(120% 90% at 75% 40%, #2b2a12 0%, #14130a 55%, #0b0b07 100%); }
   .mb-stage::before { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(90deg, rgba(250,204,21,.05) 0 1px, transparent 1px 48px), repeating-linear-gradient(0deg, rgba(250,204,21,.05) 0 1px, transparent 1px 48px);
     mask-image: radial-gradient(80% 70% at 70% 50%, #000 30%, transparent 80%); }
   @media (max-width: 900px) { .mb-stage { grid-template-columns: minmax(0, 1fr); padding: 18px; } }
-  .mb-ctl { position: relative; display: grid; gap: 14px; align-content: start; }
+  .mb-ctl { grid-area: bctl; position: relative; display: grid; gap: 14px; align-content: start; }
+  .mb-sec { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid rgba(250,204,21,.3); }
+  .mb-sec small { color: #a7a28f; font-size: 12.5px; }
   .mb-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; }
   .mb-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .mb-gh b { font-size: 15px; }
@@ -298,7 +293,7 @@ const cfg = { t: B };
   .mb-ty.on .ico { color: #facc15; }
   .mb-ty.on .li { color: #5ef0a0; }
 
-  .mb-out { position: relative; display: grid; gap: 10px; align-content: start; padding: 18px; border-radius: 14px; background: linear-gradient(135deg, rgba(250,204,21,.1), rgba(250,204,21,.02)); border: 1px solid rgba(250,204,21,.25); }
+  .mb-out { grid-area: bout; position: relative; display: grid; gap: 10px; align-content: start; padding: 18px; border-radius: 14px; background: linear-gradient(135deg, rgba(250,204,21,.1), rgba(250,204,21,.02)); border: 1px solid rgba(250,204,21,.25); }
   .mb-eb { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #facc15; }
   .mb-big b { font: 700 clamp(44px, 6vw, 64px)/1 var(--display); color: #facc15; text-shadow: 0 0 24px rgba(250,204,21,.35); }
   .mb-big small { font: 600 18px var(--mono); color: #e6e1cf; }
@@ -356,7 +351,7 @@ const cfg = { t: B };
   .mb-msg.ok { color: #5ef0a0; } .mb-msg.warn { color: #facc15; } .mb-msg.bad { color: #f87171; }
   .mb-ind { margin: 6px 0 0; font-size: 12px; color: #a7a28f; }
   .mb-out { transition: opacity .25s; }
-  .is-blocked .mb-out > :not(.mb-eb):not(.mb-lock) { opacity: .22; filter: grayscale(1); pointer-events: none; }
+  .mb-out.blocked > :not(.mb-eb):not(.mb-lock) { opacity: .22; filter: grayscale(1); pointer-events: none; }
   .mb-lock { padding: 10px 12px; border-radius: 10px; background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.5); color: #f87171; font-size: 14px; }
   .mb-send:disabled { opacity: .4; cursor: not-allowed; }
   @keyframes mbIn { from { opacity: 0; transform: translateY(8px); } }

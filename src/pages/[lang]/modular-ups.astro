@@ -3,7 +3,6 @@
 // 电池计算：src/lib/modular-engine.mjs 的 batteryPlan（测试：node scripts/test-modular-engine.mjs）
 import Base from '../../layouts/Base.astro';
 import ModularVisual from '../../components/ModularVisual.astro';
-import ModularBattery from '../../components/ModularBattery.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { MT, MW } from '../../lib/modular-i18n.mjs';
 import { MX } from '../../lib/modular-cfg-i18n.mjs';
@@ -50,7 +49,6 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
 
   <ModularVisual lang={lang} />
 
-  <ModularBattery lang={lang} />
 
   {models.length > 0 && (
     <section class="block" id="models">
