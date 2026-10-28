@@ -14,7 +14,7 @@ const B = {
     overWhy: 'Above 80% there is no headroom for start-up surges or growth, the modules run hot and their service life drops.',
     low: 'Below 30% the UPS runs inefficiently — a smaller system would be enough.', ok: 'In the recommended range.', hi: 'Allowed, but above the recommended range — little room for surges and growth.', under: 'Below the recommended range — spare capacity for future growth.',
     indNote: 'For factories and heavy motor loads we recommend a low-frequency (transformer) UPS.', blocked: 'Choose a larger system first',
-    msgSys: '', band2: 'Recommended {a}–{b}% per UPS', over2: 'Not allowed: with 2N either UPS must carry the full load alone if the other fails — max. {max} kW. Please choose a larger capacity above.', sets: 'Battery sets', setsN: '2 — one per UPS, each sized for the full load', perUps: 'per UPS',
+    msgSys: '', band2: 'Recommended {a}–{b}% per UPS', over2: 'Not allowed: with 2N either UPS must carry the full load alone if the other fails, and that may not exceed 80% of one UPS ({t} kW) — max. {max} kW. Please choose a larger capacity above.', sets: 'Battery sets', setsN: '2 — one per UPS, each sized for the full load', perUps: 'per UPS',
     msgB: '\n\nBattery:\n• Actual load: {k} kW (load ratio {p})\n• Backup time: {t} min\n• Battery type: {b}\n• Suggested: {s}',
     eyebrow: 'Battery sizing', h: 'Size the batteries', p: 'Enter the real load and the backup time you need. We size the battery bank for the modular UPS — lead-acid or lithium.',
     s1: 'Actual load power', s1n: 'What the equipment really draws, not the UPS rating', s2: 'Backup time required', s2n: 'Minutes on battery after a power cut', other: 'Other', s3: 'Battery type',
@@ -36,7 +36,7 @@ const B = {
     overWhy: 'Por encima del 80% no queda margen para picos de arranque ni crecimiento, los módulos trabajan calientes y su vida útil baja.',
     low: 'Por debajo del 30% el UPS trabaja con baja eficiencia: bastaría un sistema más pequeño.', ok: 'Dentro del rango recomendado.', hi: 'Permitido, pero sobre el rango recomendado: poco margen para picos y crecimiento.', under: 'Por debajo del rango recomendado: capacidad libre para crecer.',
     indNote: 'Para fábricas y cargas con motores grandes recomendamos un UPS de baja frecuencia (con transformador).', blocked: 'Primero elija un sistema mayor',
-    msgSys: '', band2: 'Recomendado {a}–{b}% por UPS', over2: 'No permitido: con 2N cada UPS debe soportar sola toda la carga si la otra falla — máx. {max} kW. Elija una capacidad mayor arriba.', sets: 'Juegos de baterías', setsN: '2 — uno por UPS, cada uno para la carga completa', perUps: 'por UPS',
+    msgSys: '', band2: 'Recomendado {a}–{b}% por UPS', over2: 'No permitido: con 2N cada UPS debe soportar sola toda la carga si la otra falla, y no puede superar el 80% de una UPS ({t} kW) — máx. {max} kW. Elija una capacidad mayor arriba.', sets: 'Juegos de baterías', setsN: '2 — uno por UPS, cada uno para la carga completa', perUps: 'por UPS',
     msgB: '\n\nBaterías:\n• Carga real: {k} kW (nivel de carga {p})\n• Autonomía: {t} min\n• Tipo de batería: {b}\n• Sugerido: {s}',
     eyebrow: 'Dimensionamiento de baterías', h: 'Calcule las baterías', p: 'Indique la carga real y la autonomía que necesita. Dimensionamos el banco de baterías para el UPS modular: plomo-ácido o litio.',
     s1: 'Potencia real de la carga', s1n: 'Lo que consumen los equipos, no la potencia del UPS', s2: 'Autonomía requerida', s2n: 'Minutos con batería tras un corte', other: 'Otra', s3: 'Tipo de batería',
@@ -58,7 +58,7 @@ const B = {
     overWhy: 'Выше 80% нет запаса на пусковые токи и рост, модули перегреваются и срок службы сокращается.',
     low: 'Ниже 30% ИБП работает с низким КПД — хватит системы поменьше.', ok: 'В рекомендуемом диапазоне.', hi: 'Допустимо, но выше рекомендуемого — мало запаса на пуски и рост.', under: 'Ниже рекомендуемого — запас мощности на будущее.',
     indNote: 'Для заводов и мощных двигателей рекомендуем низкочастотный (трансформаторный) ИБП.', blocked: 'Сначала выберите систему мощнее',
-    msgSys: '', band2: 'Рекомендуется {a}–{b}% на каждый ИБП', over2: 'Недопустимо: при 2N каждый ИБП должен один нести всю нагрузку при отказе другого — макс. {max} кВт. Выберите систему большей мощности выше.', sets: 'Комплекты батарей', setsN: '2 — по одному на ИБП, каждый на полную нагрузку', perUps: 'на ИБП',
+    msgSys: '', band2: 'Рекомендуется {a}–{b}% на каждый ИБП', over2: 'Недопустимо: при 2N каждый ИБП должен один нести всю нагрузку при отказе другого, и она не может превышать 80% одного ИБП ({t} кВт) — макс. {max} кВт. Выберите систему большей мощности выше.', sets: 'Комплекты батарей', setsN: '2 — по одному на ИБП, каждый на полную нагрузку', perUps: 'на ИБП',
     msgB: '\n\nБатареи:\n• Реальная нагрузка: {k} кВт (загрузка {p})\n• Время автономии: {t} мин\n• Тип батарей: {b}\n• Предложено: {s}',
     eyebrow: 'Подбор батарей', h: 'Рассчитайте батареи', p: 'Укажите реальную нагрузку и нужное время автономии. Мы подберём батарейный массив для модульного ИБП — свинцово-кислотный или литиевый.',
     s1: 'Реальная мощность нагрузки', s1n: 'Сколько реально потребляет оборудование, а не мощность ИБП', s2: 'Требуемое время автономии', s2n: 'Минут работы от батарей после отключения', other: 'Другое', s3: 'Тип батарей',
@@ -160,10 +160,10 @@ const cfg = { t: B };
 
     // 负载率规则：长期负载 ≤ 系统容量 80%；N+1 时还要 ≤ 坏一个模块后的容量
     // 推荐区间：IT / 数据中心 60–75%（无冗余 60–70%），工业冲击负载 50–65%；尽量不低于 30%
-    // 2N：两台各带一半，坏一台时另一台独自带全部 → 负载 ≤ 一台的容量，每台平时 ≤ 50%，推荐每台 40–50%
+    // 2N：两台各带一半，坏一台时另一台独自带全部 → 严格执行 80% 规则：负载 ≤ 一台容量的 80%，每台平时 ≤ 40%
     // 负载率显示：N / N+1 = 负载 ÷ 系统容量；2N = 每台的负载率（负载 ÷ 2 ÷ 一台容量）
     function limits() {
-      if (sys.red === 2) return { max: sys.total, why: 'over2', band: [40, 50], cap: 50, lo: 20, div: sys.total * 2 };
+      if (sys.red === 2) return { max: Math.floor(sys.total * 0.8), why: 'over2', band: [30, 40], cap: 40, lo: 20, div: sys.total * 2 };
       const cap80 = Math.floor(sys.total * 0.8);
       const byN = sys.red && sys.usable < cap80;
       return { max: byN ? sys.usable : cap80, why: byN ? 'overN' : 'over', band: sys.red ? [60, 75] : [60, 70], cap: 80, lo: 30, div: sys.total };
