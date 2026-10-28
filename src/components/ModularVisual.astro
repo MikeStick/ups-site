@@ -118,7 +118,7 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
   var root = document.querySelector('[data-vb]'); if (!root) return;
   var c = JSON.parse(root.querySelector('[data-vb-cfg]').textContent), T = c.t;
   var $ = function (s) { return root.querySelector(s); };
-  var st = { n: 10, m: 30, u: 10, red: 1, out: -1 };
+  var st = { n: 10, m: 30, u: 10, red: 1, out: -1, load: 0 };
   var fmt = function (s, o) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return o[k] !== undefined ? o[k] : ''; }); };
   var gen = 0;
   var lastMsg = '';
@@ -157,10 +157,19 @@ const cfg = { models, wa: SITE.whatsapp, email: SITE.email, t: V };
     var model = c.models[st.n + '|' + st.m];
     $('[data-model]').innerHTML = model ? '<span>' + T.model + '</span><b>' + model + '</b>' : '<span class="cu">' + T.custom + '</span>';
     // 每个模块的负载条：假设系统带着"可用容量"的 70% 负载，平均分到在线的模块上
-    var load = 0.7 * Math.max(st.m, usable || st.m), share = active ? load / active / st.m : 0;
+    // 有电池选型里填的实际负载就用它，否则假设带"可用容量"的 70%
+    var load = st.load > 0 ? st.load : 0.7 * Math.max(st.m, usable || st.m), share = active ? load / active / st.m : 0;
     root.querySelectorAll('.vb-m').forEach(function (b) { var l = b.querySelector('.ld'); l.style.setProperty('--l', b.classList.contains('out') ? '0%' : Math.min(100, Math.round(share * 100)) + '%'); b.classList.toggle('hot', share > 1); });
     lastMsg = fmt(T.msg, { n: st.n, u: st.u, m: st.m, t: total, r: st.red ? fmt(T.red, { x: usable }) : '' }) + (model ? '\n• Model: ' + model : '');
+    // 把当前系统告诉电池选型（负载上限 = 系统容量的 80%）
+    var sys = { total: total, usable: usable, n: st.n, u: st.u, m: st.m, red: st.red, model: model || '' };
+    window.__skeSys = sys;
+    if (!quiet) document.dispatchEvent(new CustomEvent('ske:system', { detail: sys }));
   }
+  // 电池选型里改实际负载 → 模块负载条跟着变
+  // quiet：这次刷新是电池选型触发的，不再回发 ske:system，避免来回循环
+  var quiet = false;
+  document.addEventListener('ske:load', function (e) { st.load = +(e.detail && e.detail.kw) || 0; quiet = true; update(); quiet = false; });
   root.querySelectorAll('[data-frame]').forEach(function (b) {
     b.addEventListener('click', function () {
       var n = +b.dataset.frame; if (n === st.n) return;

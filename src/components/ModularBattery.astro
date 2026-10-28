@@ -8,6 +8,13 @@ const { lang } = Astro.props;
 const TIMES = [5, 10, 15, 30, 60, 120];
 const B = {
   en: {
+    sys: 'Modular system', sysN: '{t} kW · {u} × {m} kW · {r}', change: 'Change ↑', ratio: 'Load ratio', band: 'Recommended {a}–{b}%', lt: 'Load', ltIt: 'IT / data center', ltInd: 'Industrial / surge loads',
+    over: 'Not allowed: long-term load may not exceed 80% of the system capacity — max. {max} kW for {t} kW. Please choose a larger capacity above.',
+    overN: 'Not allowed: with N+1 the remaining modules must carry the full load if one fails — max. {max} kW. Please choose a larger capacity above.',
+    overWhy: 'Above 80% there is no headroom for start-up surges or growth, the modules run hot and their service life drops.',
+    low: 'Below 30% the UPS runs inefficiently — a smaller system would be enough.', ok: 'In the recommended range.', hi: 'Allowed, but above the recommended range — little room for surges and growth.', under: 'Below the recommended range — spare capacity for future growth.',
+    indNote: 'For factories and heavy motor loads we recommend a low-frequency (transformer) UPS.', blocked: 'Choose a larger system first',
+    msgSys: '\n• System: {s}\n• Load ratio: {p}%',
     eyebrow: 'Battery sizing', h: 'Size the batteries', p: 'Enter the real load and the backup time you need. We size the battery bank for the modular UPS — lead-acid or lithium.',
     s1: 'Actual load power', s1n: 'What the equipment really draws, not the UPS rating', s2: 'Backup time required', s2n: 'Minutes on battery after a power cut', other: 'Other', s3: 'Battery type',
     vrla: 'Lead-acid (VRLA)', vrlaN: 'Lowest cost · 3–5 years in a cool room', lfp: 'Lithium (LiFePO₄)', lfpN: 'Up to 70% lighter · 10+ years · BMS',
@@ -22,6 +29,13 @@ const B = {
     subj: 'Modular UPS battery plan',
   },
   es: {
+    sys: 'Sistema modular', sysN: '{t} kW · {u} × {m} kW · {r}', change: 'Cambiar ↑', ratio: 'Nivel de carga', band: 'Recomendado {a}–{b}%', lt: 'Carga', ltIt: 'TI / centro de datos', ltInd: 'Industrial / cargas con arranque',
+    over: 'No permitido: la carga continua no puede superar el 80% de la capacidad del sistema — máx. {max} kW para {t} kW. Elija una capacidad mayor arriba.',
+    overN: 'No permitido: con N+1 los módulos restantes deben soportar toda la carga si uno falla — máx. {max} kW. Elija una capacidad mayor arriba.',
+    overWhy: 'Por encima del 80% no queda margen para picos de arranque ni crecimiento, los módulos trabajan calientes y su vida útil baja.',
+    low: 'Por debajo del 30% el UPS trabaja con baja eficiencia: bastaría un sistema más pequeño.', ok: 'Dentro del rango recomendado.', hi: 'Permitido, pero sobre el rango recomendado: poco margen para picos y crecimiento.', under: 'Por debajo del rango recomendado: capacidad libre para crecer.',
+    indNote: 'Para fábricas y cargas con motores grandes recomendamos un UPS de baja frecuencia (con transformador).', blocked: 'Primero elija un sistema mayor',
+    msgSys: '\n• Sistema: {s}\n• Nivel de carga: {p}%',
     eyebrow: 'Dimensionamiento de baterías', h: 'Calcule las baterías', p: 'Indique la carga real y la autonomía que necesita. Dimensionamos el banco de baterías para el UPS modular: plomo-ácido o litio.',
     s1: 'Potencia real de la carga', s1n: 'Lo que consumen los equipos, no la potencia del UPS', s2: 'Autonomía requerida', s2n: 'Minutos con batería tras un corte', other: 'Otra', s3: 'Tipo de batería',
     vrla: 'Plomo-ácido (VRLA)', vrlaN: 'Menor costo · 3–5 años en sala fresca', lfp: 'Litio (LiFePO₄)', lfpN: 'Hasta 70% más liviano · 10+ años · BMS',
@@ -36,6 +50,13 @@ const B = {
     subj: 'Plan de baterías para UPS modular',
   },
   ru: {
+    sys: 'Модульная система', sysN: '{t} кВт · {u} × {m} кВт · {r}', change: 'Изменить ↑', ratio: 'Загрузка', band: 'Рекомендуется {a}–{b}%', lt: 'Нагрузка', ltIt: 'IT / ЦОД', ltInd: 'Промышленная / пусковые токи',
+    over: 'Недопустимо: длительная нагрузка не может превышать 80% мощности системы — макс. {max} кВт для {t} кВт. Выберите систему большей мощности выше.',
+    overN: 'Недопустимо: при N+1 оставшиеся модули должны нести всю нагрузку при отказе одного — макс. {max} кВт. Выберите систему большей мощности выше.',
+    overWhy: 'Выше 80% нет запаса на пусковые токи и рост, модули перегреваются и срок службы сокращается.',
+    low: 'Ниже 30% ИБП работает с низким КПД — хватит системы поменьше.', ok: 'В рекомендуемом диапазоне.', hi: 'Допустимо, но выше рекомендуемого — мало запаса на пуски и рост.', under: 'Ниже рекомендуемого — запас мощности на будущее.',
+    indNote: 'Для заводов и мощных двигателей рекомендуем низкочастотный (трансформаторный) ИБП.', blocked: 'Сначала выберите систему мощнее',
+    msgSys: '\n• Система: {s}\n• Загрузка: {p}%',
     eyebrow: 'Подбор батарей', h: 'Рассчитайте батареи', p: 'Укажите реальную нагрузку и нужное время автономии. Мы подберём батарейный массив для модульного ИБП — свинцово-кислотный или литиевый.',
     s1: 'Реальная мощность нагрузки', s1n: 'Сколько реально потребляет оборудование, а не мощность ИБП', s2: 'Требуемое время автономии', s2n: 'Минут работы от батарей после отключения', other: 'Другое', s3: 'Тип батарей',
     vrla: 'Свинцово-кислотные (VRLA)', vrlaN: 'Дешевле всего · 3–5 лет в прохладном помещении', lfp: 'Литиевые (LiFePO₄)', lfpN: 'До 70% легче · 10+ лет · BMS',
@@ -60,9 +81,18 @@ const cfg = { t: B };
       <div class="mb-grp">
         <div class="mb-gh"><span class="mb-n">1</span><b>{B.s1}</b><small>{B.s1n}</small></div>
         <div class="mb-kw">
-          <input type="range" min="5" max="1200" step="5" value="100" data-kw-r aria-label={B.s1} />
-          <label class="mb-num"><input type="number" min="1" max="2000" step="1" value="100" data-kw /><span>{B.kw}</span></label>
+          <input type="range" min="5" max="1200" step="5" value="200" data-kw-r aria-label={B.s1} />
+          <label class="mb-num" data-kwbox><input type="number" min="1" max="2000" step="1" value="200" data-kw /><span>{B.kw}</span></label>
         </div>
+        <div class="mb-sys"><span>{B.sys}</span><b data-sys></b><a href="#visual">{B.change}</a></div>
+        <div class="mb-meter" data-meter>
+          <div class="mb-bar"><i class="z lo"></i><i class="z rec" data-zrec></i><i class="z cap"></i><span class="mk" data-mk></span></div>
+          <div class="mb-scale"><span>0</span><span style="left:30%">30%</span><span style="left:80%">80%</span><span style="left:100%">100%</span></div>
+          <div class="mb-ratio"><span>{B.ratio} <b data-pct></b></span><small data-band></small></div>
+        </div>
+        <div class="mb-lt"><span>{B.lt}</span><div class="mb-seg"><button type="button" class="on" data-lt="it">{B.ltIt}</button><button type="button" data-lt="ind">{B.ltInd}</button></div></div>
+        <p class="mb-msg" data-lmsg></p>
+        <p class="mb-ind" data-ind hidden>{B.indNote}</p>
       </div>
       <div class="mb-grp">
         <div class="mb-gh"><span class="mb-n">2</span><b>{B.s2}</b><small>{B.s2n}</small></div>
@@ -82,6 +112,7 @@ const cfg = { t: B };
 
     <div class="mb-out" aria-live="polite">
       <span class="mb-eb">{B.rec}</span>
+      <div class="mb-lock" data-lock hidden><b>{B.blocked}</b></div>
       <div class="mb-big"><b data-big></b><small data-bigu></small></div>
       <div class="mb-vis" data-vis></div>
       <dl class="mb-dl" data-dl></dl>
@@ -100,7 +131,10 @@ const cfg = { t: B };
     const $ = (s: string) => root.querySelector(s) as HTMLElement;
     const fmt = (s: string, o: Record<string, any>) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
     const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
-    const st = { kw: 100, t: 15, bt: 'vrla' };
+    const st = { kw: 200, t: 15, bt: 'vrla', lt: 'it' };
+    // 当前模块化系统（来自上面的可视化选型）；没有就按 10 × 30 kW N+1
+    let sys: any = (window as any).__skeSys || { total: 300, usable: 270, u: 10, m: 30, red: 1, model: '' };
+    let blocked = false;
     let lastMsg = '';
     const kwN = $('[data-kw]') as HTMLInputElement, kwR = $('[data-kw-r]') as HTMLInputElement, tx = $('[data-tx]') as HTMLInputElement;
 
@@ -130,7 +164,42 @@ const cfg = { t: B };
     }
     const row = (k: string, v: string, cls = '') => '<div' + (cls ? ' class="' + cls + '"' : '') + '><dt>' + k + '</dt><dd>' + v + '</dd></div>';
 
+    // 负载率规则：长期负载 ≤ 系统容量 80%；N+1 时还要 ≤ 坏一个模块后的容量
+    // 推荐区间：IT / 数据中心 60–75%（无冗余 60–70%），工业冲击负载 50–65%；尽量不低于 30%
+    function limits() {
+      const cap80 = Math.floor(sys.total * 0.8);
+      const byN = sys.red && sys.usable < cap80;
+      const max = byN ? sys.usable : cap80;
+      const band = st.lt === 'ind' ? [50, 65] : (sys.red ? [60, 75] : [60, 70]);
+      return { max, byN, band };
+    }
+    function loadCheck() {
+      const L = limits(), pct = sys.total ? st.kw / sys.total * 100 : 0;
+      blocked = st.kw > L.max;
+      $('[data-sys]').textContent = fmt(T.sysN, { t: sys.total, u: sys.u, m: sys.m, r: sys.red ? 'N+1' : 'N' }) + (sys.model ? ' · ' + sys.model : '');
+      $('[data-pct]').textContent = Math.round(pct) + '%';
+      $('[data-band]').textContent = fmt(T.band, { a: L.band[0], b: L.band[1] });
+      const zr = $('[data-zrec]'); zr.style.left = L.band[0] + '%'; zr.style.width = (L.band[1] - L.band[0]) + '%';
+      $('[data-mk]').style.left = Math.min(100, pct) + '%';
+      kwR.max = String(Math.max(1, L.max));
+      let cls = 'ok', msg = T.ok;
+      if (blocked) { cls = 'bad'; msg = fmt(L.byN ? T.overN : T.over, { max: L.max, t: sys.total }) + ' ' + T.overWhy; }
+      else if (pct < 30) { cls = 'warn'; msg = T.low; }
+      else if (pct > L.band[1]) { cls = 'warn'; msg = T.hi; }
+      else if (pct < L.band[0]) { cls = 'info'; msg = T.under; }
+      const m = $('[data-lmsg]'); m.className = 'mb-msg ' + cls; m.textContent = msg;
+      $('[data-meter]').className = 'mb-meter ' + cls;
+      $('[data-kwbox]').classList.toggle('bad', blocked);
+      root.classList.toggle('is-blocked', blocked);
+      $('[data-lock]').hidden = !blocked;
+      const sb = root.querySelector('[data-mb-send]') as HTMLButtonElement | null; if (sb) sb.disabled = blocked;
+      $('[data-ind]').hidden = st.lt !== 'ind';
+      return pct;
+    }
     function update() {
+      const pct = loadCheck();
+      document.dispatchEvent(new CustomEvent('ske:load', { detail: { kw: st.kw } }));
+      if (blocked) return;
       const b: any = batteryPlan({ loadKw: st.kw, minutes: st.t, blocks: 40, type: st.bt });
       if (!b) return;
       let sum = '';
@@ -150,7 +219,8 @@ const cfg = { t: B };
         sum = b.strings + ' × 40 × 12 V ' + b.ah + ' Ah VRLA (' + b.blocksTotal + ' ' + T.blocks + ')';
       }
       $('[data-vis]').innerHTML = vis(b);
-      lastMsg = fmt(T.msg, { k: st.kw, t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum });
+      lastMsg = fmt(T.msg, { k: st.kw, t: st.t, b: st.bt === 'lfp' ? T.lfp : T.vrla, s: sum }) +
+        fmt(T.msgSys, { s: fmt(T.sysN, { t: sys.total, u: sys.u, m: sys.m, r: sys.red ? 'N+1' : 'N' }) + (sys.model ? ' · ' + sys.model : ''), p: Math.round(pct) });
     }
 
     const setKw = (v: number, from?: HTMLInputElement) => {
@@ -161,6 +231,13 @@ const cfg = { t: B };
       update();
     };
     kwN.addEventListener('input', () => setKw(parseFloat(kwN.value), kwN));
+    // 超过上限：输入框变红、不出电池方案、不能发送，直到客户把负载改小或在上面选更大的系统
+    root.querySelectorAll('[data-lt]').forEach((x) => x.addEventListener('click', () => {
+      st.lt = (x as HTMLElement).dataset.lt!;
+      root.querySelectorAll('[data-lt]').forEach((y) => y.classList.toggle('on', y === x));
+      update();
+    }));
+    document.addEventListener('ske:system', (e: any) => { sys = e.detail; update(); });
     kwR.addEventListener('input', () => setKw(parseFloat(kwR.value), kwR));
     const pickT = (t: number | null) => root.querySelectorAll('[data-t]').forEach((x) => { const on = Number((x as HTMLElement).dataset.t) === t; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     root.querySelectorAll('[data-t]').forEach((x) => x.addEventListener('click', () => { st.t = Number((x as HTMLElement).dataset.t); tx.value = ''; pickT(st.t); update(); }));
@@ -245,6 +322,43 @@ const cfg = { t: B };
   .mb-spec { margin: 0; font-size: 13px; color: #e6e1cf; padding: 10px 12px; border-radius: 10px; background: rgba(250,204,21,.08); border-left: 3px solid #facc15; }
   .mb-note { margin: 0; font-size: 12px; color: #a7a28f; }
   .mb-send { justify-self: start; min-height: 42px; padding: 0 16px; border-radius: 9px; border: 0; background: #facc15; color: #1f1a03; font: 700 14px var(--body); cursor: pointer; }
+  .mb-num.bad { border-color: #f87171; background: rgba(248,113,113,.12); box-shadow: 0 0 0 1px #f87171; }
+  .mb-num.bad input { color: #f87171; }
+  .mb-sys { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
+  .mb-sys span { color: #a7a28f; }
+  .mb-sys b { font-family: var(--mono); color: #fff; }
+  .mb-sys a { margin-left: auto; color: #facc15; text-decoration: none; font-weight: 600; }
+  .mb-meter { margin-top: 10px; }
+  .mb-bar { position: relative; height: 10px; border-radius: 6px; background: rgba(255,255,255,.08); }
+  .mb-bar .z { position: absolute; top: 0; bottom: 0; }
+  .mb-bar .lo { left: 0; width: 30%; border-radius: 6px 0 0 6px; background: rgba(148,163,184,.25); }
+  .mb-bar .rec { background: rgba(94,240,160,.55); }
+  .mb-bar .cap { left: 80%; right: 0; border-radius: 0 6px 6px 0; background: repeating-linear-gradient(135deg, rgba(248,113,113,.6) 0 4px, rgba(248,113,113,.25) 4px 8px); }
+  .mb-bar .mk { position: absolute; top: -5px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); transition: left .3s; }
+  .mb-meter.bad .mk { background: #f87171; box-shadow: 0 0 10px #f87171; }
+  .mb-meter.warn .mk { background: #facc15; }
+  .mb-scale { position: relative; height: 16px; font: 600 10px var(--mono); color: #a7a28f; }
+  .mb-scale span { position: absolute; top: 3px; transform: translateX(-50%); }
+  .mb-scale span:first-child { transform: none; }
+  .mb-scale span:last-child { transform: translateX(-100%); }
+  .mb-ratio { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .mb-ratio b { font-family: var(--mono); font-size: 15px; }
+  .mb-meter.ok .mb-ratio b, .mb-meter.info .mb-ratio b { color: #5ef0a0; }
+  .mb-meter.warn .mb-ratio b { color: #facc15; }
+  .mb-meter.bad .mb-ratio b { color: #f87171; }
+  .mb-ratio small { color: #a7a28f; }
+  .mb-lt { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; }
+  .mb-lt > span { color: #a7a28f; }
+  .mb-seg { display: inline-flex; border: 1px solid rgba(255,255,255,.15); border-radius: 9px; overflow: hidden; }
+  .mb-seg button { padding: 7px 12px; border: 0; background: transparent; color: #e6e1cf; font: 600 12.5px var(--body); cursor: pointer; }
+  .mb-seg button.on { background: #facc15; color: #1f1a03; }
+  .mb-msg { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: #a7a28f; }
+  .mb-msg.ok { color: #5ef0a0; } .mb-msg.warn { color: #facc15; } .mb-msg.bad { color: #f87171; }
+  .mb-ind { margin: 6px 0 0; font-size: 12px; color: #a7a28f; }
+  .mb-out { transition: opacity .25s; }
+  .is-blocked .mb-out > :not(.mb-eb):not(.mb-lock) { opacity: .22; filter: grayscale(1); pointer-events: none; }
+  .mb-lock { padding: 10px 12px; border-radius: 10px; background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.5); color: #f87171; font-size: 14px; }
+  .mb-send:disabled { opacity: .4; cursor: not-allowed; }
   @keyframes mbIn { from { opacity: 0; transform: translateY(8px); } }
   @keyframes mbCell { from { opacity: 0; transform: scaleY(.2); } }
   @media (prefers-reduced-motion: reduce) { .mb-vis :global(*) { animation: none !important; } }
