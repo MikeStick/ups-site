@@ -38,7 +38,14 @@ const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
 // 同系列：只取当前产品详情 HTML 表格里列出的型号（表格里有当前型号的那张），按表格顺序；
 // 模板里没有这样的表格时才退回按型号前缀自动归组
-const nmModel = (x) => String(x || '').toUpperCase().replace('MIMI', 'MINI').replace(/[^A-Z0-9/.]/g, ''); // 去掉空格、横线、不可见字符
+// 型号归一化：全角转半角、西里尔形近字母转拉丁、单元格里多余的文字去掉（"RM 20/10X-P (20kVA)" → RM20/10XP），只留字母数字和 /
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X', 'У': 'Y' };
+const nmModel = (x) => {
+  let t = String(x || '').normalize('NFKC').toUpperCase().replace(/[АВЕКМНОРСТХУ]/g, (ch) => CYR[ch]).replace(/[\u2010-\u2015\u2212]/g, '-').replace('MIMI', 'MINI');
+  const m = t.match(/[A-Z]{2,5}\s?-?\d+(?:\s?[\/.]\s?\d+)?[A-Z0-9]*(?:\s?-\s?[A-Z]{1,6})?/);
+  if (m) t = m[0];
+  return t.replace(/[^A-Z0-9/]/g, '');
+};
 function tableSeries() {
   const byKey = new Map(products.map((x) => [nmModel(x.model), x]));
   const me = nmModel(p.model);
