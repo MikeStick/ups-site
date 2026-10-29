@@ -8,6 +8,7 @@ import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
+import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
 import { isOffline, isRack, isModular, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
@@ -35,7 +36,35 @@ const offline = isOffline(P0) || rack || modular;
 const R = RT[lang];
 const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
-const series = seriesOf(p, products);
+// 同系列：只取当前产品详情 HTML 表格里列出的型号（表格里有当前型号的那张），按表格顺序；
+// 模板里没有这样的表格时才退回按型号前缀自动归组
+const nmModel = (x) => String(x || '').toUpperCase().replace(/[\s_-]+/g, '').replace('MIMI', 'MINI');
+function tableSeries() {
+  const byKey = new Map(products.map((x) => [nmModel(x.model), x]));
+  const me = nmModel(p.model);
+  const lists = [];
+  for (const tp of Array.isArray(p.templateHtml) ? p.templateHtml : []) {
+    const h = tp.html && (tp.html[lang] || tp.html.en);
+    for (const b of tplHtmlBlocks(h || '')) if (b.t === 'table' && Array.isArray(b.models)) lists.push(b.models);
+  }
+  // 详情图片里的原样 HTML 片段：取每张 <table> 的所有单元格文字
+  for (const x of Array.isArray(p.templateDetail) ? p.templateDetail : []) {
+    const h = x && x.html ? (x.html[lang] || x.html.en || '') : '';
+    for (const t of h.split(/<table/i).slice(1)) {
+      lists.push([...t.split(/<\/table>/i)[0].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').trim()));
+    }
+  }
+  for (const l of lists) {
+    const ks = l.map(nmModel);
+    if (!ks.includes(me)) continue;
+    const out = [];
+    for (const k of ks) { const x = byKey.get(k); if (x && !out.includes(x)) out.push(x); }
+    return out;
+  }
+  return null;
+}
+const tSeries = tableSeries();
+const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = modular
   ? [[M.spec.model, p.model], ...MOD_SPEC_FIELDS.map((f) => [M.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
