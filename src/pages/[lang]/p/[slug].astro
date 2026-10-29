@@ -170,7 +170,7 @@ const jsonLd = {
       {series.length > 0 && (
         <nav class="series" aria-label={seriesLabel}>
           <span>{seriesLabel}</span>
-          {p.slug === 'rm-20-10x-pi' && <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">SKEDBG {DBG}</span>}
+          {p.slug === 'rm-20-10x-pi' && <small style="font-size:9px;color:#aaa">SKEDBG {DBG}</small>}
           {series.map((s) => s.slug === p.slug
             ? <b aria-current="page">{s.model}</b>
             : <a href={`/${lang}/p/${s.slug}/`}>{s.model}</a>)}
