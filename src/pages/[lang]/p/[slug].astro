@@ -54,14 +54,23 @@ function tableSeries() {
       lists.push([...t.split(/<\/table>/i)[0].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').trim()));
     }
   }
+  // 表格里的型号可能少写了后缀（例如表里写 RM 20/10X-P，产品是 RM 20/10X-PI）：
+  // 先精确匹配；否则找出当前型号对应的那一列（表里写法是当前型号的前缀），把同样缺的后缀补到其它列上再匹配
   for (const l of lists) {
-    const ks = l.map(nmModel);
-    if (!ks.includes(me)) continue;
+    const ks = l.map(nmModel).filter(Boolean);
+    let sfx = null;
+    if (ks.includes(me)) sfx = '';
+    else {
+      const hit = ks.filter((k) => k.length >= 4 && me.startsWith(k) && me.length - k.length <= 3).sort((a, b) => b.length - a.length)[0];
+      if (hit) sfx = me.slice(hit.length);
+    }
+    if (sfx === null) continue;
     const out = [];
-    for (const k of ks) { const x = byKey.get(k); if (x && !out.includes(x)) out.push(x); }
-    return out;
+    for (const k of ks) { const x = byKey.get(k + sfx); if (x && !out.includes(x)) out.push(x); }
+    if (out.includes(p)) return out;
   }
-  return null;
+  // 有详情表格但表格里找不到当前型号：不显示同系列（不再退回自动归组，避免混进别的机柜型号）
+  return lists.length ? [] : null;
 }
 const tSeries = tableSeries();
 const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
