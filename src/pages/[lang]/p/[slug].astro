@@ -38,14 +38,18 @@ const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
 // 同系列：只取当前产品详情 HTML 表格里列出的型号（表格里有当前型号的那张），按表格顺序；
 // 模板里没有这样的表格时才退回按型号前缀自动归组
-const nmModel = (x) => String(x || '').toUpperCase().replace(/[\s_-]+/g, '').replace('MIMI', 'MINI');
+const nmModel = (x) => String(x || '').toUpperCase().replace('MIMI', 'MINI').replace(/[^A-Z0-9/.]/g, ''); // 去掉空格、横线、不可见字符
 function tableSeries() {
   const byKey = new Map(products.map((x) => [nmModel(x.model), x]));
   const me = nmModel(p.model);
   const lists = [];
   for (const tp of Array.isArray(p.templateHtml) ? p.templateHtml : []) {
     const h = tp.html && (tp.html[lang] || tp.html.en);
-    for (const b of tplHtmlBlocks(h || '')) if (b.t === 'table' && Array.isArray(b.models)) lists.push(b.models);
+    for (const b of tplHtmlBlocks(h || '')) {
+      if (b.t === 'table' && Array.isArray(b.models)) lists.push(b.models);
+      // 第一行不是 <th> 的表格会被当成普通表格（grid）：型号通常在第一行，取第一行；第一行没有就取全部单元格
+      else if (b.t === 'grid' && Array.isArray(b.rows) && b.rows.length) lists.push(b.rows[0].map((c) => c.text), b.rows.flat().map((c) => c.text));
+    }
   }
   // 详情图片里的原样 HTML 片段：取每张 <table> 的所有单元格文字
   for (const x of Array.isArray(p.templateDetail) ? p.templateDetail : []) {
@@ -67,7 +71,7 @@ function tableSeries() {
     if (sfx === null) continue;
     const out = [];
     for (const k of ks) { const x = byKey.get(k + sfx); if (x && !out.includes(x)) out.push(x); }
-    if (out.includes(p)) return out;
+    if (out.some((x) => x.slug === p.slug)) return out;
   }
   // 有详情表格但表格里找不到当前型号：不显示同系列（不再退回自动归组，避免混进别的机柜型号）
   return lists.length ? [] : null;
