@@ -51,15 +51,17 @@ function tableSeries() {
       else if (b.t === 'grid' && Array.isArray(b.rows) && b.rows.length) lists.push(b.rows[0].map((c) => c.text), b.rows.flat().map((c) => c.text));
     }
   }
-  // 详情图片里的原样 HTML 片段：取每张 <table> 的所有单元格文字
+  // 详情图片里的原样 HTML 片段：表格可能是 <table>，也可能是 div 拼的网格，所以直接从文字里找型号（如 RM 20/10X-P）
   for (const x of Array.isArray(p.templateDetail) ? p.templateDetail : []) {
-    const h = x && x.html ? (x.html[lang] || x.html.en || '') : '';
-    for (const t of h.split(/<table/i).slice(1)) {
-      lists.push([...t.split(/<\/table>/i)[0].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').trim()));
-    }
+    const h = x && x.html ? (typeof x.html === 'string' ? x.html : (x.html[lang] || x.html.en || '')) : '';
+    if (!h) continue;
+    const text = h.replace(/<(style|script)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+    const found = text.match(/\b[A-Z]{2,5}\s?-?\d+(?:[\/.]\d+)?[A-Z0-9]*(?:-[A-Za-z]{1,6})?/g);
+    if (found && found.length) lists.push(found);
   }
   // 表格里的型号可能少写了后缀（例如表里写 RM 20/10X-P，产品是 RM 20/10X-PI）：
   // 先精确匹配；否则找出当前型号对应的那一列（表里写法是当前型号的前缀），把同样缺的后缀补到其它列上再匹配
+  const cands = [];
   for (const l of lists) {
     const ks = l.map(nmModel).filter(Boolean);
     let sfx = null;
@@ -71,8 +73,10 @@ function tableSeries() {
     if (sfx === null) continue;
     const out = [];
     for (const k of ks) { const x = byKey.get(k + sfx); if (x && !out.includes(x)) out.push(x); }
-    if (out.some((x) => x.slug === p.slug)) return out;
+    if (out.some((x) => x.slug === p.slug) && out.length >= 2) cands.push(out);
   }
+  // 当前型号出现在好几张表里（比如一张全系列总表 + 一张同机柜参数表）：取最小的那张，也就是最贴近当前型号的那组
+  if (cands.length) return cands.sort((a, b) => a.length - b.length)[0];
   // 有详情表格但表格里找不到当前型号：不显示同系列（不再退回自动归组，避免混进别的机柜型号）
   return lists.length ? [] : null;
 }
