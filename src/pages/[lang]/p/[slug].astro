@@ -88,12 +88,6 @@ function tableSeries() {
   return lists.length ? [] : null;
 }
 const tSeries = tableSeries();
-// TEMP DEBUG
-const DBG = (() => { try {
-  const th = (Array.isArray(p.templateHtml) ? p.templateHtml : []).map((tp) => { const h = tp.html && (tp.html[lang] || tp.html.en) || ''; return tplHtmlBlocks(h).map((b) => b.t + ':' + (b.models ? b.models.map((m) => JSON.stringify(m) + '=' + nmModel(m)).join(',') : (b.rows ? JSON.stringify(b.rows[0].map((c) => c.text)) : ''))).join(' ; '); });
-  const td = (Array.isArray(p.templateDetail) ? p.templateDetail : []).filter((x) => x.html).length;
-  return 'me=' + nmModel(p.model) + ' tsr=' + (tSeries ? tSeries.length : 'null') + ' th=' + th.join(' || ') + ' td=' + td;
-} catch (e) { return 'err ' + e.message; } })();
 const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = modular
@@ -170,7 +164,6 @@ const jsonLd = {
       {series.length > 0 && (
         <nav class="series" aria-label={seriesLabel}>
           <span>{seriesLabel}</span>
-          {p.slug === 'rm-20-10x-pi' && <small style="font-size:9px;color:#aaa">SKEDBG {DBG}</small>}
           {series.map((s) => s.slug === p.slug
             ? <b aria-current="page">{s.model}</b>
             : <a href={`/${lang}/p/${s.slug}/`}>{s.model}</a>)}
