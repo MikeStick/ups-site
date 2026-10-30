@@ -9,6 +9,7 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
+import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
 import { isOffline, isRack, isModular, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
@@ -106,17 +107,8 @@ const tplSeq = Array.isArray(p.templateDetail) && p.templateDetail.length
   ? p.templateDetail.map((x) => (x.img ? { im: x.img } : { html: (x.html && (x.html[lang] || x.html.en)) || '' })).filter((x) => x.im || x.html)
   : (Array.isArray(p.templateImages) ? p.templateImages : []).map((im) => ({ im }));
 const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []).map((im) => ({ im })), ...tplSeq];
-// HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面
-const HH_SCRIPT = '<script>(function(){function s(){try{parent.postMessage({skeHtmlH:Math.ceil(document.documentElement.getBoundingClientRect().height)},"*")}catch(e){}}addEventListener("load",s);if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);setTimeout(s,300);setTimeout(s,1500);})()</' + 'script>';
-const htmlDoc = (h) => {
-  const base = '<base target="_blank">';
-  if (/<html[\s>]/i.test(h)) {
-    let d = /<head[^>]*>/i.test(h) ? h.replace(/<head[^>]*>/i, (m) => m + base) : h.replace(/<html[^>]*>/i, (m) => m + '<head>' + base + '</head>');
-    return /<\/body>/i.test(d) ? d.replace(/<\/body>/i, HH_SCRIPT + '</body>') : d + HH_SCRIPT;
-  }
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + base +
-    '<style>html,body{margin:0;padding:0}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#15211f}img{max-width:100%;height:auto}</style></head><body>' + h + HH_SCRIPT + '</body></html>';
-};
+// HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面。
+// 片段是独立文件 /h/<内容哈希>.html，多个型号共用同一个片段时只下载一次（见 lib/detail-html.mjs）
 const group = p.sale && p.sale.mode === 'group';
 const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
@@ -234,7 +226,7 @@ const jsonLd = {
           {detailAll.map((x, i) => x.im ? (
             <img src={x.im.src} alt={`${p.model} ${i + 1}`} loading="lazy" decoding="async" width={x.im.w} height={x.im.h} />
           ) : (
-            <iframe class="detail-html" title={`${p.model} ${i + 1}`} sandbox="allow-scripts allow-popups" srcdoc={htmlDoc(x.html)} loading="lazy" data-detail-html></iframe>
+            <iframe class="detail-html" title={`${p.model} ${i + 1}`} sandbox="allow-scripts allow-popups" src={htmlUrl(x.html)} loading="lazy" data-detail-html></iframe>
           ))}
         </div>
       </section>
