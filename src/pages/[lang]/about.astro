@@ -121,6 +121,7 @@ const WHY_ICONS = [
             <p>{T.fam[f.key][1]}</p>
             {f.online
               ? <a href={`/${lang}/`}>{T.browse}</a>
+              : f.page ? <a href={`/${lang}/${f.page}`}>{T.browse}</a>
               : <a href={wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)} target="_blank" rel="noopener">{T.quote}</a>}
           </div>
         </article>

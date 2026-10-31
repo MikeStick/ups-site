@@ -6,6 +6,7 @@ import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
+import { IT } from '../lib/industrial-i18n.mjs';
 
 // full：页面自己控制宽度（About 页有通栏区块），不套 .wrap
 const { lang, title, description = '', path = '', full = false } = Astro.props;
@@ -100,12 +101,13 @@ const altHref = (l) => `/${l}/${path}`;
       <div class="top-right">
       <nav class="nav" aria-label="Main">
         <details class="nav-menu" data-nav-menu>
-          <summary aria-current={path === '' || path === 'offline-ups/' || path === 'rack-ups/' || path === 'modular-ups/' || path.startsWith('p/') ? 'page' : undefined}>{t.products} <i aria-hidden="true">▾</i></summary>
+          <summary aria-current={path === '' || path === 'offline-ups/' || path === 'rack-ups/' || path === 'modular-ups/' || path === 'industrial-ups/' || path.startsWith('p/') ? 'page' : undefined}>{t.products} <i aria-hidden="true">▾</i></summary>
           <div class="nav-list">
             <a href={`/${lang}/`} aria-current={path === '' ? 'page' : undefined}>{OT[lang].navMini}</a>
             <a href={`/${lang}/offline-ups/`} aria-current={path === 'offline-ups/' ? 'page' : undefined}>{OT[lang].nav}</a>
             <a href={`/${lang}/rack-ups/`} aria-current={path === 'rack-ups/' ? 'page' : undefined}>{RT[lang].nav}</a>
             <a href={`/${lang}/modular-ups/`} aria-current={path === 'modular-ups/' ? 'page' : undefined}>{MT[lang].nav}</a>
+            <a href={`/${lang}/industrial-ups/`} aria-current={path === 'industrial-ups/' ? 'page' : undefined}>{IT[lang].nav}</a>
           </div>
         </details>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>

@@ -10,11 +10,11 @@ export const STATS = [
 // 产品家族：key 对应网站管理里的图片位 fam_<key>；online=true 的可以在网站下单
 export const FAMILIES = [
   { key: 'dc', online: true, range: 'USB · DC 5–48 V · PoE' },
-  { key: 'backup', range: null },
+  { key: 'backup', range: null, page: 'offline-ups/' },
   { key: 'hf', range: '1 – 20 kVA · PF 0.9 / 1.0' },
-  { key: 'if', range: '1 – 400 kVA' },
-  { key: 'modular', range: '30 – 1200 kVA' },
-  { key: 'rack', range: '19"' },
+  { key: 'if', range: '1 – 400 kVA', page: 'industrial-ups/' },
+  { key: 'modular', range: '30 – 1200 kVA', page: 'modular-ups/' },
+  { key: 'rack', range: '19"', page: 'rack-ups/' },
   { key: 'inverter', range: null },
   { key: 'battery', range: 'LiFePO4 · BESS' },
 ];

@@ -1,0 +1,601 @@
+---
+// 工频机 UPS 配置器：① 供电（相数 / 电压 / 频率）② 负载 ③ 最大电机及启动方式 ④ 整流（6 / 12 脉冲、滤波）⑤ 冗余 ⑥ 选配 ⑦ 电池
+// 右侧：机柜内部实时示意（整流桥的晶闸管数量、滤波器、输入变压器、输出隔离变压器线圈数随选择变化，可模拟市电中断 / 旁路），
+// 下面是并机台数和选型结果。计算全部在 src/lib/industrial-engine.mjs（测试：node scripts/test-industrial-engine.mjs）。
+import { SITE } from '../config.mjs';
+import { IT } from '../lib/industrial-i18n.mjs';
+import { ASSUME, BLOCK_OPTS } from '../lib/industrial-engine.mjs';
+import { isIndustrial, phaseOf, capacityOf } from '../lib/category.mjs';
+import all from '../data/products.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = IT[lang], C = T.c;
+// 已发布的工频机：相数 + 额定 kVA 对得上的，结果里显示型号并链接到产品页
+const models: Record<string, { m: string; slug: string }> = {};
+for (const p of all.filter(isIndustrial)) {
+  const kva = Math.round(capacityOf(p).va / 1000);
+  const k = `${phaseOf(p)}|${kva}`;
+  if (kva && !models[k]) models[k] = { m: p.model, slug: p.slug };
+}
+const OPTS = ['inTx', 'ip42', 'top', 'heater', 'snmp', 'modbus', 'relay', 'btemp'];
+const RUNTIMES = [5, 10, 15, 30, 60, 120];
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, opts: OPTS, a: { k12: ASSUME.minKva12p, maxP: ASSUME.maxParallel } };
+// 示意图里的长标签拆成两行（按单词，两行尽量一样长）
+const wrap = (s: string) => {
+  const w = s.split(' ');
+  if (s.length <= 12 || w.length < 2) return [s];
+  let best = [s], m = Infinity;
+  for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(' '), b = w.slice(i).join(' '); const x = Math.max(a.length, b.length); if (x < m) { m = x; best = [a, b]; } }
+  return best;
+};
+const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(o[k] ?? ''));
+---
+<section class="block iv" id="config" data-iv>
+  <script type="application/json" data-iv-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{C.eyebrow}</span><h2>{C.h}</h2><p>{C.p}</p></div>
+  <div class="iv-stage">
+    <div class="iv-ctl">
+      <div class="iv-grp">
+        <div class="iv-gh"><span class="iv-n">1</span><b>{C.s1}</b><small>{C.s1n}</small></div>
+        <div class="iv-phs">
+          {['11', '31', '33'].map((k) => (
+            <button type="button" class:list={['iv-ph', { on: k === '33' }]} data-ph={k} aria-pressed={k === '33' ? 'true' : 'false'}>
+              <b>{C.ph[k][0]}</b><small>{C.ph[k][1]}</small>
+            </button>
+          ))}
+        </div>
+        <div class="iv-volts">
+          <label><span>{C.vIn}</span><select data-vin></select></label>
+          <label><span>{C.vOut}</span><select data-vout></select></label>
+          <div><span>{C.hz}</span><div class="iv-seg sm"><button type="button" class="on" data-hz="50">50 Hz</button><button type="button" data-hz="60">60 Hz</button></div></div>
+        </div>
+      </div>
+
+      <div class="iv-grp">
+        <div class="iv-gh"><span class="iv-n">2</span><b>{C.s2}</b><small>{C.s2n}</small></div>
+        <div class="iv-num"><input type="number" inputmode="decimal" min="0" step="any" value="40" data-kw aria-label={C.s2} /><b>{C.kw}</b></div>
+        <div class="iv-chips">
+          {Object.entries(C.lt).map(([k, [a, b]], i) => (
+            <button type="button" class:list={['iv-chip', { on: k === 'mixed' }]} data-lt={k} aria-pressed={k === 'mixed' ? 'true' : 'false'}><b>{a}</b><small>{b}</small></button>
+          ))}
+        </div>
+      </div>
+
+      <div class="iv-grp">
+        <div class="iv-gh iv-gh-tip"><span class="iv-n">3</span><b>{C.s3}</b><small>{C.s3n}</small>
+          <span class="iv-tip"><button type="button" class="iv-q" aria-label={C.s3} aria-describedby="iv-tip3">?</button><span class="iv-tipbox" id="iv-tip3" role="tooltip">{C.s3tip}</span></span>
+        </div>
+        <div class="iv-num"><input type="number" inputmode="decimal" min="0" step="any" value="0" data-mkw aria-label={C.s3} /><b>{C.kw}</b></div>
+        <div class="iv-seg wrap" data-starts>
+          {Object.entries(C.st).map(([k, v]) => <button type="button" class:list={[{ on: k === 'dol' }]} data-st={k}>{v}</button>)}
+        </div>
+      </div>
+
+      <div class="iv-grp">
+        <div class="iv-gh iv-gh-tip"><span class="iv-n">4</span><b>{C.s4}</b><small>{C.s4n}</small>
+          <span class="iv-tip"><button type="button" class="iv-q" aria-label={C.s4} aria-describedby="iv-tip4">?</button><span class="iv-tipbox" id="iv-tip4" role="tooltip">{C.s4tip}</span></span>
+        </div>
+        <div class="iv-rects">
+          {Object.entries(C.rc).map(([k, [a, b]]) => (
+            <button type="button" class:list={['iv-rc', { on: k === '6p' }]} data-rc={k} aria-pressed={k === '6p' ? 'true' : 'false'}>
+              <span class="iv-rc-ico" aria-hidden="true">{Array.from({ length: k.startsWith('12') ? 12 : 6 }, () => <i></i>)}</span>
+              <b>{a}</b><small>{b}</small>
+            </button>
+          ))}
+        </div>
+        <p class="iv-note" data-rcnote hidden></p>
+      </div>
+
+      <div class="iv-grp">
+        <div class="iv-gh iv-gh-tip"><span class="iv-n">5</span><b>{C.s5}</b>
+          <span class="iv-tip"><button type="button" class="iv-q" aria-label={C.s5} aria-describedby="iv-tip5">?</button><span class="iv-tipbox" id="iv-tip5" role="tooltip">{C.s5tip}</span></span>
+        </div>
+        <div class="iv-seg">
+          {[0, 1].map((r) => <button type="button" class:list={[{ on: r === 0 }]} data-red={r}><b>{C.red[r][0]}</b> <small>{C.red[r][1]}</small></button>)}
+        </div>
+      </div>
+
+      <div class="iv-grp">
+        <button type="button" class="iv-gh iv-otog" data-otoggle aria-expanded="false" aria-controls="iv-optlist"><span class="iv-n">6</span><b>{C.s6}</b><small>{C.s6n}</small><span class="iv-chev" aria-hidden="true"></span></button>
+        <div class="iv-chosen" data-chosen></div>
+        <div class="iv-opts" id="iv-optlist" data-optlist hidden>
+          {OPTS.map((id) => (
+            <button type="button" class="iv-opt" data-opt={id} aria-pressed="false"><span class="iv-opt-t"><b>{C.opts[id][0]}</b><small>{C.opts[id][1]}</small></span><span class="iv-ck" aria-hidden="true"></span></button>
+          ))}
+        </div>
+      </div>
+
+      <div class="iv-grp">
+        <div class="iv-gh"><span class="iv-n">7</span><b>{C.s7}</b><small>{C.s7n}</small></div>
+        <div class="iv-sub-l">{C.rt}</div>
+        <div class="iv-seg wrap" data-rts>
+          {RUNTIMES.map((m) => <button type="button" class:list={[{ on: m === 15 }]} data-rt={m}>{m} {C.min}</button>)}
+          <label class="iv-rt-other"><span>{C.other}</span><input type="number" min="1" max="600" step="1" data-rtx aria-label={C.rt} /><span>{C.min}</span></label>
+        </div>
+        <div class="iv-sub-l">{C.dc}</div>
+        <div class="iv-seg wrap" data-dcs>
+          {BLOCK_OPTS.map((b) => <button type="button" data-blk={b} title={fmt(C.blocksN, { b })}>{b * 12} V</button>)}
+        </div>
+      </div>
+    </div>
+
+    <div class="iv-view">
+      <div class="iv-modes" role="group" aria-label={C.mode}>
+        <span>{C.mode}</span>
+        {Object.entries(C.modes).map(([k, v]) => <button type="button" class:list={[{ on: k === 'normal' }]} data-mode={k}>{v}</button>)}
+      </div>
+      <div class="iv-cab" data-cab data-m="normal">
+        <svg viewBox="0 0 760 420" role="img" aria-label={C.h}>
+          <defs>
+            <linearGradient id="ivCu" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7c3f12"/><stop offset=".45" stop-color="#e59a4f"/><stop offset=".6" stop-color="#f7c58b"/><stop offset="1" stop-color="#8a4716"/></linearGradient>
+            <linearGradient id="ivFe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5759"/><stop offset="1" stop-color="#262e30"/></linearGradient>
+            <linearGradient id="ivHs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa6a4"/><stop offset="1" stop-color="#55615f"/></linearGradient>
+            <pattern id="ivMesh" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.3" fill="rgba(255,255,255,.05)"/></pattern>
+          </defs>
+          <rect x="6" y="6" width="748" height="408" rx="14" class="frame"/>
+          <rect x="6" y="6" width="748" height="408" rx="14" fill="url(#ivMesh)"/>
+          <!-- LCD -->
+          <g class="lcd"><rect x="586" y="18" width="150" height="40" rx="5"/><text x="598" y="34" class="lcd-a" data-lcd-a>{C.vis.online}</text><text x="598" y="50" class="lcd-b" data-lcd-b>80 kVA</text></g>
+          <!-- 旁路 -->
+          <path class="w w-byp" d="M60 168 V96 H640 V168"/>
+          <g class="sw"><circle cx="560" cy="96" r="13"/><path d="M553 96 h5 l7 -6 M565 96 h3" class="sw-l"/></g>
+          <text x="470" y="86" class="lbl sm">{C.vis.byp}</text>
+          <!-- 主回路 -->
+          <path class="w w-in" d="M60 200 H250"/>
+          <path class="w w-rd" d="M350 200 H392"/>
+          <path class="w w-di" d="M462 200 H494"/>
+          <path class="w w-it" d="M574 200 H592"/>
+          <path class="w w-out" d="M690 200 H726 V168"/>
+          <path class="w w-bc" d="M427 236 V300"/>
+          <!-- 输入 -->
+          <g class="blk b-in"><rect x="20" y="170" width="40" height="60" rx="6"/><circle cx="40" cy="200" r="11" class="knob"/><rect x="38" y="190" width="4" height="20" rx="2" class="knob-h"/></g>
+          <text x="40" y="252" class="lbl">{C.vis.input}</text>
+          <!-- 输入隔离变压器（选配） -->
+          <g class="blk b-intx" data-intx hidden>
+            <rect x="82" y="168" width="64" height="64" rx="5" class="core"/>
+            <rect x="92" y="176" width="18" height="48" rx="6" fill="url(#ivCu)"/><rect x="118" y="176" width="18" height="48" rx="6" fill="url(#ivCu)"/>
+            <text x="114" y={wrap(C.vis.inTx).length > 1 ? 146 : 158} class="lbl sm">{wrap(C.vis.inTx).map((l, i) => <tspan x="114" dy={i ? '1.15em' : '0'}>{l}</tspan>)}</text>
+          </g>
+          <!-- 输入滤波器（选配）：挂在输入线上的 LC 支路 -->
+          <g class="blk b-filt" data-filt hidden>
+            <path class="w-f" d="M205 200 V246"/>
+            <path class="coil" d="M197 248 q8 6 16 0 q-8 6 -16 12 q8 6 16 0 q-8 6 -16 12"/>
+            <rect x="193" y="284" width="24" height="6" class="cap"/><rect x="193" y="294" width="24" height="6" class="cap"/>
+            <text x="205" y="316" class="lbl sm">{C.vis.filt}</text>
+          </g>
+          <!-- 整流器：晶闸管（6 / 12 个） -->
+          <g class="blk b-rect"><rect x="250" y="146" width="100" height="108" rx="8"/>
+            <rect x="258" y="154" width="84" height="12" rx="2" fill="url(#ivHs)" opacity=".55"/>
+            <g data-scr></g>
+            <text x="300" y="270" class="lbl">{C.vis.rect}</text>
+            <text x="300" y="284" class="lbl sm" data-rect-sub>6-PULSE</text>
+          </g>
+          <!-- 直流母线电容 -->
+          <g class="blk b-dc"><rect x="392" y="164" width="70" height="72" rx="8"/>
+            {[0, 1, 2].map((i) => <g><rect x={400 + i * 20} y="176" width="14" height="48" rx="6" class="can"/><rect x={400 + i * 20} y="176" width="14" height="6" rx="3" class="can-top"/></g>)}
+          </g>
+          <text x="427" y="156" class="lbl">{C.vis.dc}</text>
+          <!-- IGBT 逆变器 -->
+          <g class="blk b-inv"><rect x="494" y="150" width="80" height="100" rx="8"/>
+            {[0, 1, 2].map((i) => <rect x={502 + i * 24} y="160" width="18" height="34" rx="3" class="igbt"/>)}
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => <rect x={502 + i * 10} y="202" width="5" height="38" rx="1" fill="url(#ivHs)"/>)}
+          </g>
+          <text x="534" y="272" class="lbl">{wrap(C.vis.inv).map((l, i) => <tspan x="534" dy={i ? '1.15em' : '0'}>{l}</tspan>)}</text>
+          <!-- 输出隔离变压器 -->
+          <g class="blk b-tx"><rect x="592" y="138" width="98" height="124" rx="8" class="txbox"/>
+            <rect x="600" y="150" width="82" height="100" rx="4" fill="url(#ivFe)"/>
+            <g data-coils></g>
+          </g>
+          <text x="641" y="282" class="lbl">{wrap(C.vis.tx).map((l, i) => <tspan x="641" dy={i ? '1.15em' : '0'}>{l}</tspan>)}</text>
+          <!-- 输出 -->
+          <g class="blk b-out"><rect x="706" y="130" width="40" height="38" rx="6"/><path d="M716 149 h20 M726 139 v20" class="plus"/></g>
+          <text x="726" y="122" class="lbl">{C.vis.out}</text>
+          <!-- 电池 -->
+          <g class="blk b-batt"><rect x="372" y="300" width="110" height="80" rx="8"/>
+            {[0, 1, 2].map((r) => [0, 1, 2, 3].map((c) => <rect x={382 + c * 24} y={310 + r * 22} width="20" height="16" rx="2" class="bb"/>))}
+          </g>
+          <text x="427" y="398" class="lbl" data-batt-l>{C.vis.batt}</text>
+          <!-- 市电中断时输入打叉 -->
+          <g class="cut"><path d="M64 192 l14 16 M78 192 l-14 16"/></g>
+        </svg>
+      </div>
+      <p class="iv-mtext" data-mtext>{C.modeText.normal}</p>
+      <div class="iv-units" data-units></div>
+      <div class="iv-read">
+        <span class="iv-read-l">{C.out.rec}</span>
+        <div class="iv-big" data-big>—</div>
+        <div class="iv-bigsub" data-bigsub></div>
+        <dl class="iv-rows" data-rows></dl>
+        <ul class="iv-checks" data-checks></ul>
+      </div>
+    </div>
+
+    <div class="iv-final">
+      <div class="iv-sum" data-sum></div>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="iv-go" data-open aria-haspopup="dialog">{C.send}</button>}
+    </div>
+    <details class="iv-assume">
+      <summary>{C.assumeH}</summary>
+      <ul>{C.assume.map((a) => <li>{fmt(a, { k: ASSUME.minKva12p, p: ASSUME.maxParallel })}</li>)}</ul>
+    </details>
+  </div>
+
+  <div class="iv-pop" data-pop hidden role="dialog" aria-modal="true" aria-labelledby="iv-pop-h">
+    <div class="iv-pop-box">
+      <button type="button" class="iv-pop-x" data-close aria-label={C.close}>×</button>
+      <h3 id="iv-pop-h">{C.popH}</h3>
+      <p>{C.popP}</p>
+      <pre data-msg></pre>
+      <div class="iv-pop-acts">
+        {SITE.whatsapp && <a class="iv-pop-btn wa" data-wa href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.6c-.5-.8-.9-1.8-.9-2.7s.5-1.7.8-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.8-.1 1.4z"/></svg>{C.viaWa}</a>}
+        {SITE.email && <a class="iv-pop-btn mail" data-mail href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3-8-5.3zM5.6 7l6.4 4.2L18.4 7H5.6z"/></svg>{C.viaMail}<small>{SITE.email}</small></a>}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { sizeIndustrial, defaultBlocks } from '../lib/industrial-engine.mjs';
+  const root = document.querySelector('[data-iv]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-iv-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const V1 = ['220', '230', '240'], V3 = ['380', '400', '415'];
+    const st: any = { phase: '33', vIn: '400', vOut: '400', hz: '50', kw: 40, lt: 'mixed', mkw: 0, start: 'dol', rect: '6p', red: 0, opts: [] as string[], minutes: 15, blocks: 0, mode: 'normal' };
+    let lastMsg = '', lastSubj = '', last: any = null;
+
+    function fillVolts() {
+      const vin = st.phase === '11' ? V1 : V3, vout = st.phase === '33' ? V3 : V1;
+      if (!vin.includes(st.vIn)) st.vIn = st.phase === '11' ? '230' : '400';
+      if (!vout.includes(st.vOut)) st.vOut = st.phase === '33' ? '400' : '230';
+      ($('[data-vin]') as HTMLSelectElement).innerHTML = vin.map((v) => `<option${v === st.vIn ? ' selected' : ''}>${v}</option>`).join('');
+      ($('[data-vout]') as HTMLSelectElement).innerHTML = vout.map((v) => `<option${v === st.vOut ? ' selected' : ''}>${v}</option>`).join('');
+    }
+    const pick = (sel: string, attr: string, val: string) => $$(sel).forEach((b) => { const on = b.dataset[attr] === val; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+
+    // 机柜示意：晶闸管、线圈、选配件
+    function drawScr(n: number) {
+      const g = $('[data-scr]'); let h = '';
+      const cols = n === 12 ? 6 : 3, w = n === 12 ? 12 : 22, gap = n === 12 ? 2 : 6, x0 = 300 - (cols * w + (cols - 1) * gap) / 2;
+      for (let i = 0; i < n; i++) {
+        const r = Math.floor(i / cols), k = i % cols, x = x0 + k * (w + gap), y = 176 + r * 34;
+        h += `<g class="scr" style="--d:${i * 40}ms"><rect x="${x}" y="${y}" width="${w}" height="26" rx="${w / 2.4}"/><rect x="${x + w * 0.3}" y="${y + 9}" width="${w * 0.4}" height="8" rx="2" class="scr-c"/></g>`;
+      }
+      if (n === 12) h += `<text x="300" y="248" class="lbl xs">Δ / Y</text>`;
+      g.innerHTML = h;
+    }
+    function drawCoils(ph: string) {
+      const n = ph === '33' ? 3 : 1, g = $('[data-coils]'); let h = '';
+      const w = n === 3 ? 20 : 40, x0 = n === 3 ? 607 : 621;
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * 25;
+        h += `<rect x="${x}" y="158" width="${w}" height="84" rx="8" fill="url(#ivCu)" class="coil-b"/>`;
+        for (let k = 0; k < 9; k++) h += `<line x1="${x + 2}" y1="${166 + k * 9}" x2="${x + w - 2}" y2="${166 + k * 9}" class="turn"/>`;
+      }
+      g.innerHTML = h;
+    }
+    let unitsKey = '';
+    function drawUnits(r: any) {
+      const box = $('[data-units]');
+      const key = r ? `${r.units}|${r.n}|${r.unit}` : '';
+      if (key === unitsKey) return;
+      unitsKey = key;
+      if (!r) { box.innerHTML = ''; return; }
+      const show = Math.min(r.units, 6);
+      let h = '<div class="iv-cabs">';
+      for (let i = 0; i < show; i++) {
+        const spare = r.units > r.n && i === show - 1;
+        h += `<div class="iv-u${spare ? ' spare' : ''}" style="--d:${i * 90}ms"><span class="iv-u-lcd">${r.unit} kVA</span><span class="iv-u-door"></span>${spare ? `<em>+1 ${T.out.spare}</em>` : ''}</div>`;
+      }
+      if (r.units > show) h += `<div class="iv-u-more">+${r.units - show}</div>`;
+      h += '</div>';
+      if (r.units > 1) h += `<div class="iv-par"><i></i><span>${r.units > r.n ? fmt(T.out.parRed, { n: r.n }) : fmt(T.out.par, { n: r.units })}</span><i></i></div>`;
+      box.innerHTML = h;
+    }
+    function setMode(m: string) {
+      st.mode = m; $('[data-cab]').dataset.m = m; pick('[data-mode]', 'mode', m);
+      $('[data-mtext]').textContent = T.modeText[m];
+      $('[data-lcd-a]').textContent = m === 'battery' ? T.vis.onBatt : m === 'bypass' ? T.vis.onByp : T.vis.online;
+    }
+
+    function update() {
+      const r = sizeIndustrial({ phase: st.phase, vIn: +st.vIn, vOut: +st.vOut, loadKw: st.kw, loadType: st.lt, motorKw: st.mkw, start: st.start, rect: st.rect, red: st.red, minutes: st.minutes, blocks: st.blocks || defaultBlocks(st.phase) });
+      last = r;
+      // 整流选项：单相输入没有脉冲选项；12 脉冲要三相输入、单台 ≥ 40 kVA
+      const one = st.phase === '11';
+      $$('[data-rc]').forEach((b) => { const is12 = b.dataset.rc!.startsWith('12'); const dis = one || (is12 && !!r && !r.can12); (b as HTMLButtonElement).disabled = dis; b.classList.toggle('dis', dis); });
+      const note = $('[data-rcnote]');
+      note.textContent = one ? T.only1p : r && !r.can12 ? fmt(T.no12, { k: c.a.k12 }) : '';
+      note.hidden = !note.textContent;
+      const rect = r ? r.rect : (one ? '1p' : st.rect);
+      pick('[data-rc]', 'rc', one ? '' : rect);
+      drawScr(rect.startsWith('12') ? 12 : 6);
+      $('[data-rect-sub]').textContent = rect === '1p' ? '1-PHASE SCR' : rect.startsWith('12') ? '12-PULSE' : '6-PULSE';
+      $('[data-filt]').toggleAttribute('hidden', !(rect === '6pf' || rect === '12pf'));
+      $('[data-intx]').toggleAttribute('hidden', !st.opts.includes('inTx'));
+      drawCoils(st.phase);
+      const blocks = st.blocks || defaultBlocks(st.phase);
+      pick('[data-blk]', 'blk', String(blocks));
+      $('[data-batt-l]').textContent = `${T.vis.batt} · ${blocks * 12} V`;
+      $('[data-lcd-b]').textContent = r ? `${r.unit} kVA` : '— kVA';
+      drawUnits(r);
+      // 结果
+      const rows = $('[data-rows]'), checks = $('[data-checks]'), go = $('[data-open]') as HTMLButtonElement | null;
+      if (!r) {
+        $('[data-big]').textContent = '—'; $('[data-bigsub]').textContent = T.out.enter; rows.innerHTML = ''; checks.innerHTML = ''; $('[data-sum]').innerHTML = '';
+        if (go) go.disabled = true; return;
+      }
+      if (go) go.disabled = false;
+      $('[data-big]').innerHTML = r.units > 1 ? `${r.units > r.n ? `${r.n}+1` : r.units} × ${r.unit}<small> kVA</small>` : `${r.unit}<small> kVA</small>`;
+      $('[data-bigsub]').textContent = (r.units > 1 ? (r.units > r.n ? fmt(T.out.parRed, { n: r.n }) : fmt(T.out.par, { n: r.units })) : T.out.single) + ' · ' + T.out.by[r.by];
+      const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+      const m = c.models[`${r.phase}|${r.unit}`];
+      const b = r.batt;
+      let h = row(T.out.load, fmt(T.out.loadN, { p: Math.round(r.util * 100) }) + (r.units > r.n ? ' · ' + fmt(T.out.loadN1, { p: Math.round(r.utilN * 100) }) : ''));
+      if (r.motorKw) h += row(T.out.peak, fmt(T.out.peakV, { kva: r.peakKva, p: Math.round(r.peakRatio * 100) }));
+      h += row(T.out.iIn, `${r.elec.iIn} A · ${fmt(T.out.brk, { a: r.elec.brIn })}` + (r.units > 1 ? ` <i>(${T.out.perUnit})</i>` : ''));
+      h += row(T.out.iOut, `${r.elec.iOut} A · ${fmt(T.out.brk, { a: r.elec.brOut })}` + (r.units > 1 ? ` <i>(${T.out.perUnit})</i>` : ''));
+      h += row(T.out.thdi, r.elec.thdi);
+      h += row(T.out.gen, fmt(T.out.genV, { k: r.elec.genKva }));
+      h += row(T.out.heat, `≈ ${r.elec.heatKw} kW`);
+      const battTxt = b ? fmt(T.out.battV, { s: b.strings, b: blocks, ah: b.ah, v: blocks * 12 }) + ` · ${st.minutes} ${T.min}` : T.out.battNone;
+      h += row(T.out.batt, battTxt);
+      h += m ? row(T.out.model, `<a href="/${c.lang}/p/${m.slug}/">${m.m}</a>`) : row(T.out.model, `<span class="cu">${T.out.custom}</span>`);
+      rows.innerHTML = h;
+      checks.innerHTML = r.checks.map((x: any) => {
+        const key = x.id === 'peak' ? 'peak' + x.level : x.id;
+        return `<li class="${x.level}">${fmt(T.chk[key], { p: x.pct, n: x.units })}</li>`;
+      }).join('');
+      // 汇总 + 发送内容
+      const optNames = st.opts.map((id: string) => T.opts[id][0]);
+      const parKit = r.units > 1 ? ` (${T.out.parKit})` : '';
+      const ups = (r.units > 1 ? `${r.units > r.n ? r.n + '+1' : r.units} × ` : '') + `${r.unit} kVA${parKit}` + (m ? ` · ${m.m}` : '');
+      const rectName = rect === '1p' ? '1-phase SCR' : T.rc[rect][0];
+      $('[data-sum]').innerHTML = `<div><span>${T.sumUps}</span><b>${ups} · ${T.ph[r.phase][0]} · ${rectName}</b></div>` +
+        `<div><span>${T.sumOpt}</span><b>${optNames.length ? optNames.join(' · ') : T.noOpt}</b></div>` +
+        `<div><span>${T.sumBatt}</span><b>${battTxt}</b></div>`;
+      lastMsg = fmt(T.msg, { ph: `${T.ph[r.phase][0]} (${T.ph[r.phase][1]})`, vin: st.vIn, vout: st.vOut, hz: st.hz, kw: st.kw, lt: T.lt[st.lt][0],
+        motor: r.motorKw ? fmt(T.msgMotor, { m: r.motorKw, s: T.st[st.start] }) : '', ups, rect: `${rectName} (THDi ${r.elec.thdi})`, opts: optNames.length ? optNames.join(', ') : T.noOpt, batt: battTxt });
+      lastSubj = `${T.subj} · ${ups}`;
+    }
+
+    // —— 事件 ——
+    $$('[data-ph]').forEach((b) => b.addEventListener('click', () => { st.phase = b.dataset.ph; st.blocks = 0; pick('[data-ph]', 'ph', st.phase); fillVolts(); update(); }));
+    $('[data-vin]').addEventListener('change', (e: any) => { st.vIn = e.target.value; update(); });
+    $('[data-vout]').addEventListener('change', (e: any) => { st.vOut = e.target.value; update(); });
+    $$('[data-hz]').forEach((b) => b.addEventListener('click', () => { st.hz = b.dataset.hz; $$('[data-hz]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    const num = (el: HTMLInputElement) => Math.max(0, parseFloat(el.value.replace(',', '.')) || 0);
+    $('[data-kw]').addEventListener('input', (e: any) => { st.kw = num(e.target); update(); });
+    $('[data-mkw]').addEventListener('input', (e: any) => { st.mkw = num(e.target); update(); });
+    $$('[data-lt]').forEach((b) => b.addEventListener('click', () => { st.lt = b.dataset.lt; pick('[data-lt]', 'lt', st.lt); update(); }));
+    $$('[data-st]').forEach((b) => b.addEventListener('click', () => { st.start = b.dataset.st; $$('[data-st]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-rc]').forEach((b) => b.addEventListener('click', () => { st.rect = b.dataset.rc; update(); }));
+    $$('[data-red]').forEach((b) => b.addEventListener('click', () => { st.red = +b.dataset.red!; $$('[data-red]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-rt]').forEach((b) => b.addEventListener('click', () => { st.minutes = +b.dataset.rt!; ($('[data-rtx]') as HTMLInputElement).value = ''; $$('[data-rt]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $('[data-rtx]').addEventListener('input', (e: any) => { const v = Math.min(600, num(e.target)); if (v > 0) { st.minutes = v; $$('[data-rt]').forEach((x) => x.classList.remove('on')); update(); } });
+    $$('[data-blk]').forEach((b) => b.addEventListener('click', () => { st.blocks = +b.dataset.blk!; update(); }));
+    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+    // 选配：折叠列表，已选的显示成可删除的小标签
+    function setOpen(open: boolean) { const t = $('[data-otoggle]'); t.setAttribute('aria-expanded', String(open)); t.classList.toggle('open', open); ($('[data-optlist]') as any).hidden = !open; }
+    function chosen() {
+      $$('[data-opt]').forEach((b) => { const on = st.opts.includes(b.dataset.opt); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+      $('[data-chosen]').innerHTML = st.opts.length
+        ? st.opts.map((id: string) => `<span class="iv-chipx"><i></i>${T.opts[id][0]}<button type="button" data-unopt="${id}" aria-label="${T.remove} ${T.opts[id][0]}">×</button></span>`).join('')
+        : `<button type="button" class="iv-none" data-openopt>${T.none}</button>`;
+    }
+    $('[data-otoggle]').addEventListener('click', () => setOpen(($('[data-optlist]') as any).hidden));
+    $('[data-chosen]').addEventListener('click', (e: any) => {
+      const u = e.target.closest('[data-unopt]'); if (u) { st.opts = st.opts.filter((x: string) => x !== u.dataset.unopt); chosen(); update(); return; }
+      if (e.target.closest('[data-openopt]')) setOpen(true);
+    });
+    $$('[data-opt]').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.opt; st.opts = st.opts.includes(id) ? st.opts.filter((x: string) => x !== id) : [...st.opts, id]; chosen(); update(); }));
+    // 发送弹窗
+    const pop = $('[data-pop]'); let opener: HTMLElement | null = null;
+    function openPop() {
+      $('[data-msg]').textContent = lastMsg;
+      const wa = root!.querySelector('[data-wa]') as HTMLAnchorElement | null, mail = root!.querySelector('[data-mail]') as HTMLAnchorElement | null;
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(lastSubj) + '&body=' + encodeURIComponent(lastMsg);
+      pop.hidden = false; document.body.style.overflow = 'hidden';
+      (pop.querySelector('.iv-pop-btn') as HTMLElement | null)?.focus();
+    }
+    function closePop() { pop.hidden = true; document.body.style.overflow = ''; opener?.focus(); }
+    const ob = root.querySelector('[data-open]') as HTMLElement | null;
+    ob?.addEventListener('click', () => { if (!last) return; opener = ob; openPop(); });
+    pop.addEventListener('click', (e: any) => { if (e.target === pop || e.target.closest('[data-close]')) closePop(); else if (e.target.closest('.iv-pop-btn')) setTimeout(closePop, 300); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); });
+    fillVolts(); chosen(); setMode('normal'); update();
+  }
+</script>
+
+<style>
+  .iv-stage { position: relative; display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); grid-template-areas: "ctl view" "fin fin" "as as"; gap: 22px; padding: 26px; border-radius: 18px; color: #e6efec;
+    background: radial-gradient(120% 90% at 75% 30%, #2a2414 0%, #12110c 55%, #0a0a08 100%); }
+  .iv-stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 18px;
+    background: repeating-linear-gradient(90deg, rgba(229,154,79,.05) 0 1px, transparent 1px 48px), repeating-linear-gradient(0deg, rgba(229,154,79,.05) 0 1px, transparent 1px 48px);
+    mask-image: radial-gradient(80% 70% at 70% 40%, #000 30%, transparent 80%); }
+  /* 手机：示意图在最上面，然后是选项，结果放在选项下面（改完选项往下就是结果） */
+  @media (max-width: 960px) {
+    .iv .iv-stage { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+    .iv .iv-view { display: contents; }
+    .iv .iv-modes { order: 1; } .iv .iv-cab { order: 2; } .iv .iv-mtext { order: 3; } .iv .iv-units { order: 4; }
+    .iv .iv-ctl { order: 5; } .iv .iv-read { order: 6; } .iv .iv-final { order: 7; } .iv .iv-assume { order: 8; }
+  }
+  .iv-ctl { grid-area: ctl; position: relative; display: grid; gap: 12px; align-content: start; }
+  .iv-view { grid-area: view; position: relative; display: grid; gap: 12px; align-content: start; }
+  .iv-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; }
+  .iv-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .iv-gh b { font-size: 15px; }
+  .iv-gh small { color: #a59c86; font-size: 12px; }
+  .iv-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #f0a959; color: #231503; flex: none; align-self: center; }
+  .iv-phs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .iv-ph, .iv-chip, .iv-rc, .iv-opt { display: grid; gap: 2px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); color: #d8d2c4; cursor: pointer; font-family: var(--body); transition: border-color .2s, background .2s, transform .2s; }
+  .iv-ph:hover, .iv-chip:hover, .iv-rc:hover:not(:disabled), .iv-opt:hover { transform: translateY(-2px); border-color: rgba(240,169,89,.5); }
+  .iv-ph b { font: 700 20px/1 var(--display); }
+  .iv-ph small, .iv-chip small, .iv-rc small, .iv-opt small { font-size: 11.5px; line-height: 1.35; color: #a59c86; }
+  .iv-ph.on, .iv-chip.on, .iv-rc.on, .iv-opt.on { border-color: #f0a959; background: linear-gradient(135deg, rgba(240,169,89,.18), rgba(240,169,89,.04)); color: #fff; box-shadow: 0 0 0 1px #f0a959 inset; }
+  .iv-volts { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-top: 10px; align-items: end; }
+  @media (max-width: 520px) { .iv-volts { grid-template-columns: 1fr 1fr; } }
+  .iv-volts label, .iv-volts > div { display: grid; gap: 4px; font-size: 12px; color: #a59c86; }
+  .iv-volts select { font: 600 15px var(--mono); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: #17150f; color: #fff; }
+  .iv-num { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .iv-num input { width: 130px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: #17150f; color: #fff; }
+  .iv-num input:focus { outline: 2px solid #f0a959; outline-offset: 1px; }
+  .iv-num b { font: 600 15px var(--mono); color: #a59c86; }
+  .iv-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .iv-chips { grid-template-columns: minmax(0, 1fr); } .iv-ph small { display: none; } .iv-ph { text-align: center; } }
+  .iv-chip b, .iv-rc b, .iv-opt b { font-size: 13.5px; }
+  .iv-seg { display: inline-flex; border: 1px solid rgba(255,255,255,.15); border-radius: 10px; overflow: hidden; }
+  .iv-seg.wrap { display: flex; flex-wrap: wrap; border: 0; gap: 6px; border-radius: 0; overflow: visible; }
+  .iv-seg button { padding: 0 14px; min-height: 40px; border: 0; background: transparent; color: #d8d2c4; font: 600 13.5px var(--body); cursor: pointer; }
+  .iv-seg button small { font-weight: 500; color: inherit; opacity: .75; }
+  .iv-seg.wrap button { border: 1px solid rgba(255,255,255,.15); border-radius: 999px; min-height: 36px; }
+  .iv-seg button.on { background: #f0a959; color: #231503; border-color: #f0a959; }
+  .iv-seg.sm button { min-height: 36px; padding: 0 10px; font-family: var(--mono); }
+  .iv-sub-l { font-size: 12px; color: #a59c86; margin: 4px 0 6px; }
+  .iv-sub-l + .iv-seg + .iv-sub-l { margin-top: 12px; }
+  .iv-rt-other { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #a59c86; padding: 0 4px 0 10px; border: 1px dashed rgba(255,255,255,.2); border-radius: 999px; }
+  .iv-rt-other input { width: 64px; font: 600 14px var(--mono); padding: 5px 6px; border: 0; background: transparent; color: #fff; }
+  .iv-rects { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 620px) { .iv-rects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .iv-rc:disabled { opacity: .35; cursor: not-allowed; }
+  .iv-rc-ico { display: grid; grid-template-columns: repeat(6, 6px); gap: 2px; margin-bottom: 4px; }
+  .iv-rc-ico i { width: 6px; height: 9px; border-radius: 3px; background: #6d6553; }
+  .iv-rc.on .iv-rc-ico i { background: #f0a959; box-shadow: 0 0 5px rgba(240,169,89,.7); }
+  .iv-note { margin: 8px 0 0; font-size: 12.5px; color: #facc15; }
+  .iv-gh-tip { position: relative; }
+  .iv-tip { position: relative; display: inline-flex; margin-left: auto; align-self: center; }
+  .iv-q { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.06); color: #d8d2c4; font: 700 12px/1 var(--mono); cursor: help; padding: 0; }
+  .iv-q:hover, .iv-q:focus-visible { border-color: #f0a959; color: #f0a959; outline: none; }
+  .iv-tipbox { position: absolute; z-index: 30; right: -8px; top: calc(100% + 10px); width: min(340px, 84vw); padding: 14px; border-radius: 12px; font-size: 12.5px; line-height: 1.5; color: #d8d2c4;
+    background: #1f1a10; border: 1px solid rgba(240,169,89,.4); box-shadow: 0 18px 40px rgba(0,0,0,.55); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .15s, transform .15s, visibility .15s; }
+  .iv-tip:hover .iv-tipbox, .iv-tip:focus-within .iv-tipbox { opacity: 1; visibility: visible; transform: none; }
+  .iv-otog { width: 100%; padding: 0; margin-bottom: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .iv-chev { width: 9px; height: 9px; margin-left: auto; border: solid #d8d2c4; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-3px); transition: transform .25s; align-self: center; }
+  .iv-otog.open .iv-chev { transform: rotate(-135deg) translateY(-1px); }
+  .iv-chosen { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .iv-chosen :global(.iv-chipx) { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 999px; font-size: 12.5px; color: #fff; background: rgba(240,169,89,.14); border: 1px solid rgba(240,169,89,.5); }
+  .iv-chosen :global(.iv-chipx i) { width: 6px; height: 6px; border-radius: 50%; background: #f0a959; }
+  .iv-chosen :global(.iv-chipx button) { width: 20px; height: 20px; border-radius: 50%; border: 0; background: rgba(255,255,255,.1); color: #d8d2c4; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+  .iv-chosen :global(.iv-chipx button:hover) { background: #ef4444; color: #fff; }
+  .iv-chosen :global(.iv-none) { border: 1px dashed rgba(255,255,255,.2); background: none; color: #a59c86; font: 500 12.5px var(--body); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+  .iv-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .iv-opts[hidden] { display: none; }
+  @media (max-width: 520px) { .iv-opts { grid-template-columns: minmax(0, 1fr); } }
+  .iv-opt { grid-template-columns: minmax(0, 1fr) 18px; align-items: center; }
+  .iv-opt-t { display: grid; gap: 2px; }
+  .iv-ck { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,.3); position: relative; }
+  .iv-opt.on .iv-ck { background: #f0a959; border-color: #f0a959; }
+  .iv-opt.on .iv-ck::after { content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px; border: solid #231503; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+  /* —— 机柜内部示意 —— */
+  .iv-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #a59c86; }
+  .iv-modes span { margin-right: 4px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  .iv-modes button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: #d8d2c4; font: 600 12.5px var(--body); cursor: pointer; }
+  .iv-modes button.on { background: #fff; color: #17150f; border-color: #fff; }
+  .iv-cab svg { width: 100%; height: auto; display: block; }
+  .iv-cab .frame { fill: #16140f; stroke: #3b3527; stroke-width: 2; }
+  .iv-cab .blk > rect:first-child, .iv-cab .blk > circle:first-child { fill: #23201a; stroke: #4a4333; stroke-width: 2; transition: stroke .3s, filter .3s; }
+  .iv-cab .lbl { font: 700 12.5px var(--mono); fill: #a59c86; text-anchor: middle; letter-spacing: .06em; }
+  .iv-cab .lbl.sm { font-size: 11px; }
+  .iv-cab :global(.lbl.xs) { font: 600 9px var(--mono); fill: #a59c86; text-anchor: middle; }
+  .iv-cab .lcd rect { fill: #0c1a10; stroke: #284a33; }
+  .iv-cab .lcd-a { font: 600 10px var(--mono); fill: #5ef0a0; letter-spacing: .18em; }
+  .iv-cab .lcd-b { font: 700 15px var(--mono); fill: #5ef0a0; }
+  .iv-cab .knob { fill: #c0392b; stroke: #7f1d1d; } .iv-cab .knob-h { fill: #fef2f2; }
+  .iv-cab .core { fill: #2e3739 !important; }
+  .iv-cab .coil { fill: none; stroke: #e59a4f; stroke-width: 3; }
+  .iv-cab .cap { fill: #9aa6a4; }
+  .iv-cab .w-f { stroke: #6d6553; stroke-width: 3; }
+  .iv-cab :global(.scr rect:first-child) { fill: #8b8f8e; stroke: #c9cdcc; stroke-width: 1; }
+  .iv-cab :global(.scr-c) { fill: #3a3f40; }
+  .iv-cab :global(.scr) { animation: ivPop .45s cubic-bezier(.2,.9,.2,1) both; animation-delay: var(--d); transform-box: fill-box; transform-origin: center; }
+  @keyframes ivPop { from { transform: scale(.2); opacity: 0; } }
+  .iv-cab .can { fill: #1e3a5f; stroke: #3b6aa0; } .iv-cab .can-top { fill: #9fb3c8; }
+  .iv-cab .igbt { fill: #111; stroke: #f0a959; stroke-width: 1.2; }
+  .iv-cab .txbox { fill: #1d1a14 !important; }
+  .iv-cab :global(.coil-b) { filter: drop-shadow(0 0 0 rgba(240,169,89,0)); transition: filter .4s; }
+  .iv-cab :global(.turn) { stroke: rgba(60,25,5,.45); stroke-width: 1.4; }
+  .iv-cab .bb { fill: #2b2b2b; stroke: #6d6553; }
+  .iv-cab .b-out .plus { stroke: #a59c86; stroke-width: 3; stroke-linecap: round; }
+  .iv-cab .sw circle { fill: #23201a; stroke: #4a4333; stroke-width: 2; }
+  .iv-cab .sw-l { stroke: #a59c86; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .iv-cab .w { fill: none; stroke: #3b3527; stroke-width: 5; stroke-linecap: round; transition: stroke .3s; }
+  .iv-cab .cut { display: none; } .iv-cab .cut path { stroke: #ef4444; stroke-width: 4; stroke-linecap: round; }
+  @keyframes ivFlow { to { stroke-dashoffset: -28; } }
+  .iv-cab[data-m="normal"] :is(.w-in, .w-rd, .w-di, .w-it, .w-out) { stroke: #5ef0a0; stroke-dasharray: 10 4; animation: ivFlow 1s linear infinite; }
+  .iv-cab[data-m="normal"] .w-bc { stroke: #5ef0a0; stroke-dasharray: 4 6; animation: ivFlow 1.6s linear infinite; }
+  .iv-cab[data-m="normal"] :is(.b-in, .b-rect, .b-dc, .b-inv, .b-tx, .b-out, .b-intx) > rect:first-child { stroke: #5ef0a0; }
+  .iv-cab[data-m="normal"] :global(.coil-b), .iv-cab[data-m="battery"] :global(.coil-b) { filter: drop-shadow(0 0 6px rgba(240,169,89,.65)); }
+  .iv-cab[data-m="battery"] :is(.w-di, .w-it, .w-out) { stroke: #facc15; stroke-dasharray: 10 4; animation: ivFlow 1s linear infinite; }
+  .iv-cab[data-m="battery"] .w-bc { stroke: #facc15; stroke-dasharray: 10 4; animation: ivFlow 1s linear infinite reverse; }
+  .iv-cab[data-m="battery"] :is(.b-batt, .b-dc, .b-inv, .b-tx, .b-out) > rect:first-child { stroke: #facc15; }
+  .iv-cab[data-m="battery"] .cut { display: block; }
+  .iv-cab[data-m="battery"] .bb { fill: #3a3315; stroke: #facc15; }
+  .iv-cab[data-m="battery"] .lcd-a, .iv-cab[data-m="battery"] .lcd-b { fill: #facc15; }
+  .iv-cab[data-m="bypass"] .w-byp { stroke: #60a5fa; stroke-dasharray: 10 4; animation: ivFlow 1s linear infinite; }
+  .iv-cab[data-m="bypass"] :is(.b-in, .b-out) > rect:first-child, .iv-cab[data-m="bypass"] .sw circle { stroke: #60a5fa; }
+  .iv-cab[data-m="bypass"] .lcd-a, .iv-cab[data-m="bypass"] .lcd-b { fill: #60a5fa; }
+  .iv-cab [hidden] { display: none; }
+  .iv-mtext { margin: 0; font-size: 13.5px; color: #d8d2c4; background: rgba(255,255,255,.04); border-radius: 10px; padding: 10px 12px; }
+  /* 并机台数（正面） */
+  .iv-units { display: grid; justify-items: center; gap: 8px; min-height: 10px; }
+  .iv-units :global(.iv-cabs) { display: flex; gap: 10px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+  .iv-units :global(.iv-u) { position: relative; width: 52px; height: 104px; border-radius: 6px; background: linear-gradient(180deg, #3a352a, #22201a); box-shadow: inset 0 0 0 1.5px #5a5240, 0 10px 22px rgba(0,0,0,.45); display: grid; grid-template-rows: auto 1fr; padding: 6px; gap: 6px; animation: ivUnit .5s cubic-bezier(.2,.9,.2,1) both; animation-delay: var(--d); }
+  .iv-units :global(.iv-u-lcd) { font: 700 9px var(--mono); color: #5ef0a0; background: #0c1a10; border-radius: 3px; padding: 3px 2px; text-align: center; white-space: nowrap; }
+  .iv-units :global(.iv-u-door) { border-radius: 3px; background: radial-gradient(circle, rgba(0,0,0,.55) 1px, transparent 1.4px) 0 0 / 5px 5px, #2c2820; }
+  .iv-units :global(.iv-u.spare) { box-shadow: inset 0 0 0 1.5px #facc15, 0 10px 22px rgba(0,0,0,.45); }
+  .iv-units :global(.iv-u.spare .iv-u-lcd) { color: #facc15; }
+  .iv-units :global(.iv-u em) { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); font: 600 10px var(--mono); font-style: normal; color: #facc15; white-space: nowrap; }
+  .iv-units :global(.iv-u-more) { font: 700 16px var(--mono); color: #a59c86; align-self: center; }
+  .iv-units :global(.iv-par) { display: flex; align-items: center; gap: 10px; width: min(420px, 92%); margin-top: 14px; font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: #f0a959; }
+  .iv-units :global(.iv-par i) { flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #f0a959); }
+  .iv-units :global(.iv-par i:last-child) { background: linear-gradient(90deg, #f0a959, transparent); }
+  @keyframes ivUnit { from { transform: translateY(18px); opacity: 0; } }
+  /* 结果 */
+  .iv-read { display: grid; gap: 6px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(240,169,89,.14), rgba(240,169,89,.02)); border: 1px solid rgba(240,169,89,.3); }
+  .iv-read-l { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #a59c86; }
+  .iv-big { font: 700 clamp(38px, 5vw, 54px)/1 var(--display); color: #f0a959; }
+  .iv-big :global(small) { font-size: 22px; color: #d8d2c4; }
+  .iv-bigsub { font-size: 13px; color: #d8d2c4; }
+  .iv-rows { margin: 6px 0 0; display: grid; gap: 0; font-size: 13.5px; }
+  .iv-rows :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,.1); }
+  .iv-rows :global(dt) { color: #a59c86; }
+  .iv-rows :global(dd) { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; }
+  .iv-rows :global(dd i) { font-style: normal; color: #a59c86; }
+  .iv-rows :global(a) { color: #fff; }
+  .iv-rows :global(.cu) { color: #facc15; font-family: var(--body); }
+  .iv-checks { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .iv-checks :global(li) { font-size: 12.5px; padding: 7px 10px; border-radius: 8px; }
+  .iv-checks :global(li.ok) { background: rgba(94,240,160,.1); color: #86efac; }
+  .iv-checks :global(li.warn) { background: rgba(250,204,21,.1); color: #fde68a; }
+  .iv-checks :global(li.bad) { background: rgba(239,68,68,.14); color: #fca5a5; }
+  .iv-final { grid-area: fin; position: relative; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .iv-sum { flex: 1 1 380px; display: grid; gap: 4px; font-size: 14px; }
+  .iv-sum :global(div) { display: flex; gap: 10px; flex-wrap: wrap; }
+  .iv-sum :global(span) { min-width: 72px; color: #a59c86; font: 600 12px/20px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .iv-sum :global(b) { font-family: var(--mono); font-weight: 600; }
+  .iv-go { min-height: 50px; padding: 0 26px; border-radius: 10px; border: 0; background: #f0a959; color: #231503; font: 700 16px var(--body); cursor: pointer; box-shadow: 0 10px 30px rgba(240,169,89,.25); }
+  .iv-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  @media (max-width: 520px) { .iv-go { width: 100%; } }
+  .iv-assume { grid-area: as; position: relative; font-size: 13px; color: #a59c86; }
+  .iv-assume summary { cursor: pointer; font-weight: 600; color: #d8d2c4; }
+  .iv-assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+  /* 弹窗 */
+  .iv-pop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(8, 6, 3, .72); backdrop-filter: blur(4px); }
+  .iv-pop[hidden] { display: none; }
+  .iv-pop-box { position: relative; width: min(480px, 100%); padding: 24px; border-radius: 16px; color: #e6efec; background: linear-gradient(180deg, #2a2414, #12110c); border: 1px solid rgba(240,169,89,.35); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .iv-pop-box h3 { margin: 0 0 6px; font: 700 24px var(--display); text-transform: uppercase; }
+  .iv-pop-box > p { margin: 0 0 12px; font-size: 14px; color: #a59c86; }
+  .iv-pop-box pre { margin: 0 0 16px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; color: #d8d2c4; max-height: 220px; overflow: auto; }
+  .iv-pop-acts { display: grid; gap: 10px; }
+  .iv-pop-btn { display: grid; grid-template-columns: 26px 1fr; column-gap: 12px; align-items: center; padding: 13px 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; }
+  .iv-pop-btn svg { width: 26px; height: 26px; grid-row: 1 / 3; fill: currentColor; }
+  .iv-pop-btn small { grid-column: 2; font: 500 12px var(--mono); opacity: .75; }
+  .iv-pop-btn.wa { background: #25d366; color: #062019; }
+  .iv-pop-btn.mail { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .iv-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #d8d2c4; font-size: 22px; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .iv-cab .w, .iv-units :global(.iv-u), .iv-cab :global(.scr) { animation: none !important; } }
+</style>

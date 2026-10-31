@@ -28,7 +28,7 @@ export function vrlaLayout(ah, blocksPerString = 40) {
   const len = Math.round(perTier * (d.W + 12) + 80);
   const depth = d.L + 80;
   const height = Math.round(tiers * (d.H + 160) + 120);
-  return { ...d, tiers, perTier, racks, len, depth, height, area: (len / 1000) * ((depth + 800) / 1000) }; // 面积含 0.8 m 检修通道
+  return { ...d, blocks: blocksPerString, tiers, perTier, racks, len, depth, height, area: (len / 1000) * ((depth + 800) / 1000) }; // 面积含 0.8 m 检修通道
 }
 
 // 锂电柜外形（≈），模块越大柜子越高
@@ -117,7 +117,7 @@ export function sceneVrla(b, L, opt = {}) {
       const label = L.racks > 1 ? `S${sNo}-${rNo}` : `S${sNo}`;
       const x0 = 20 + c * cw, y0 = 20 + r * ch + probe.H - 20;
       const isLastRack = rNo === L.racks;
-      const inThis = Math.min(L.perTier * L.tiers, 40 - (rNo - 1) * L.perTier * L.tiers);
+      const inThis = Math.min(L.perTier * L.tiers, (L.blocks || 40) - (rNo - 1) * L.perTier * L.tiers);
       body += `<ellipse class="shadow" cx="${x0 + probe.W / 2}" cy="${y0 + 18}" rx="${probe.W * 0.55}" ry="14"/>`;
       body += rackSvg(L, x0, y0, k, label, inThis, b.ah, idx * 220, rNo === 1).svg;
       // 到 UPS 的直流电缆（从开关箱出来，走地面）

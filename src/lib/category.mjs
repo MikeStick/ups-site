@@ -22,8 +22,24 @@ export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant)
 export const MODULAR_TYPES = ['模块化UPS', '机架式模块化UPS'];
 export const isModular = (p) => has(p, MODULAR_TYPES);
 export const isRackModular = (p) => has(p, ['机架式模块化UPS']);
-// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p));
+// 工频机 UPS 栏目（Industrial UPS）：带输出隔离变压器的工频在线式
+export const INDUSTRIAL_TYPES = ['工频UPS'];
+export const isIndustrial = (p) => has(p, INDUSTRIAL_TYPES);
+// 工频机的相数：'11' 单进单出 / '31' 三进单出 / '33' 三进三出。先看"相数"字段（3/3、3进3出、三进三出、Three phase in/out…），
+// 没填时看电压：输出是 380/400/415 V 的算三进三出，输入三相、输出 220–240 V 的算三进单出
+export function phaseOf(p) {
+  const t = String(p.phase || '').replace(/\s+/g, '').toLowerCase().replace(/three/g, '3').replace(/single|one/g, '1');
+  const m = t.match(/([13一三单])(?:\/|进|in|ph|相)*.*?([13一三单])(?:出|out)?/);
+  const n = (c) => (/[3三]/.test(c) ? '3' : '1');
+  if (m && /[\/进出]|in|out/.test(t)) return n(m[1]) + n(m[2]);
+  if (/^(3|三)(相|ph|phase)?$/.test(t)) return '33';
+  const vo = `${p.outputVoltage || ''}`, vi = `${p.acInputVoltage || ''} ${p.inputVoltage || ''} ${p.inputVoltageRange || ''}`;
+  if (/38\d|40\d|41\d/.test(vo)) return '33';
+  if (/38\d|40\d|41\d|3\s*ph|三相/i.test(vi)) return '31';
+  return '11';
+}
+// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机的其他已发布产品（以后加品类时在这里分流）
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');
@@ -68,8 +84,11 @@ export function capacityOf(p) {
   const pf = parseFloat(String(p.powerFactor || p.outputPowerFactor || '').replace(',', '.'));
   if (!w && va && pf > 0 && pf <= 1) w = Math.round(va * pf);
   // 模块化 UPS 没有 1 kVA 以下的：数字小于 1000 说明单位其实是 kVA / kW（CRM 里单位默认是 VA，容易漏改）
-  if (isModular(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
-  if (!w && va) w = Math.round(va * (isRack(p) ? 0.9 : isModular(p) ? 1 : 0.6));
+  // 工频机也一样（1–400 kVA）
+  if (isModular(p) || isIndustrial(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
+  // 工频机：额定功率没写单位时按 kVA；输出功率因数默认 0.8
+  if (!va && isIndustrial(p)) { const m = String(p.ratedPower || p.outputPower || '').match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; }
+  if (!w && va) w = Math.round(va * (isRack(p) ? 0.9 : isModular(p) ? 1 : isIndustrial(p) ? 0.8 : 0.6));
   return { va, w };
 }
 
@@ -84,7 +103,7 @@ export function fmtCap(c) {
 // 同系列型号：同一栏目里字母前缀相同的型号（GF400 / GF600 / GF1000；Gi600 / Gi1000 / Gi1200 PRO），按容量数字排序
 const seriesKey = (p) => {
   const m = String(p.model || '').trim().toUpperCase().match(/^([A-Z]+)[-\s]?(\d+(?:\.\d+)?)(.*)$/);
-  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : isModular(p) ? 'u' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
+  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : isModular(p) ? 'u' : isIndustrial(p) ? 'i' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
 };
 export function seriesOf(p, all) {
   const me = seriesKey(p);
