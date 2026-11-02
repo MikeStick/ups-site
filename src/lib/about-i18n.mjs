@@ -11,7 +11,7 @@ export const STATS = [
 export const FAMILIES = [
   { key: 'dc', online: true, range: 'USB · DC 5–48 V · PoE' },
   { key: 'backup', range: null, page: 'offline-ups/' },
-  { key: 'hf', range: '1 – 20 kVA · PF 0.9 / 1.0' },
+  { key: 'hf', range: '1 – 20 kVA · PF 0.9 / 1.0', page: 'online-ups/' },
   { key: 'if', range: '1 – 400 kVA', page: 'industrial-ups/' },
   { key: 'modular', range: '30 – 1200 kVA', page: 'modular-ups/' },
   { key: 'rack', range: '19"', page: 'rack-ups/' },

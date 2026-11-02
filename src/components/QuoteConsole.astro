@@ -4,7 +4,8 @@ import { SITE } from '../config.mjs';
 import { OT, OEM_MOQ_OFFLINE } from '../lib/offline-i18n.mjs';
 import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_MAX } from '../lib/sockets.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
-import { isRack, isModular, isIndustrial, phaseOf, primary } from '../lib/category.mjs';
+import { isRack, isModular, isIndustrial, isOnline, phaseOf, primary } from '../lib/category.mjs';
+import { OL } from '../lib/online-i18n.mjs';
 import { IT } from '../lib/industrial-i18n.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
 
@@ -15,13 +16,15 @@ const T = OT[lang];
 const modular = isModular(primary(p));
 // 工频机：同样不选插座，按相数选输出电压（三进三出 380/400/415 V，其余 220/230/240 V），数量默认 1 台
 const industrial = isIndustrial(primary(p));
-const ph3 = industrial && phaseOf(p) === '33';
-const rack = isRack(primary(p)) || modular || industrial;
+// 在线式高频：同样按相数选输出电压，数量默认 10 台
+const online = isOnline(primary(p));
+const ph3 = (industrial || online) && phaseOf(p) === '33';
+const rack = isRack(primary(p)) || modular || industrial || online;
 // 模块化 UPS（包括"同时属于"模块化的产品）：电压按项目定，询价面板不选电压
 const noVolt = isModular(p);
-const R = modular ? { ...RT[lang], ...MT[lang], qOem: MT[lang].qNote } : industrial ? { ...RT[lang], ...IT[lang], qOem: IT[lang].qNote } : RT[lang];
-const VOLTS = modular ? ['380 V', '400 V', '415 V', '220 V'] : industrial ? (ph3 ? ['380 V', '400 V', '415 V'] : ['220 V', '230 V', '240 V']) : ['220 V', '230 V', '240 V', '110 V', '120 V'];
-const defVolt = industrial ? (ph3 ? (/415/.test(String(p.outputVoltage || '')) && !/380|400/.test(String(p.outputVoltage || '')) ? '415 V' : /400/.test(String(p.outputVoltage || '')) && !/380/.test(String(p.outputVoltage || '')) ? '400 V' : '380 V') : (/240/.test(String(p.outputVoltage || '')) && !/22\d|230/.test(String(p.outputVoltage || '')) ? '240 V' : /230/.test(String(p.outputVoltage || '')) && !/220/.test(String(p.outputVoltage || '')) ? '230 V' : '220 V'))
+const R = modular ? { ...RT[lang], ...MT[lang], qOem: MT[lang].qNote } : industrial ? { ...RT[lang], ...IT[lang], qOem: IT[lang].qNote } : online ? OL[lang] : RT[lang];
+const VOLTS = modular ? ['380 V', '400 V', '415 V', '220 V'] : industrial || online ? (ph3 ? ['380 V', '400 V', '415 V'] : ['220 V', '230 V', '240 V']) : ['220 V', '230 V', '240 V', '110 V', '120 V'];
+const defVolt = industrial || online ? (ph3 ? (/415/.test(String(p.outputVoltage || '')) && !/380|400/.test(String(p.outputVoltage || '')) ? '415 V' : /400/.test(String(p.outputVoltage || '')) && !/380/.test(String(p.outputVoltage || '')) ? '400 V' : '380 V') : (/240/.test(String(p.outputVoltage || '')) && !/22\d|230/.test(String(p.outputVoltage || '')) ? '240 V' : /230/.test(String(p.outputVoltage || '')) && !/220/.test(String(p.outputVoltage || '')) ? '230 V' : '220 V'))
   : modular ? (/415/.test(String(p.outputVoltage || '')) && !/380|400/.test(String(p.outputVoltage || '')) ? '415 V' : /400/.test(String(p.outputVoltage || '')) && !/380/.test(String(p.outputVoltage || '')) ? '400 V' : '380 V')
   : /11\d|12\d/.test(String(p.outputVoltage || '')) && !/2[234]\d/.test(String(p.outputVoltage || '')) ? '120 V' : '220 V';
 const def = (Array.isArray(p.sockets) ? p.sockets : []).filter((s) => SOCKET_NAME[s.type] && s.count > 0);
