@@ -22,6 +22,36 @@ export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant)
 export const MODULAR_TYPES = ['模块化UPS', '机架式模块化UPS'];
 export const isModular = (p) => has(p, MODULAR_TYPES);
 export const isRackModular = (p) => has(p, ['机架式模块化UPS']);
+// 光伏逆变器栏目：大类 = 光伏逆变器，或细分品类是混网 / 并网离网逆变器
+export const INVERTER_TYPES = ['太阳能混网逆变器', '并网/离网逆变器'];
+export const isInverter = (p) => p.category === '光伏逆变器' || has(p, INVERTER_TYPES);
+// 类型：hybrid 混网（光伏 + 电池 + 电网）；并网/离网逆变器里有电池参数的算离网（off），没有的算并网（grid）
+export function invKind(p) {
+  if (has(p, ['太阳能混网逆变器'])) return 'hybrid';
+  if (p.batteryVoltage || p.batteryType || p.offGridRatedApparentPower) return 'off';
+  return 'grid';
+}
+// 额定功率（kW）：离网额定视在功率 → 并网最大视在功率 → 容量 → 型号里的 5K / 8KW / 10kW
+export function invKw(p) {
+  for (const t of [p.offGridRatedApparentPower, p.onGridMaxApparentPower, p.outputPower, p.ratedPower && `${p.ratedPower}${p.ratedPowerUnit || ''}`]) {
+    const m = String(t || '').match(/(\d+(?:\.\d+)?)\s*(k?)\s*(?:VA|W)\b/i);
+    if (m) { const v = parseFloat(m[1]) * (m[2] ? 1 : 0.001); if (v > 0.2 && v < 500) return Math.round(v * 100) / 100; }
+  }
+  const m = String(p.model || '').match(/(\d+(?:\.\d+)?)\s*K(?:W)?\b/i);
+  return m ? +m[1] : 0;
+}
+// 输出相数：'split' = 120/240 V 分相，'3' = 三相，'1' = 单相
+export function invPhase(p) {
+  const t = `${p.outputVoltage || ''} ${p.phase || ''} ${p.model || ''}`;
+  if (/120\s*\/\s*240|split/i.test(t)) return 'split';
+  if (/38\d|40\d|41\d|three|3\s*-?\s*ph|三相/i.test(t)) return '3';
+  return '1';
+}
+// 电池电压：48 V 等低压（≤ 60 V）= lv，高压电池 = hv
+export function invBattV(p) {
+  const n = (String(p.batteryVoltage || '').match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  return !n.length ? '' : Math.max(...n) <= 60 ? 'lv' : 'hv';
+}
 // 在线式高频 UPS 栏目（塔式，真双变换在线式，1–30 kVA；单相 / 三进单出 / 三进三出）
 export const ONLINE_TYPES = ['在线式高频UPS'];
 export const isOnline = (p) => has(p, ONLINE_TYPES);
@@ -41,8 +71,8 @@ export function phaseOf(p) {
   if (/38\d|40\d|41\d|3\s*ph|三相/i.test(vi)) return '31';
   return '11';
 }
-// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p));
+// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器的其他已发布产品（以后加品类时在这里分流）
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isInverter(p));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');

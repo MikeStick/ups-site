@@ -11,11 +11,12 @@ import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isOnline, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isOnline, isInverter, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
 import { OL } from '../../../lib/online-i18n.mjs';
+import { SL, INV_SPEC_FIELDS } from '../../../lib/solar-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import products from '../../../data/products.json';
@@ -41,7 +42,10 @@ const I = IT[lang];
 // 在线式高频 UPS：参数表同机架式（不含机架高度），询价面板按相数选电压，横幅链接到负载规划
 const online = isOnline(P0);
 const OH = OL[lang];
-const offline = isOffline(P0) || rack || modular || industrial || online;
+// 光伏逆变器：逆变器参数表、询价面板（按相数选电压），横幅链接到光伏系统选型器
+const inverter = isInverter(P0);
+const S = SL[lang];
+const offline = isOffline(P0) || rack || modular || industrial || online || inverter;
 const R = RT[lang];
 const U = rack ? rackUnits(p) : 0;
 const O = OT[lang];
@@ -99,7 +103,9 @@ function tableSeries() {
 const tSeries = tableSeries();
 const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
-const rows = online
+const rows = inverter
+  ? [[S.spec.model, p.model], [S.spec.kind, S.kind[invKind(p)]], ...INV_SPEC_FIELDS.map((f) => [S.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
+  : online
   ? [[OH.spec.model, p.model], [OH.spec.variant, isLongRun(p) ? OH.lr : OH.std],
      ...RACK_SPEC_FIELDS.map((f) => [OH.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
   : industrial
@@ -132,7 +138,12 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = online ? [
+const highlights = inverter ? [
+  invKw(p) ? `${invKw(p)} kW` : '',
+  `${S.kind[invKind(p)]} · ${S.phase[invPhase(p)]}`,
+  specValue(p, 'batteryVoltage', lang) ? `${S.spec.batteryVoltage} ${specValue(p, 'batteryVoltage', lang)}${invBattV(p) ? ' · ' + S.bv[invBattV(p)] : ''}` : '',
+  specValue(p, 'mpptNumber', lang) ? `MPPT × ${specValue(p, 'mpptNumber', lang)}` : '',
+].filter(Boolean) : online ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   `${OH.phaseTag[phaseOf(p)]} · ${OH.phaseName[phaseOf(p)]}`,
   `${OH.spec.transferTimeAcToBattery.split(' (')[0]} ${specValue(p, 'transferTimeAcToBattery', lang) || '0 ms'}`,
@@ -167,7 +178,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -196,7 +207,11 @@ const jsonLd = {
         </div>
       )}
 
-      {online ? (
+      {inverter ? (
+        <a class="custom-banner" href={`/${lang}/solar-inverters/#designer`}>
+          <span>{S.banner}</span><b>{S.bannerCta} →</b>
+        </a>
+      ) : online ? (
         <a class="custom-banner" href={`/${lang}/online-ups/#sizer`}>
           <span>{OH.banner}</span><b>{OH.bannerCta} →</b>
         </a>

@@ -15,7 +15,7 @@ export const FAMILIES = [
   { key: 'if', range: '1 – 400 kVA', page: 'industrial-ups/' },
   { key: 'modular', range: '30 – 1200 kVA', page: 'modular-ups/' },
   { key: 'rack', range: '19"', page: 'rack-ups/' },
-  { key: 'inverter', range: null },
+  { key: 'inverter', range: null, page: 'solar-inverters/' },
   { key: 'battery', range: 'LiFePO4 · BESS' },
 ];
 

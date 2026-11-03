@@ -117,6 +117,8 @@ const TERMS = {
   '在线式高频UPS': { es: 'UPS online de alta frecuencia', en: 'High-frequency online UPS', ru: 'Высокочастотный онлайн-ИБП' },
   '高频塔式UPS': { es: 'UPS torre de alta frecuencia', en: 'High-frequency tower UPS', ru: 'Высокочастотный ИБП (башня)' },
   '工频UPS': { es: 'UPS de baja frecuencia', en: 'Low-frequency UPS', ru: 'Низкочастотный ИБП' },
+  '太阳能混网逆变器': { es: 'Inversor solar híbrido', en: 'Hybrid solar inverter', ru: 'Гибридный солнечный инвертор' },
+  '并网/离网逆变器': { es: 'Inversor solar on-grid / off-grid', en: 'On-grid / off-grid solar inverter', ru: 'Сетевой / автономный солнечный инвертор' },
   '模块化UPS': { es: 'UPS modular', en: 'Modular UPS', ru: 'Модульный ИБП' },
   '机架式模块化UPS': { es: 'UPS modular para rack', en: 'Rack-mount Modular UPS', ru: 'Стоечный модульный ИБП' },
   '机架式UPS': { es: 'UPS para rack', en: 'Rack-mount UPS', ru: 'Стоечный ИБП' },

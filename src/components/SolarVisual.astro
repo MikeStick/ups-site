@@ -1,0 +1,445 @@
+---
+// 光伏系统选型器：① 目标（停电备用 / 省电费 / 全离网）② 用电器（数量 + 每天小时）③ 地区（日照）④ 电网电压
+// 右侧：实景示意（光伏板数量、逆变器、电池模块数量、电网），可切换白天 / 夜间 / 停电看能量流向；下面是选型结果。
+// 计算全部在 src/lib/solar-engine.mjs（测试：node scripts/test-solar-engine.mjs）。
+import { SITE } from '../config.mjs';
+import { SL } from '../lib/solar-i18n.mjs';
+import { APPLIANCES, REGIONS, ASSUME } from '../lib/solar-engine.mjs';
+import { isInverter, invKind, invKw, invPhase } from '../lib/category.mjs';
+import all from '../data/products.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = SL[lang], C = T.c;
+const models = all.filter(isInverter).map((p) => ({ m: p.model, slug: p.slug, kw: invKw(p), kind: invKind(p), phase: invPhase(p) })).filter((x) => x.kw > 0);
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, kind: T.kind };
+const AP_ICONS: Record<string, string> = {
+  light: '<path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3zM9.5 19h5M10.5 21.5h3"/>',
+  fan: '<circle cx="12" cy="11" r="2"/><path d="M12 9c0-4 4-5 4-2s-2 3-4 4M14 12c4 0 5 4 2 4s-3-2-4-4M10 12c-4 0-5-4-2-4s3 2 4 4M12 13v8M8 21h8"/>',
+  tv: '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>',
+  router: '<rect x="3" y="13" width="18" height="6" rx="1.5"/><path d="M7 16h.01M10 16h.01M8 9a6 6 0 0 1 8 0M10 11a3 3 0 0 1 4 0"/>',
+  laptop: '<rect x="5" y="5" width="14" height="10" rx="1"/><path d="M3 19h18l-2-4H5z"/>',
+  fridge: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M6 9h12M9 5v2M9 12v3"/>',
+  freezer: '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M10 10h4"/>',
+  washer: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6h3"/>',
+  micro: '<rect x="2" y="6" width="20" height="12" rx="1.5"/><rect x="5" y="9" width="10" height="6" rx="1"/><path d="M18 9v1M18 12v1"/>',
+  ac: '<rect x="2" y="5" width="20" height="8" rx="2"/><path d="M5 10h14M7 16c0 2 2 2 2 4M12 16c0 2 2 2 2 4M17 16c0 2-2 2-2 4"/>',
+  pump: '<circle cx="9" cy="13" r="5"/><path d="M14 13h6v-3M9 8V4h4M2 13h2"/>',
+  heater: '<rect x="7" y="2" width="10" height="20" rx="4"/><path d="M12 7c-1.5 2 1.5 3 0 5M10 18h4"/>',
+};
+const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(o[k] ?? ''));
+---
+<section class="block sv" id="designer" data-sv>
+  <script type="application/json" data-sv-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{C.eyebrow}</span><h2>{C.h}</h2><p>{C.p}</p></div>
+  <div class="sv-stage">
+    <div class="sv-ctl">
+      <div class="sv-grp">
+        <div class="sv-gh"><span class="sv-n">1</span><b>{C.s1}</b></div>
+        <div class="sv-goals">
+          {Object.entries(C.goal).map(([k, [a, b]]) => (
+            <button type="button" class:list={['sv-card', { on: k === 'backup' }]} data-goal={k} aria-pressed={k === 'backup' ? 'true' : 'false'}><b>{a}</b><small>{b}</small></button>
+          ))}
+        </div>
+        <div class="sv-sub" data-outage-box>
+          <span>{C.outage}</span>
+          <div class="sv-step"><button type="button" data-oh="-1" aria-label="−">−</button><output data-oh-v>6</output><button type="button" data-oh="1" aria-label="+">+</button></div>
+          <span class="sv-unit">{C.hours}</span>
+        </div>
+        <div class="sv-sub" data-auto-box hidden>
+          <span>{C.autonomy}</span>
+          <div class="sv-seg">{[0, 1, 2].map((d) => <button type="button" class:list={[{ on: d === 0 }]} data-auto={d}>{C.days[d]}</button>)}</div>
+        </div>
+      </div>
+
+      <div class="sv-grp">
+        <div class="sv-gh"><span class="sv-n">2</span><b>{C.s2}</b><small>{C.s2n}</small></div>
+        <div class="sv-aps">
+          {APPLIANCES.map((a) => (
+            <div class:list={['sv-ap', { on: a.n > 0 }]} data-ap={a.id}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" set:html={AP_ICONS[a.id]} />
+              <div class="sv-ap-t"><b>{C.ap[a.id]}</b><small>{a.w} W</small></div>
+              <div class="sv-step sm"><button type="button" data-d="-1" aria-label="−">−</button><output data-n>{a.n}</output><button type="button" data-d="1" aria-label="+">+</button></div>
+              <label class="sv-h"><input type="number" min="0" max="24" step="0.5" value={a.h} data-h aria-label={`${C.ap[a.id]} ${C.perDay}`} /><span>{C.perDay}</span></label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="sv-grp">
+        <div class="sv-gh"><span class="sv-n">3</span><b>{C.s3}</b><small>{C.s3n}</small></div>
+        <div class="sv-chips">
+          {Object.keys(REGIONS).map((k) => <button type="button" class:list={['sv-chip', { on: k === 'africa' }]} data-reg={k} title={fmt(C.sun, { h: REGIONS[k] })}>{C.reg[k]}</button>)}
+        </div>
+        <p class="sv-note" data-sun></p>
+      </div>
+
+      <div class="sv-grp">
+        <div class="sv-gh"><span class="sv-n">4</span><b>{C.s4}</b></div>
+        <div class="sv-goals three">
+          {Object.entries(C.ph).map(([k, [a, b]]) => (
+            <button type="button" class:list={['sv-card', { on: k === '1' }]} data-ph={k} aria-pressed={k === '1' ? 'true' : 'false'}><b>{a}</b><small>{b}</small></button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div class="sv-view">
+      <div class="sv-modes" role="group" aria-label={C.mode}>
+        <span>{C.mode}</span>
+        {Object.entries(C.modes).map(([k, v]) => <button type="button" class:list={[{ on: k === 'day' }]} data-mode={k}>{v}</button>)}
+      </div>
+      <div class="sv-scene" data-scene data-m="day">
+        <svg viewBox="0 0 760 420" role="img" aria-label={C.h}>
+          <defs>
+            <linearGradient id="svSkyDay" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc4f5"/><stop offset="1" stop-color="#d8f0ff"/></linearGradient>
+            <linearGradient id="svSkyNight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1530"/><stop offset="1" stop-color="#233157"/></linearGradient>
+            <linearGradient id="svSkyCut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6b8c"/><stop offset="1" stop-color="#c7b49a"/></linearGradient>
+            <linearGradient id="svPanel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset=".5" stop-color="#2563eb"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+          </defs>
+          <rect class="sky day" width="760" height="420"/>
+          <rect class="sky night" width="760" height="420" fill="url(#svSkyNight)"/>
+          <rect class="sky cut" width="760" height="420" fill="url(#svSkyCut)"/>
+          <g class="stars">{[[60, 40], [150, 90], [240, 30], [520, 60], [610, 30], [700, 80], [420, 40]].map(([x, y]) => <circle cx={x} cy={y} r="1.6"/>)}</g>
+          <g class="sun"><circle cx="90" cy="70" r="30"/>{Array.from({ length: 8 }, (_, i) => <path d={`M90 70 m0 -42 v-12`} transform={`rotate(${i * 45} 90 70)`}/>)}</g>
+          <g class="moon"><circle cx="90" cy="70" r="22"/><circle cx="100" cy="62" r="20" class="moon-cut"/></g>
+          <rect class="ground" x="0" y="380" width="760" height="40"/>
+          <!-- 电网 -->
+          <g class="grid-g" data-gridg>
+            <path class="pole" d="M690 380 V120 M666 136 H714 M672 150 H708"/>
+            <text x="690" y="400" class="lbl">{C.vis.grid}</text>
+            <g class="xcut"><path d="M676 168 l28 28 M704 168 l-28 28"/></g>
+          </g>
+          <!-- 光伏阵列：数量由脚本画 -->
+          <g data-pv></g>
+          <text x="130" y="372" class="lbl">{C.vis.sun}</text>
+          <text x="130" y="232" class="lbl big" data-pv-l></text>
+          <!-- 房子 -->
+          <g class="house">
+            <rect x="390" y="240" width="210" height="140" class="wall"/>
+            <polygon points="370,240 495,165 620,240" class="roof"/>
+            <rect x="420" y="272" width="54" height="44" rx="3" class="win" data-win/>
+            <rect x="520" y="290" width="44" height="90" rx="3" class="door"/>
+            <circle cx="447" cy="294" r="10" class="lamp"/>
+          </g>
+          <text x="495" y="400" class="lbl">{C.vis.home}</text>
+          <!-- 能量流向 -->
+          <path class="w w-pv" d="M232 286 H262"/>
+          <path class="w w-home" d="M322 250 H390 M390 250 H447 V284"/>
+          <path class="w w-batt" d="M322 284 H336 V350 H322"/>
+          <path class="w w-grid" d="M300 224 V136 H666"/>
+          <!-- 逆变器 + 电池 -->
+          <g class="inv"><rect x="262" y="224" width="60" height="84" rx="6"/><rect x="270" y="232" width="44" height="22" rx="2" class="lcd"/><text x="292" y="247" class="lcd-t" data-lcd>5 kW</text><circle cx="276" cy="294" r="3" class="led"/><circle cx="286" cy="294" r="3" class="led b"/></g>
+          <text x="232" y="216" class="lbl" text-anchor="end">{C.vis.inv}</text>
+          <g data-batt></g>
+          <text x="292" y="400" class="lbl" data-batt-l>{C.vis.batt}</text>
+        </svg>
+      </div>
+      <p class="sv-mtext" data-mtext>{C.modeText.day}</p>
+      <div class="sv-read">
+        <div class="sv-kpis">
+          <div><span>{C.out.daily}</span><b data-k-daily>—</b></div>
+          <div><span>{C.out.peak}</span><b data-k-peak>—</b></div>
+          <div><span>{C.out.surge}</span><b data-k-surge>—</b></div>
+        </div>
+        <dl class="sv-rows" data-rows></dl>
+        <div class="sv-recs" data-recs></div>
+        <ul class="sv-checks" data-checks></ul>
+      </div>
+    </div>
+
+    <div class="sv-final">
+      <div class="sv-sum" data-sum></div>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="sv-go" data-open aria-haspopup="dialog">{C.send}</button>}
+    </div>
+    <details class="sv-assume">
+      <summary>{C.assumeH}</summary>
+      <ul>{C.assume.map((a) => <li>{a}</li>)}</ul>
+    </details>
+  </div>
+
+  <div class="sv-pop" data-pop hidden role="dialog" aria-modal="true" aria-labelledby="sv-pop-h">
+    <div class="sv-pop-box">
+      <button type="button" class="sv-pop-x" data-close aria-label={C.close}>×</button>
+      <h3 id="sv-pop-h">{C.popH}</h3>
+      <p>{C.popP}</p>
+      <pre data-msg></pre>
+      <div class="sv-pop-acts">
+        {SITE.whatsapp && <a class="sv-pop-btn wa" data-wa href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.6c-.5-.8-.9-1.8-.9-2.7s.5-1.7.8-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.8-.1 1.4z"/></svg>{C.viaWa}</a>}
+        {SITE.email && <a class="sv-pop-btn mail" data-mail href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3-8-5.3zM5.6 7l6.4 4.2L18.4 7H5.6z"/></svg>{C.viaMail}<small>{SITE.email}</small></a>}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { sizeSolar, REGIONS, ASSUME } from '../lib/solar-engine.mjs';
+  const root = document.querySelector('[data-sv]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-sv-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const st: any = { goal: 'backup', outageH: 6, autonomy: 0, region: 'africa', phase: '1', mode: 'day' };
+    let lastMsg = '', lastSubj = '', last: any = null, pvKey = '', bKey = '';
+    const items = () => {
+      const o: any = {};
+      $$('[data-ap]').forEach((row) => { o[row.dataset.ap!] = { n: +(row.querySelector('[data-n]') as HTMLElement).textContent!, h: parseFloat((row.querySelector('[data-h]') as HTMLInputElement).value) || 0 }; });
+      return o;
+    };
+    // 示意图：光伏板（最多画 12 块）、电池模块（最多 4 块）
+    function drawPv(n: number) {
+      const key = String(n); if (key === pvKey) return; pvKey = key;
+      const show = Math.min(n, 12), cols = 4; let h = '';
+      for (let i = 0; i < show; i++) {
+        const r = Math.floor(i / cols), k = i % cols, x = 34 + k * 48 - r * 8, y = 250 + r * 30;
+        h += `<g class="pnl" style="--d:${i * 50}ms"><polygon points="${x + 10},${y} ${x + 52},${y} ${x + 44},${y + 26} ${x + 2},${y + 26}" fill="url(#svPanel)"/><path d="M${x + 24} ${y} L${x + 18} ${y + 26} M${x + 38} ${y} L${x + 32} ${y + 26} M${x + 6} ${y + 13} H${x + 48}" class="pnl-l"/></g>`;
+      }
+      h += `<path class="pv-stand" d="M40 340 V${250 + Math.ceil(show / cols) * 30} M220 340 V${250 + Math.ceil(show / cols) * 30}"/>`;
+      $('[data-pv]').innerHTML = h;
+      $('[data-pv-l]').textContent = n > 12 ? `${n} × 550 W` : `${n} × 550 W`;
+    }
+    function drawBatt(m: number) {
+      const key = String(m); if (key === bKey) return; bKey = key;
+      const show = Math.min(Math.max(m, 0), 3); let h = '';
+      for (let i = 0; i < show; i++) {
+        const y = 362 - i * 18;
+        h += `<g class="bm" style="--d:${i * 80}ms"><rect x="266" y="${y}" width="52" height="16" rx="3"/><rect x="272" y="${y + 6}" width="20" height="4" rx="2" class="bm-soc"/></g>`;
+      }
+      if (m > 3) h += `<text x="336" y="${362 - 2 * 18 + 12}" class="lbl bm-more">+${m - 3}</text>`;
+      $('[data-batt]').innerHTML = h;
+    }
+    function setMode(m: string) {
+      st.mode = m; $('[data-scene]').dataset.m = m;
+      $$('[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+      $('[data-mtext]').textContent = T.modeText[m];
+    }
+    function update() {
+      $$('[data-ap]').forEach((row) => row.classList.toggle('on', +(row.querySelector('[data-n]') as HTMLElement).textContent! > 0));
+      ($('[data-outage-box]') as any).hidden = st.goal !== 'backup';
+      ($('[data-auto-box]') as any).hidden = st.goal !== 'off';
+      $('[data-scene]').classList.toggle('offgrid', st.goal === 'off');
+      ($('[data-mode="cut"]') as any).hidden = st.goal === 'off';
+      $('[data-sun]').textContent = fmt(T.sun, { h: REGIONS[st.region] });
+      const r = sizeSolar({ items: items(), goal: st.goal, outageH: st.outageH, autonomy: st.autonomy, region: st.region, phase: st.phase, models: c.models });
+      last = r;
+      const rows = $('[data-rows]'), go = $('[data-open]') as HTMLButtonElement | null;
+      if (!r) {
+        ['daily', 'peak', 'surge'].forEach((k) => ($(`[data-k-${k}]`).textContent = '—'));
+        rows.innerHTML = `<div class="enter">${T.out.enter}</div>`; $('[data-recs]').innerHTML = ''; $('[data-checks]').innerHTML = ''; $('[data-sum]').innerHTML = '';
+        if (go) go.disabled = true; drawPv(0); drawBatt(0); return;
+      }
+      if (go) go.disabled = false;
+      $('[data-k-daily]').innerHTML = `${r.dailyKwh}<small> kWh</small>`;
+      $('[data-k-peak]').innerHTML = `${r.peakW}<small> W</small>`;
+      $('[data-k-surge]').innerHTML = `${r.surgeW}<small> W</small>`;
+      drawPv(r.panels); drawBatt(r.modules);
+      $('[data-lcd]').textContent = `${r.units > 1 ? r.units + '×' : ''}${r.invKw} kW`;
+      $('[data-batt-l]').textContent = r.modules ? `${T.vis.batt} · ${r.battInst} kWh` : T.vis.batt;
+      const inv = fmt(T.out.invN, { n: r.units, k: r.invKw }).replace(/^1 × /, '') + (r.units > 1 ? ` ${T.out.par}` : '');
+      const batt = r.modules ? fmt(T.out.battN, { m: r.modules, k: r.battInst }) : T.out.battNone;
+      const pv = fmt(T.out.pvN, { n: r.panels, k: r.kwpInst });
+      const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+      rows.innerHTML = row(T.out.inv, inv) + row(T.out.batt, batt) + row(T.out.pv, pv) + row(T.out.gen, fmt(T.out.genN, { k: r.monthKwh }));
+      const link = (m: any, best: boolean) => `<a href="/${c.lang}/p/${m.slug}/"${best ? ' class="best"' : ''}><b>${m.m}</b><span>${c.kind[m.kind] || ''} · ${m.kw} kW${best && r.units > 1 ? ' × ' + r.units : ''}</span></a>`;
+      $('[data-recs]').innerHTML = r.model ? `<span>${T.out.model}</span>` + link(r.model, true) + (r.alts.length ? `<span>${T.out.alt}</span>` + r.alts.map((m: any) => link(m, false)).join('') : '') : `<span>${T.out.model}</span><p class="cu">${T.out.custom}</p>`;
+      $('[data-checks]').innerHTML = r.checks.map((x: any) => `<li class="${x.level}">${T.chk[x.id]}</li>`).join('');
+      const invTxt = (r.model ? `${r.model.m} · ` : '') + inv;
+      $('[data-sum]').innerHTML = `<div><span>${T.sumSys}</span><b>${invTxt} · ${batt} · ${pv}</b></div><div><span>${T.sumLoad}</span><b>${r.dailyKwh} kWh / day · ${r.peakW} W</b></div>`;
+      const it = items();
+      const itTxt = Object.keys(it).filter((k) => it[k].n > 0).map((k) => `${it[k].n} × ${T.ap[k]} (${it[k].h} h)`).join(', ');
+      const goalTxt = T.goal[st.goal][0] + (st.goal === 'backup' ? ` · ${st.outageH} ${T.hours}` : st.goal === 'off' && st.autonomy ? ` · ${T.days[st.autonomy]}` : '');
+      lastMsg = fmt(T.msg, { goal: goalTxt, reg: T.reg[st.region], ph: `${T.ph[st.phase][0]} ${T.ph[st.phase][1]}`, items: itTxt, kwh: r.dailyKwh, peak: r.peakW, inv: invTxt, batt, pv });
+      lastSubj = `${T.subj} · ${invTxt}`;
+    }
+    // —— 事件 ——
+    $$('[data-goal]').forEach((b) => b.addEventListener('click', () => { st.goal = b.dataset.goal; $$('[data-goal]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); if (st.goal === 'off' && st.mode === 'cut') setMode('night'); update(); }));
+    $$('[data-oh]').forEach((b) => b.addEventListener('click', () => { st.outageH = Math.max(0, Math.min(24, st.outageH + +b.dataset.oh!)); $('[data-oh-v]').textContent = st.outageH; update(); }));
+    $$('[data-auto]').forEach((b) => b.addEventListener('click', () => { st.autonomy = +b.dataset.auto!; $$('[data-auto]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-ap]').forEach((row) => {
+      row.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => { const o = row.querySelector('[data-n]') as HTMLElement; o.textContent = String(Math.max(0, Math.min(50, +o.textContent! + +(b as HTMLElement).dataset.d!))); update(); }));
+      row.querySelector('[data-h]')!.addEventListener('input', update);
+    });
+    $$('[data-reg]').forEach((b) => b.addEventListener('click', () => { st.region = b.dataset.reg; $$('[data-reg]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-ph]').forEach((b) => b.addEventListener('click', () => { st.phase = b.dataset.ph; $$('[data-ph]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); update(); }));
+    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+    const pop = $('[data-pop]'); let opener: HTMLElement | null = null;
+    function openPop() {
+      $('[data-msg]').textContent = lastMsg;
+      const wa = root!.querySelector('[data-wa]') as HTMLAnchorElement | null, mail = root!.querySelector('[data-mail]') as HTMLAnchorElement | null;
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(lastSubj) + '&body=' + encodeURIComponent(lastMsg);
+      pop.hidden = false; document.body.style.overflow = 'hidden';
+      (pop.querySelector('.sv-pop-btn') as HTMLElement | null)?.focus();
+    }
+    function closePop() { pop.hidden = true; document.body.style.overflow = ''; opener?.focus(); }
+    const ob = root.querySelector('[data-open]') as HTMLElement | null;
+    ob?.addEventListener('click', () => { if (!last) return; opener = ob; openPop(); });
+    pop.addEventListener('click', (e: any) => { if (e.target === pop || e.target.closest('[data-close]')) closePop(); else if (e.target.closest('.sv-pop-btn')) setTimeout(closePop, 300); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); });
+    void ASSUME;
+    setMode('day'); update();
+  }
+</script>
+
+<style>
+  .sv-stage { position: relative; display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); grid-template-areas: "ctl view" "fin fin" "as as"; gap: 22px; padding: 26px; border-radius: 18px; color: #e8eef7;
+    background: radial-gradient(120% 90% at 75% 20%, #17305a 0%, #0c1830 55%, #070e1d 100%); }
+  .sv-ctl { grid-area: ctl; display: grid; gap: 12px; align-content: start; }
+  .sv-view { grid-area: view; display: grid; gap: 12px; align-content: start; }
+  .sv-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 14px; padding: 14px; }
+  .sv-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .sv-gh b { font-size: 15px; }
+  .sv-gh small { color: #9fb1cc; font-size: 12px; }
+  .sv-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #facc15; color: #1f1a03; flex: none; align-self: center; }
+  .sv-goals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .sv-goals { grid-template-columns: minmax(0, 1fr); } .sv-goals.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sv-goals.three small { display: none; } }
+  .sv-card { display: grid; gap: 3px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.25); color: #d5dfee; cursor: pointer; font-family: var(--body); transition: border-color .2s, background .2s, transform .2s; }
+  .sv-card:hover { transform: translateY(-2px); border-color: rgba(250,204,21,.5); }
+  .sv-card b { font-size: 14px; }
+  .sv-card small { font-size: 11.5px; line-height: 1.35; color: #9fb1cc; }
+  .sv-card.on { border-color: #facc15; background: linear-gradient(135deg, rgba(250,204,21,.16), rgba(250,204,21,.03)); color: #fff; box-shadow: 0 0 0 1px #facc15 inset; }
+  .sv-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: #d5dfee; }
+  .sv-sub[hidden] { display: none; }
+  .sv-unit { color: #9fb1cc; }
+  .sv-step { display: inline-flex; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; overflow: hidden; }
+  .sv-step button { width: 34px; border: 0; background: rgba(255,255,255,.06); color: #fff; font-size: 18px; cursor: pointer; }
+  .sv-step output { width: 40px; text-align: center; font: 700 16px/36px var(--mono); }
+  .sv-step.sm button { width: 28px; font-size: 15px; } .sv-step.sm output { width: 30px; font-size: 14px; line-height: 30px; }
+  .sv-seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .sv-seg button, .sv-chip { padding: 0 12px; min-height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #d5dfee; font: 600 13px var(--body); cursor: pointer; }
+  .sv-seg button.on, .sv-chip.on { background: #facc15; border-color: #facc15; color: #1f1a03; }
+  .sv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sv-note { margin: 8px 0 0; font-size: 12.5px; color: #9fb1cc; }
+  .sv-aps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 620px) { .sv-aps { grid-template-columns: minmax(0, 1fr); } }
+  .sv-ap { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.2); }
+  .sv-ap.on { border-color: rgba(250,204,21,.6); background: rgba(250,204,21,.07); }
+  .sv-ap svg { width: 22px; height: 22px; fill: none; stroke: #9fb1cc; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; grid-row: 1 / 3; }
+  .sv-ap.on svg { stroke: #facc15; }
+  .sv-ap-t { display: grid; min-width: 0; }
+  .sv-ap-t b { font-size: 13px; line-height: 1.2; }
+  .sv-ap-t small { font: 11px var(--mono); color: #9fb1cc; }
+  .sv-h { grid-column: 2 / 4; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: #9fb1cc; }
+  .sv-h input { width: 52px; font: 600 12.5px var(--mono); padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,.15); background: rgba(0,0,0,.3); color: #fff; }
+  .sv-ap:not(.on) .sv-h { opacity: .45; }
+  /* —— 实景 —— */
+  .sv-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .sv-modes span { margin-right: 4px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #9fb1cc; }
+  .sv-modes button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #d5dfee; font: 600 12.5px var(--body); cursor: pointer; }
+  .sv-modes button.on { background: #fff; color: #0c1830; border-color: #fff; }
+  .sv-modes button[hidden] { display: none; }
+  .sv-scene { border-radius: 14px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+  .sv-scene svg { display: block; width: 100%; height: auto; }
+  .sv-scene .sky { transition: opacity .6s; }
+  .sv-scene .sky.day { fill: url(#svSkyDay); }
+  .sv-scene .sky.night, .sv-scene .sky.cut { opacity: 0; }
+  .sv-scene[data-m="night"] .sky.night, .sv-scene[data-m="cut"] .sky.cut { opacity: 1; }
+  .sv-scene .stars circle { fill: #fff; opacity: 0; transition: opacity .6s; }
+  .sv-scene[data-m="night"] .stars circle { opacity: .85; }
+  .sv-scene .sun circle { fill: #fde047; filter: drop-shadow(0 0 16px rgba(253,224,71,.9)); }
+  .sv-scene .sun path { stroke: #fde047; stroke-width: 4; stroke-linecap: round; }
+  .sv-scene .sun { transition: opacity .6s, transform .6s; transform-origin: 90px 70px; animation: svSpin 30s linear infinite; }
+  @keyframes svSpin { to { transform: rotate(360deg); } }
+  .sv-scene[data-m="night"] .sun { opacity: 0; }
+  .sv-scene .moon { opacity: 0; transition: opacity .6s; }
+  .sv-scene .moon circle { fill: #f1f5f9; } .sv-scene .moon .moon-cut { fill: #0f1d3d; }
+  .sv-scene[data-m="night"] .moon { opacity: 1; }
+  .sv-scene .ground { fill: #4d7c3a; }
+  .sv-scene[data-m="night"] .ground { fill: #1c2e1a; }
+  .sv-scene .wall { fill: #f5efe4; stroke: #c9bba3; stroke-width: 2; }
+  .sv-scene .roof { fill: #b45434; }
+  .sv-scene .door { fill: #8a6a4b; }
+  .sv-scene .win { fill: #93c5fd; stroke: #c9bba3; stroke-width: 2; transition: fill .4s; }
+  .sv-scene .lamp { fill: #fff7cc; opacity: .2; transition: opacity .4s; }
+  .sv-scene[data-m="night"] .win, .sv-scene[data-m="cut"] .win { fill: #fde68a; }
+  .sv-scene[data-m="night"] .lamp, .sv-scene[data-m="cut"] .lamp { opacity: 1; filter: drop-shadow(0 0 10px #fde68a); }
+  .sv-scene[data-m="night"] .wall { fill: #b6ad9f; }
+  .sv-scene :global(.pnl) { animation: svPop .45s cubic-bezier(.2,.9,.2,1) both; animation-delay: var(--d); }
+  .sv-scene :global(.pnl-l) { stroke: rgba(255,255,255,.35); stroke-width: 1; }
+  .sv-scene :global(.pv-stand) { stroke: #64748b; stroke-width: 4; }
+  @keyframes svPop { from { opacity: 0; transform: translateY(-10px); } }
+  .sv-scene .inv rect:first-child { fill: #f8fafc; stroke: #94a3b8; stroke-width: 2; }
+  .sv-scene .lcd { fill: #0c1a10; }
+  .sv-scene .lcd-t { font: 700 11px var(--mono); fill: #5ef0a0; text-anchor: middle; }
+  .sv-scene .led { fill: #22c55e; } .sv-scene .led.b { fill: #3b82f6; }
+  .sv-scene :global(.bm rect:first-child) { fill: #e2e8f0; stroke: #64748b; stroke-width: 1.5; }
+  .sv-scene :global(.bm-soc) { fill: #22c55e; }
+  .sv-scene :global(.bm) { animation: svPop .4s ease-out both; animation-delay: var(--d); }
+  .sv-scene .pole { stroke: #5b4636; stroke-width: 5; fill: none; stroke-linecap: round; }
+  .sv-scene .xcut { display: none; } .sv-scene .xcut path { stroke: #ef4444; stroke-width: 5; stroke-linecap: round; }
+  .sv-scene[data-m="cut"] .xcut { display: block; }
+  .sv-scene.offgrid .grid-g, .sv-scene.offgrid .w-grid { display: none; }
+  .sv-scene .lbl { font: 700 13px var(--mono); fill: #0f172a; text-anchor: middle; letter-spacing: .05em; }
+  .sv-scene .lbl.big { font-size: 14px; fill: #1e3a8a; }
+  .sv-scene :global(.lbl.bm-more) { text-anchor: start; }
+  .sv-scene[data-m="night"] .lbl { fill: #e2e8f0; }
+  .sv-scene .w { fill: none; stroke: rgba(15,23,42,.18); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  @keyframes svFlow { to { stroke-dashoffset: -28; } }
+  .sv-scene :is(.w-pv, .w-home, .w-batt, .w-grid) { transition: stroke .3s; }
+  /* 白天：光伏 → 逆变器 → 家里 + 电池充电 + 多余的送电网 */
+  .sv-scene[data-m="day"] :is(.w-pv, .w-home) { stroke: #f59e0b; stroke-dasharray: 10 4; animation: svFlow 1s linear infinite; }
+  .sv-scene[data-m="day"] .w-batt { stroke: #22c55e; stroke-dasharray: 10 4; animation: svFlow 1.2s linear infinite; }
+  .sv-scene[data-m="day"] .w-grid { stroke: #3b82f6; stroke-dasharray: 6 6; animation: svFlow 1.6s linear infinite; }
+  /* 夜间：电池 → 逆变器 → 家里 */
+  .sv-scene[data-m="night"] .w-batt { stroke: #22c55e; stroke-dasharray: 10 4; animation: svFlow 1s linear infinite reverse; }
+  .sv-scene[data-m="night"] .w-home { stroke: #22c55e; stroke-dasharray: 10 4; animation: svFlow 1s linear infinite; }
+  .sv-scene[data-m="night"] .w { stroke: rgba(226,232,240,.15); }
+  .sv-scene[data-m="night"] :is(.w-batt, .w-home) { stroke: #22c55e; }
+  /* 停电：电网断开，光伏 + 电池 → 家里 */
+  .sv-scene[data-m="cut"] :is(.w-pv, .w-home) { stroke: #f59e0b; stroke-dasharray: 10 4; animation: svFlow 1s linear infinite; }
+  .sv-scene[data-m="cut"] .w-batt { stroke: #22c55e; stroke-dasharray: 10 4; animation: svFlow 1s linear infinite reverse; }
+  .sv-scene[data-m="cut"] .w-grid { stroke: #ef4444; stroke-dasharray: 3 7; }
+  .sv-mtext { margin: 0; font-size: 13.5px; color: #d5dfee; background: rgba(255,255,255,.05); border-radius: 10px; padding: 10px 12px; }
+  /* 结果 */
+  .sv-read { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(250,204,21,.12), rgba(250,204,21,.02)); border: 1px solid rgba(250,204,21,.28); }
+  .sv-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sv-kpis div { display: grid; gap: 2px; }
+  .sv-kpis span { font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: #9fb1cc; }
+  .sv-kpis b { font: 700 clamp(22px, 3vw, 30px)/1 var(--display); color: #facc15; }
+  .sv-kpis :global(small) { font-size: 13px; color: #d5dfee; }
+  .sv-rows { margin: 0; display: grid; font-size: 13.5px; }
+  .sv-rows :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.12); }
+  .sv-rows :global(dt) { color: #9fb1cc; }
+  .sv-rows :global(dd) { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; }
+  .sv-rows :global(.enter) { color: #d5dfee; border: 0; }
+  .sv-recs { display: grid; gap: 6px; }
+  .sv-recs :global(span) { font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: #9fb1cc; margin-top: 4px; }
+  .sv-recs :global(a) { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.14); color: #fff; text-decoration: none; font-size: 14px; }
+  .sv-recs :global(a.best) { border-color: #facc15; background: rgba(250,204,21,.1); }
+  .sv-recs :global(a span) { margin: 0; text-transform: none; letter-spacing: 0; font: 13px var(--mono); color: #d5dfee; }
+  .sv-recs :global(.cu) { margin: 0; color: #facc15; font-size: 13px; }
+  .sv-checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .sv-checks :global(li) { font-size: 12.5px; padding: 7px 10px; border-radius: 8px; background: rgba(250,204,21,.1); color: #fde68a; }
+  .sv-final { grid-area: fin; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .sv-sum { flex: 1 1 380px; display: grid; gap: 4px; font-size: 14px; }
+  .sv-sum :global(div) { display: flex; gap: 10px; flex-wrap: wrap; }
+  .sv-sum :global(span) { min-width: 64px; color: #9fb1cc; font: 600 12px/20px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .sv-sum :global(b) { font-family: var(--mono); font-weight: 600; }
+  .sv-go { min-height: 50px; padding: 0 26px; border-radius: 10px; border: 0; background: #facc15; color: #1f1a03; font: 700 16px var(--body); cursor: pointer; box-shadow: 0 10px 30px rgba(250,204,21,.25); }
+  .sv-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  @media (max-width: 520px) { .sv-go { width: 100%; } }
+  .sv-assume { grid-area: as; font-size: 13px; color: #9fb1cc; }
+  .sv-assume summary { cursor: pointer; font-weight: 600; color: #d5dfee; }
+  .sv-assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+  .sv-pop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(3, 6, 14, .72); backdrop-filter: blur(4px); }
+  .sv-pop[hidden] { display: none; }
+  .sv-pop-box { position: relative; width: min(480px, 100%); padding: 24px; border-radius: 16px; color: #e8eef7; background: linear-gradient(180deg, #17305a, #0c1830); border: 1px solid rgba(250,204,21,.35); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .sv-pop-box h3 { margin: 0 0 6px; font: 700 24px var(--display); text-transform: uppercase; }
+  .sv-pop-box > p { margin: 0 0 12px; font-size: 14px; color: #9fb1cc; }
+  .sv-pop-box pre { margin: 0 0 16px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; color: #d5dfee; max-height: 220px; overflow: auto; }
+  .sv-pop-acts { display: grid; gap: 10px; }
+  .sv-pop-btn { display: grid; grid-template-columns: 26px 1fr; column-gap: 12px; align-items: center; padding: 13px 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; }
+  .sv-pop-btn svg { width: 26px; height: 26px; grid-row: 1 / 3; fill: currentColor; }
+  .sv-pop-btn small { grid-column: 2; font: 500 12px var(--mono); opacity: .75; }
+  .sv-pop-btn.wa { background: #25d366; color: #062019; }
+  .sv-pop-btn.mail { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .sv-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #d5dfee; font-size: 22px; cursor: pointer; }
+  /* 手机：示意图在最上面，然后是选项，再是结果 */
+  @media (max-width: 960px) {
+    .sv .sv-stage { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+    .sv .sv-view { display: contents; }
+    .sv .sv-modes { order: 1; } .sv .sv-scene { order: 2; } .sv .sv-mtext { order: 3; }
+    .sv .sv-ctl { order: 4; } .sv .sv-read { order: 5; } .sv .sv-final { order: 6; } .sv .sv-assume { order: 7; }
+  }
+  @media (prefers-reduced-motion: reduce) { .sv-scene :global(*) { animation: none !important; } }
+</style>

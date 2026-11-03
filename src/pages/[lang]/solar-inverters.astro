@@ -1,0 +1,291 @@
+---
+// 光伏逆变器栏目页：系统选型器（目标 / 用电器 / 地区日照 / 电网电压 + 白天·夜间·停电实景）→ 型号列表（按类型 / 相数筛选）→ 卖点 → 混网·并网·离网对比 → 参数对比 → 应用 → 询价。只询价，不显示价格。
+// 产品来自客户档案系统，大类 = 光伏逆变器（细分：太阳能混网逆变器、并网/离网逆变器）。选型计算：src/lib/solar-engine.mjs
+import Base from '../../layouts/Base.astro';
+import SolarVisual from '../../components/SolarVisual.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { SL } from '../../lib/solar-i18n.mjs';
+import { isInverter, invKind, invKw, invPhase, invBattV, seriesName } from '../../lib/category.mjs';
+import { specValue } from '../../lib/offline-i18n.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = SL[lang];
+const KORD = { hybrid: 0, off: 1, grid: 2 };
+const list = all.filter(isInverter).map((p) => ({ p, kind: invKind(p), kw: invKw(p), ph: invPhase(p), bv: invBattV(p), s: seriesName(p) }))
+  .sort((a, b) => KORD[a.kind] - KORD[b.kind] || a.s.localeCompare(b.s) || a.kw - b.kw);
+const kinds = [...new Set(list.map((x) => x.kind))].sort((a, b) => KORD[a] - KORD[b]);
+const phases = [...new Set(list.map((x) => x.ph))];
+const kws = list.map((x) => x.kw).filter(Boolean);
+const rangeTxt = kws.length > 1 && Math.min(...kws) !== Math.max(...kws) ? `${Math.min(...kws)}–${Math.max(...kws)} kW` : kws.length ? `${kws[0]} kW` : '';
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const INV_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="52" y="22" width="96" height="150" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="3"/><rect x="68" y="40" width="64" height="30" rx="4" fill="#0c1a10"/><path d="M76 56h20" stroke="#5ef0a0" stroke-width="4"/><circle cx="76" cy="90" r="4" fill="#22c55e"/><circle cx="90" cy="90" r="4" fill="#3b82f6"/><path d="M70 120h60M70 132h60M70 144h60" stroke="#cbd5e1" stroke-width="4"/></svg>';
+// 对比表：至少一个型号有值的参数才显示
+const CMP = ['offGridRatedApparentPower', 'onGridMaxApparentPower', 'outputVoltage', 'maxDcInputPower', 'maxDcInputVoltage', 'mpptVoltageRange', 'mpptNumber', 'batteryType', 'batteryVoltage', 'maxChargeDischargeCurrent', 'efficiencyMax', 'protectionClass', 'dimensions', 'netWeight']
+  .filter((f) => list.some((x) => specValue(x.p, f, lang)));
+const cell = (p: any, f: string) => (specValue(p, f, lang) || '—').replace(/\*/g, ' × ');
+const APP_ICONS = [
+  '<path d="M4 15l11-9 11 9M7 13v12h16V13"/><path d="M12 25v-6h6v6"/>',
+  '<path d="M4 11h22l-2-6H6zM6 11v14h18V11M11 25v-7h8v7"/>',
+  '<path d="M15 4c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z"/>',
+  '<rect x="4" y="6" width="22" height="19" rx="3"/><path d="M15 11v9M10.5 15.5h9"/>',
+  '<path d="M15 27V12M9 27l6-15 6 15M7 9a11 11 0 0 1 16 0M10 12a6.5 6.5 0 0 1 10 0"/>',
+  '<path d="M4 26h22M6 26V12l6 4V12l6 4V8h6v18"/>',
+];
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="solar-inverters/">
+<div class="off sol">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#designer">{T.ctaBuilder}</a>
+          {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
+        </div>
+      </div>
+      <div class="hero-facts">
+        {rangeTxt ? <div><b class="num">{rangeTxt}</b><span>{T.facts.range}</span></div> : <div><b class="num">{T.kindsV}</b><span>{T.facts.kinds}</span></div>}
+        <div><b class="num">{T.battV}</b><span>{T.facts.batt}</span></div>
+        <div><b class="num">{T.parV}</b><span>{T.facts.par}</span></div>
+        <div><b class="num">WiFi</b><span>{T.feats[3][0]}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <SolarVisual lang={lang} />
+
+  {list.length > 0 && (
+    <section class="block" id="models" data-models>
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      {(kinds.length > 1 || phases.length > 1) && (
+        <div class="filters">
+          {kinds.length > 1 && <div class="fgroup" data-f="kind"><span>{T.fType}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{kinds.map((k) => <button type="button" class="chip" data-v={k}>{T.kind[k]}</button>)}</div>}
+          {phases.length > 1 && <div class="fgroup" data-f="ph"><span>{T.fPhase}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{phases.map((k) => <button type="button" class="chip" data-v={k}>{T.phase[k]}</button>)}</div>}
+        </div>
+      )}
+      <div class="grid">
+        {list.map((x) => {
+          const p = x.p, img = p.images && p.images[0];
+          const pv = specValue(p, 'maxDcInputPower', lang), mppt = specValue(p, 'mpptNumber', lang), bat = specValue(p, 'batteryVoltage', lang), eff = specValue(p, 'efficiencyMax', lang);
+          return (
+            <article class="pcard" data-kind={x.kind} data-ph={x.ph}>
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={INV_SVG} />}
+                <span class="tags"><span class:list={['tag', `k-${x.kind}`]}>{T.kind[x.kind]}</span><span class="tag u">{T.phase[x.ph]}</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                {x.kw > 0 && <span class="va">{x.kw} kW</span>}
+                <ul>
+                  {pv && <li>{T.cPv} <b>{pv}</b></li>}
+                  {mppt && <li>{T.cMppt} <b>{mppt}</b></li>}
+                  {bat && <li>{T.cBatt} <b>{bat}{x.bv ? ` · ${T.bv[x.bv]}` : ''}</b></li>}
+                  {eff && <li>{T.cEff} <b>{eff}</b></li>}
+                </ul>
+                <div class="pact">
+                  <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
+    <div class="vs">
+      {(['hybrid', 'grid', 'off'] as const).map((k) => (
+        <div class:list={['card', { hi: k === 'hybrid' }]}>
+          <span class:list={['tag', `k-${k}`]}>{T.vs[k].tag}</span>
+          <h3>{T.vs[k].h}</h3>
+          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span><b>{b}</b></li>)}</ul>
+          <p class="best">{T.vs[k].best}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  {list.length > 0 && CMP.length > 0 && (
+    <section class="block">
+      <div class="head"><span class="eyebrow">{T.compareEyebrow}</span><h2>{T.compareH}</h2></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>{T.spec.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
+        <tbody>
+          <tr><th>{T.spec.kind}</th>{list.map((x) => <td>{T.kind[x.kind]}</td>)}</tr>
+          {CMP.map((f) => <tr><th>{T.spec[f]}</th>{list.map((x) => <td class="num">{cell(x.p, f)}</td>)}</tr>)}
+        </tbody>
+      </table></div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} /><span>{a}</span></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.projEyebrow}</span><h2>{T.projH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.proj.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.projCtaH}</h3>
+        <p>{T.projCtaP}</p>
+        {SITE.whatsapp && <div><a class="btn primary" href={wa(T.projMsg)} target="_blank" rel="noopener">{T.projCta}</a></div>}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+</div>
+</Base>
+
+<script is:inline>
+  // 型号列表：按类型 / 相数筛选
+  (function () {
+    var box = document.querySelector('[data-models]'); if (!box) return;
+    var f = { kind: '', ph: '' };
+    box.querySelectorAll('[data-f]').forEach(function (g) {
+      g.addEventListener('click', function (e) {
+        var b = e.target.closest('.chip'); if (!b) return;
+        g.querySelectorAll('.chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+        f[g.dataset.f] = b.dataset.v;
+        box.querySelectorAll('.pcard').forEach(function (c) { c.hidden = (f.kind && c.dataset.kind !== f.kind) || (f.ph && c.dataset.ph !== f.ph); });
+      });
+    });
+  })();
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f7a; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .sol :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .sol :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .sol :global(.head p) { margin: 0; color: var(--muted); }
+  .sol :global(section.block) { padding-block: 56px 0; }
+  .sol :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero { background: #0c1830; color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero::before { content: ""; position: absolute; right: -60px; top: -90px; width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(closest-side, rgba(250,204,21,.32), transparent); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #facc15; }
+  .hero p { margin: 0; color: #cdd8ea; font-size: 17px; max-width: 580px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #2b3f63; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 26px/1.05 var(--display); color: #facc15; }
+  .hero-facts span { font-size: 13px; color: #a9b8d0; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 16px; }
+  .fgroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .fgroup > span { font-size: 13px; font-weight: 600; margin-right: 4px; }
+  .chip { font: 14px var(--body); padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg :global(svg) { width: 62%; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  /* 类型标签用 k- 前缀，免得 .grid（列表布局）这类类名撞上 */
+  .tag.k-hybrid { background: #fef3c7; color: #92400e; }
+  .tag.k-off { background: var(--ok-soft); color: var(--ok); }
+  .tag.k-grid { background: #e2ecfb; color: #1f4f9a; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: #b45309; }
+  .feat h3 { font-size: 22px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .vs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 860px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+  .vs .card h3 { font-size: 24px; margin: 6px 0 8px; }
+  .vs .card.hi { border-color: #d97706; box-shadow: inset 0 0 0 1px #d97706; }
+  .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+  .vs li { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .vs li span { color: var(--muted); }
+  .vs li b { font-weight: 500; }
+  .vs .best { font-size: 13px; color: #b45309; font-weight: 600; margin: 10px 0 0; }
+
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); }
+  .tbl-wrap a { color: var(--ink); }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: #d97706; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: #0c1830; color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #cdd8ea; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>
