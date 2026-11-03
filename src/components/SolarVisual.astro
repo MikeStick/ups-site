@@ -4,7 +4,7 @@
 // 计算全部在 src/lib/solar-engine.mjs（测试：node scripts/test-solar-engine.mjs）。
 import { SITE } from '../config.mjs';
 import { SL } from '../lib/solar-i18n.mjs';
-import { APPLIANCES, REGIONS, ASSUME } from '../lib/solar-engine.mjs';
+import { APPLIANCES, REGIONS, PANEL_W } from '../lib/solar-engine.mjs';
 import { isInverter, invKind, invKw, invPhase } from '../lib/category.mjs';
 import all from '../data/products.json';
 interface Props { lang: string }
@@ -71,6 +71,11 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
           {Object.keys(REGIONS).map((k) => <button type="button" class:list={['sv-chip', { on: k === 'africa' }]} data-reg={k} title={fmt(C.sun, { h: REGIONS[k] })}>{C.reg[k]}</button>)}
         </div>
         <p class="sv-note" data-sun></p>
+        <div class="sv-subl">{C.panel}</div>
+        <div class="sv-chips" data-panels>
+          {PANEL_W.map((w) => <button type="button" class:list={['sv-chip', { on: w === 550 }]} data-pw={w}>{w} W</button>)}
+          <label class="sv-pw-other"><span>{C.panelOther}</span><input type="number" min="50" max="1000" step="5" data-pwx aria-label={C.panelHint} /><span>W</span></label>
+        </div>
       </div>
 
       <div class="sv-grp">
@@ -172,14 +177,14 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
 </section>
 
 <script>
-  import { sizeSolar, REGIONS, ASSUME } from '../lib/solar-engine.mjs';
+  import { sizeSolar, REGIONS } from '../lib/solar-engine.mjs';
   const root = document.querySelector('[data-sv]') as HTMLElement | null;
   if (root) {
     const c = JSON.parse(root.querySelector('[data-sv-cfg]')!.textContent || '{}'), T = c.t;
     const $ = (s: string) => root.querySelector(s) as HTMLElement;
     const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
     const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
-    const st: any = { goal: 'backup', outageH: 6, autonomy: 0, region: 'africa', phase: '1', mode: 'day' };
+    const st: any = { goal: 'backup', outageH: 6, autonomy: 0, region: 'africa', phase: '1', mode: 'day', panelW: 550 };
     let lastMsg = '', lastSubj = '', last: any = null, pvKey = '', bKey = '';
     const items = () => {
       const o: any = {};
@@ -187,8 +192,8 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
       return o;
     };
     // 示意图：光伏板（最多画 12 块）、电池模块（最多 4 块）
-    function drawPv(n: number) {
-      const key = String(n); if (key === pvKey) return; pvKey = key;
+    function drawPv(n: number, w: number) {
+      const key = n + '|' + w; if (key === pvKey) return; pvKey = key;
       const show = Math.min(n, 12), cols = 4; let h = '';
       for (let i = 0; i < show; i++) {
         const r = Math.floor(i / cols), k = i % cols, x = 34 + k * 48 - r * 8, y = 250 + r * 30;
@@ -196,7 +201,7 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
       }
       h += `<path class="pv-stand" d="M40 340 V${250 + Math.ceil(show / cols) * 30} M220 340 V${250 + Math.ceil(show / cols) * 30}"/>`;
       $('[data-pv]').innerHTML = h;
-      $('[data-pv-l]').textContent = n > 12 ? `${n} × 550 W` : `${n} × 550 W`;
+      $('[data-pv-l]').textContent = n ? `${n} × ${w} W` : '';
     }
     function drawBatt(m: number) {
       const key = String(m); if (key === bKey) return; bKey = key;
@@ -220,24 +225,24 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
       $('[data-scene]').classList.toggle('offgrid', st.goal === 'off');
       ($('[data-mode="cut"]') as any).hidden = st.goal === 'off';
       $('[data-sun]').textContent = fmt(T.sun, { h: REGIONS[st.region] });
-      const r = sizeSolar({ items: items(), goal: st.goal, outageH: st.outageH, autonomy: st.autonomy, region: st.region, phase: st.phase, models: c.models });
+      const r = sizeSolar({ items: items(), goal: st.goal, outageH: st.outageH, autonomy: st.autonomy, region: st.region, phase: st.phase, panelW: st.panelW, models: c.models });
       last = r;
       const rows = $('[data-rows]'), go = $('[data-open]') as HTMLButtonElement | null;
       if (!r) {
         ['daily', 'peak', 'surge'].forEach((k) => ($(`[data-k-${k}]`).textContent = '—'));
         rows.innerHTML = `<div class="enter">${T.out.enter}</div>`; $('[data-recs]').innerHTML = ''; $('[data-checks]').innerHTML = ''; $('[data-sum]').innerHTML = '';
-        if (go) go.disabled = true; drawPv(0); drawBatt(0); return;
+        if (go) go.disabled = true; drawPv(0, st.panelW); drawBatt(0); return;
       }
       if (go) go.disabled = false;
       $('[data-k-daily]').innerHTML = `${r.dailyKwh}<small> kWh</small>`;
       $('[data-k-peak]').innerHTML = `${r.peakW}<small> W</small>`;
       $('[data-k-surge]').innerHTML = `${r.surgeW}<small> W</small>`;
-      drawPv(r.panels); drawBatt(r.modules);
+      drawPv(r.panels, r.panelW); drawBatt(r.modules);
       $('[data-lcd]').textContent = `${r.units > 1 ? r.units + '×' : ''}${r.invKw} kW`;
       $('[data-batt-l]').textContent = r.modules ? `${T.vis.batt} · ${r.battInst} kWh` : T.vis.batt;
       const inv = fmt(T.out.invN, { n: r.units, k: r.invKw }).replace(/^1 × /, '') + (r.units > 1 ? ` ${T.out.par}` : '');
       const batt = r.modules ? fmt(T.out.battN, { m: r.modules, k: r.battInst }) : T.out.battNone;
-      const pv = fmt(T.out.pvN, { n: r.panels, k: r.kwpInst });
+      const pv = fmt(T.out.pvN, { n: r.panels, w: r.panelW, k: r.kwpInst });
       const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
       rows.innerHTML = row(T.out.inv, inv) + row(T.out.batt, batt) + row(T.out.pv, pv) + row(T.out.gen, fmt(T.out.genN, { k: r.monthKwh }));
       const link = (m: any, best: boolean) => `<a href="/${c.lang}/p/${m.slug}/"${best ? ' class="best"' : ''}><b>${m.m}</b><span>${c.kind[m.kind] || ''} · ${m.kw} kW${best && r.units > 1 ? ' × ' + r.units : ''}</span></a>`;
@@ -262,6 +267,9 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
     $$('[data-reg]').forEach((b) => b.addEventListener('click', () => { st.region = b.dataset.reg; $$('[data-reg]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
     $$('[data-ph]').forEach((b) => b.addEventListener('click', () => { st.phase = b.dataset.ph; $$('[data-ph]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); update(); }));
     $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+    // 光伏板规格：常用规格点选，或者手动填（50–1000 W）
+    $$('[data-pw]').forEach((b) => b.addEventListener('click', () => { st.panelW = +b.dataset.pw!; ($('[data-pwx]') as HTMLInputElement).value = ''; $$('[data-pw]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $('[data-pwx]').addEventListener('input', (e: any) => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v >= 50 && v <= 1000) { st.panelW = Math.round(v); $$('[data-pw]').forEach((x) => x.classList.remove('on')); update(); } });
     const pop = $('[data-pop]'); let opener: HTMLElement | null = null;
     function openPop() {
       $('[data-msg]').textContent = lastMsg;
@@ -276,7 +284,6 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
     ob?.addEventListener('click', () => { if (!last) return; opener = ob; openPop(); });
     pop.addEventListener('click', (e: any) => { if (e.target === pop || e.target.closest('[data-close]')) closePop(); else if (e.target.closest('.sv-pop-btn')) setTimeout(closePop, 300); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); });
-    void ASSUME;
     setMode('day'); update();
   }
 </script>
@@ -310,6 +317,10 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
   .sv-seg button.on, .sv-chip.on { background: #facc15; border-color: #facc15; color: #1f1a03; }
   .sv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .sv-note { margin: 8px 0 0; font-size: 12.5px; color: #9fb1cc; }
+  .sv-subl { font-size: 12px; color: #9fb1cc; margin: 14px 0 6px; }
+  .sv-pw-other { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #9fb1cc; padding: 0 6px 0 12px; border: 1px dashed rgba(255,255,255,.22); border-radius: 999px; }
+  .sv-pw-other input { width: 64px; font: 600 13px var(--mono); padding: 5px 4px; border: 0; background: transparent; color: #fff; }
+  .sv-pw-other:focus-within { border-color: #facc15; }
   .sv-aps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   @media (max-width: 620px) { .sv-aps { grid-template-columns: minmax(0, 1fr); } }
   .sv-ap { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.2); }

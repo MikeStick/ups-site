@@ -6,7 +6,7 @@ export const ASSUME = {
   margin: 1.25,        // 逆变器额定功率 ≥ 同时运行负载 × 1.25
   surge: 2,            // 逆变器短时冲击能力（约 5 秒）按额定功率的 2 倍估算
   pr: 0.75,            // 光伏系统效率（温度、灰尘、线损、逆变效率）
-  panelW: 550,         // 单块光伏板功率（W）
+  panelW: 550,         // 默认单块光伏板功率（W），页面上可以选 / 手动填
   dod: 0.9,            // 锂电（LiFePO4）可用深度
   invEff: 0.93,        // 电池放电经逆变器的效率
   nightShare: 0.6,     // 晚上和清晨（没有太阳时）的用电占全天的比例
@@ -32,11 +32,13 @@ export const APPLIANCES = [
 // 日照（峰值日照小时 PSH）：按地区给一个常见值
 export const REGIONS = { africa: 5.5, mideast: 6, latam: 5, asia: 4.5, europe: 3.5, cis: 3.5 };
 // 逆变器功率档位（kW），没有对得上的已发布型号时按这些档位推荐
+// 页面上可选的光伏板规格（W），也可以手动填
+export const PANEL_W = [550, 585, 665, 700];
 export const INV_KW = [3, 3.6, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50];
 
 const r1 = (x) => Math.round(x * 10) / 10;
 
-// q = { items: { id: { n, h } }, goal: 'backup'|'self'|'off', outageH, autonomy (天，离网), region, phase: '1'|'3'|'split', models: [{ kw, kind, phase, ... }] }
+// q = { items: { id: { n, h } }, goal: 'backup'|'self'|'off', outageH, autonomy (天，离网), region, phase: '1'|'3'|'split', panelW, models: [{ kw, kind, phase, ... }] }
 export function sizeSolar(q) {
   let dailyWh = 0, peakW = 0, maxExtra = 0;
   const used = [];
@@ -64,8 +66,9 @@ export function sizeSolar(q) {
   // 光伏：每天发电量覆盖全天用电（离网多留 20%）
   const psh = REGIONS[q.region] || 5;
   const kwp = dailyWh / 1000 / (psh * ASSUME.pr) * (goal === 'off' ? 1.2 : 1);
-  const panels = Math.max(1, Math.ceil(kwp * 1000 / ASSUME.panelW - 1e-9));
-  const kwpInst = panels * ASSUME.panelW / 1000;
+  const panelW = +q.panelW >= 50 && +q.panelW <= 1000 ? Math.round(+q.panelW) : ASSUME.panelW;
+  const panels = Math.max(1, Math.ceil(kwp * 1000 / panelW - 1e-9));
+  const kwpInst = panels * panelW / 1000;
   const monthKwh = Math.round(kwpInst * psh * ASSUME.pr * 30);
   // 逆变器：光伏太多时也要放大（组件功率 ≤ 逆变器 × 1.3）
   const needKw2 = Math.max(needKw, kwpInst / ASSUME.pvOversize);
@@ -95,6 +98,6 @@ export function sizeSolar(q) {
     dailyKwh: r1(dailyWh / 1000), peakW: Math.round(peakW), surgeW: Math.round(surgeW), needKw: r1(needKw2), bySurge, byPv,
     invKw, units, model: pick, alts: fit.slice(1, 3),
     battKwh: r1(battKwh), modules, battInst: r1(modules * ASSUME.moduleKwh),
-    psh, kwp: r1(kwp), panels, kwpInst: r1(kwpInst), monthKwh, checks, used,
+    psh, kwp: r1(kwp), panelW, panels, kwpInst: r1(kwpInst), monthKwh, checks, used,
   };
 }

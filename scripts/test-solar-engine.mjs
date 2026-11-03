@@ -15,5 +15,9 @@ r = sizeSolar({ items: home, goal: 'self', region: 'africa', phase: '1', models:
 ok(r.model && r.model.m === 'H5K', `picks smallest published hybrid: ${r.model && r.model.m}`);
 r = sizeSolar({ items: { heater: { n: 10 } }, goal: 'self', region: 'africa', phase: '1', models: [{ kw: 8, kind: 'hybrid', phase: '1', m: 'H8K' }] });
 ok(r.units > 1 && r.model.m === 'H8K', `big load → ${r.units} × H8K in parallel`);
+const p550 = sizeSolar({ items: { ...home, ac: { n: 2 } }, goal: 'self', region: 'africa' });
+const p700 = sizeSolar({ items: { ...home, ac: { n: 2 } }, goal: 'self', region: 'africa', panelW: 700 });
+ok(p700.panelW === 700 && p700.panels < p550.panels, `700 W panels → fewer panels (${p700.panels} < ${p550.panels})`);
+ok(sizeSolar({ items: home, panelW: 5 }).panelW === 550, 'invalid panel size falls back to 550 W');
 ok(sizeSolar({ items: {} }) === null, 'no load → null');
 process.exit(fail ? 1 : 0);
