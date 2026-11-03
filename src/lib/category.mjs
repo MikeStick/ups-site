@@ -52,6 +52,28 @@ export function invBattV(p) {
   const n = (String(p.batteryVoltage || '').match(/\d+(?:\.\d+)?/g) || []).map(Number);
   return !n.length ? '' : Math.max(...n) <= 60 ? 'lv' : 'hv';
 }
+// 储能电池：大类 = 储能电池。目前只有"机架式磷酸铁锂电池"有自己的栏目（/batteries/rack-lithium/），
+// 其他电池（壁挂式、铅酸、家庭储能系统）的栏目还没做：不进任何列表，产品页照常生成
+export const isBattery = (p) => p.category === '储能电池';
+export const RACK_BATT_TYPES = ['机架式磷酸铁锂电池', '机架式锂电池'];
+export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
+const num1 = (v) => { const m = String(v || '').replace(',', '.').match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; };
+// 机架式电池模块：电压 V、容量 Ah、能量 kWh（优先填的"模块最大能量"，没有就 V × Ah）、最大放电电流 A、高度 U、重量 kg、最多并联数
+export function battModule(p) {
+  const v = num1(p.moduleVoltage || p.cabinetRatedVoltage || p.batteryVoltage);
+  const ah = num1(p.moduleCapacity);
+  let kwh = num1(p.moduleMaxEnergy);
+  if (kwh > 100) kwh /= 1000; // 填成了 Wh
+  if (!kwh && v && ah) kwh = Math.round(v * ah / 10) / 100;
+  const maxA = num1(p.maxDischargeCurrent || p.recommendedDischargeCurrent || p.maxChargeDischargeCurrent);
+  const kg = num1(p.moduleWeight || p.netWeight);
+  const um = `${p.model || ''} ${p.sellingPoints || ''} ${p.moduleDimensions || ''} ${p.dimensions || ''}`.match(/\b([1-9])\s*U\b/);
+  let u = um ? +um[1] : 0;
+  if (!u) { const nums = (String(p.moduleDimensions || p.dimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).filter((x) => x >= 40 && x <= 400); for (const x of nums.sort((a, b) => a - b)) { const k = Math.round(x / 44.45); if (k >= 1 && k <= 8 && Math.abs(x - k * 44.45) <= 10) { u = k; break; } } }
+  const pm = String(p.sellingPoints || '').match(/(\d{1,2})\s*(?:pcs|units|modules|个|台)?\s*(?:in\s*)?parallel|parallel[^\n\d]{0,20}(\d{1,2})|并联[^\n\d]{0,6}(\d{1,2})/i);
+  const par = pm ? +(pm[1] || pm[2] || pm[3]) : 0;
+  return { v, ah, kwh, maxA, kg, u, par };
+}
 // 在线式高频 UPS 栏目（塔式，真双变换在线式，1–30 kVA；单相 / 三进单出 / 三进三出）
 export const ONLINE_TYPES = ['在线式高频UPS'];
 export const isOnline = (p) => has(p, ONLINE_TYPES);
@@ -71,8 +93,8 @@ export function phaseOf(p) {
   if (/38\d|40\d|41\d|3\s*ph|三相/i.test(vi)) return '31';
   return '11';
 }
-// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isInverter(p));
+// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器 / 储能电池的其他已发布产品（以后加品类时在这里分流）
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isInverter(p) && !isBattery(p));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');

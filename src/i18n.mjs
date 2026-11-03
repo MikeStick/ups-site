@@ -117,6 +117,8 @@ const TERMS = {
   '在线式高频UPS': { es: 'UPS online de alta frecuencia', en: 'High-frequency online UPS', ru: 'Высокочастотный онлайн-ИБП' },
   '高频塔式UPS': { es: 'UPS torre de alta frecuencia', en: 'High-frequency tower UPS', ru: 'Высокочастотный ИБП (башня)' },
   '工频UPS': { es: 'UPS de baja frecuencia', en: 'Low-frequency UPS', ru: 'Низкочастотный ИБП' },
+  '机架式磷酸铁锂电池': { es: 'Batería LiFePO4 para rack', en: 'Rack-mount LiFePO4 battery', ru: 'Стоечный аккумулятор LiFePO4' },
+  '机架式锂电池': { es: 'Batería de litio para rack', en: 'Rack-mount lithium battery', ru: 'Стоечный литиевый аккумулятор' },
   '太阳能混网逆变器': { es: 'Inversor solar híbrido', en: 'Hybrid solar inverter', ru: 'Гибридный солнечный инвертор' },
   '并网/离网逆变器': { es: 'Inversor solar on-grid / off-grid', en: 'On-grid / off-grid solar inverter', ru: 'Сетевой / автономный солнечный инвертор' },
   '模块化UPS': { es: 'UPS modular', en: 'Modular UPS', ru: 'Модульный ИБП' },
