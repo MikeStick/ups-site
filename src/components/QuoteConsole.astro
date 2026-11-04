@@ -4,8 +4,9 @@ import { SITE } from '../config.mjs';
 import { OT, OEM_MOQ_OFFLINE } from '../lib/offline-i18n.mjs';
 import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_MAX } from '../lib/sockets.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
-import { isRack, isModular, isIndustrial, isOnline, isInverter, isRackBattery, isWallBattery, isFloorBattery, invPhase, phaseOf, primary } from '../lib/category.mjs';
+import { isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, invPhase, phaseOf, primary } from '../lib/category.mjs';
 import { RB } from '../lib/rackbatt-i18n.mjs';
+import { AO } from '../lib/aio-i18n.mjs';
 import { WB } from '../lib/wallbatt-i18n.mjs';
 import { FB } from '../lib/floorbatt-i18n.mjs';
 import { SL } from '../lib/solar-i18n.mjs';
@@ -21,7 +22,9 @@ const modular = isModular(primary(p));
 // 工频机：同样不选插座，按相数选输出电压（三进三出 380/400/415 V，其余 220/230/240 V），数量默认 1 台
 const industrial = isIndustrial(primary(p));
 // 在线式高频：同样按相数选输出电压，数量默认 10 台
-const online = isOnline(primary(p));
+// 一体式锂电 UPS 同在线式（单相选 220/230/240 V），备注提示写负载和电池节数
+const aio = isAio(primary(p));
+const online = isOnline(primary(p)) || aio;
 const ph3 = (industrial || online) && phaseOf(p) === '33';
 // 光伏逆变器：按输出相数选电压（单相 220/230/240 V、分相 120/240 V、三相 380/400/415 V），数量默认 10 台
 const inverter = isInverter(primary(p));
@@ -33,7 +36,7 @@ const rbatt = isRackBattery(primary(p)) || wbatt;
 const rack = isRack(primary(p)) || modular || industrial || online || inverter || rbatt;
 // 模块化 UPS（包括"同时属于"模块化的产品）：电压按项目定，询价面板不选电压
 const noVolt = isModular(p) || rbatt;
-const R = modular ? { ...RT[lang], ...MT[lang], qOem: MT[lang].qNote } : industrial ? { ...RT[lang], ...IT[lang], qOem: IT[lang].qNote } : online ? OL[lang] : inverter ? { ...RT[lang], ...SL[lang] } : rbatt ? { ...RT[lang], ...RB[lang], ...(fbatt ? FB[lang] : wbatt ? WB[lang] : {}) } : RT[lang];
+const R = modular ? { ...RT[lang], ...MT[lang], qOem: MT[lang].qNote } : industrial ? { ...RT[lang], ...IT[lang], qOem: IT[lang].qNote } : aio ? { ...OL[lang], qNotesPh: AO[lang].qNotesPh, qOem: AO[lang].qOem } : online ? OL[lang] : inverter ? { ...RT[lang], ...SL[lang] } : rbatt ? { ...RT[lang], ...RB[lang], ...(fbatt ? FB[lang] : wbatt ? WB[lang] : {}) } : RT[lang];
 const VOLTS = inverter ? (invPh === '3' ? ['380 V', '400 V', '415 V'] : invPh === 'split' ? ['120/240 V', '120/208 V'] : ['220 V', '230 V', '240 V']) : modular ? ['380 V', '400 V', '415 V', '220 V'] : industrial || online ? (ph3 ? ['380 V', '400 V', '415 V'] : ['220 V', '230 V', '240 V']) : ['220 V', '230 V', '240 V', '110 V', '120 V'];
 const defVolt = inverter ? (invPh === '3' ? '400 V' : invPh === 'split' ? '120/240 V' : (/240/.test(String(p.outputVoltage || '')) && !/2[23]\d/.test(String(p.outputVoltage || '')) ? '240 V' : /230/.test(String(p.outputVoltage || '')) ? '230 V' : '220 V'))
   : industrial || online ? (ph3 ? (/415/.test(String(p.outputVoltage || '')) && !/380|400/.test(String(p.outputVoltage || '')) ? '415 V' : /400/.test(String(p.outputVoltage || '')) && !/380/.test(String(p.outputVoltage || '')) ? '400 V' : '380 V') : (/240/.test(String(p.outputVoltage || '')) && !/22\d|230/.test(String(p.outputVoltage || '')) ? '240 V' : /230/.test(String(p.outputVoltage || '')) && !/220/.test(String(p.outputVoltage || '')) ? '230 V' : '220 V'))

@@ -11,11 +11,13 @@ import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isOnline, isInverter, isRackBattery, isWallBattery, isFloorBattery, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
 import { OL } from '../../../lib/online-i18n.mjs';
+import { AO } from '../../../lib/aio-i18n.mjs';
+import { aioOptions } from '../../../lib/aio-engine.mjs';
 import { SL, INV_SPEC_FIELDS } from '../../../lib/solar-i18n.mjs';
 import { RB, RB_SPEC_FIELDS } from '../../../lib/rackbatt-i18n.mjs';
 import { WB } from '../../../lib/wallbatt-i18n.mjs';
@@ -43,7 +45,11 @@ const mod = modular ? moduleOf(p) : null;
 const industrial = isIndustrial(P0);
 const I = IT[lang];
 // 在线式高频 UPS：参数表同机架式（不含机架高度），询价面板按相数选电压，横幅链接到负载规划
-const online = isOnline(P0);
+// 一体式锂电 UPS：参数表和询价同在线式高频 UPS，面包屑和横幅指向 /all-in-one-ups/，亮点里显示电池节数选项
+const aio = isAio(P0);
+const AOT = AO[lang];
+const aioOpts = aio ? aioOptions(p) : [];
+const online = isOnline(P0) || aio;
 const OH = OL[lang];
 // 光伏逆变器：逆变器参数表、询价面板（按相数选电压），横幅链接到光伏系统选型器
 const inverter = isInverter(P0);
@@ -168,7 +174,7 @@ const highlights = rbatt ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   `${OH.phaseTag[phaseOf(p)]} · ${OH.phaseName[phaseOf(p)]}`,
   `${OH.spec.transferTimeAcToBattery.split(' (')[0]} ${specValue(p, 'transferTimeAcToBattery', lang) || '0 ms'}`,
-  isLongRun(p) ? OH.extBatt : OH.std,
+  aio ? (aioOpts.length ? aioOpts.map((o) => (o.n ? AOT.battN.replace('{n}', o.n) : `${o.wh} Wh`)).join(' / ') + ' · LiFePO4' : 'LiFePO4') : isLongRun(p) ? OH.extBatt : OH.std,
 ].filter(Boolean) : industrial ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   `${I.phaseTag[phaseOf(p)]} · ${I.c.ph[phaseOf(p)][1]}`,
@@ -199,7 +205,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -235,6 +241,10 @@ const jsonLd = {
       ) : inverter ? (
         <a class="custom-banner" href={`/${lang}/solar-inverters/#designer`}>
           <span>{S.banner}</span><b>{S.bannerCta} →</b>
+        </a>
+      ) : aio ? (
+        <a class="custom-banner" href={`/${lang}/all-in-one-ups/#builder`}>
+          <span>{AOT.banner}</span><b>{AOT.bannerCta} →</b>
         </a>
       ) : online ? (
         <a class="custom-banner" href={`/${lang}/online-ups/#sizer`}>

@@ -1,0 +1,284 @@
+---
+// 一体式锂电 UPS 栏目页（/all-in-one-ups/）：备电配置器（负载 + 备电小时 → 型号 + 电池节数，塔式 UPS 剖面示意）→ 型号列表 → 卖点 → 一体式 vs 外接电池 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
+// 产品来自客户档案系统，细分品类 = 一体式锂电UPS（例如 C1K-Pro / C2K-Pro / C3K-Pro，一个型号一条，电池节数写成"2/4/6节"）。
+import Base from '../../layouts/Base.astro';
+import AioVisual from '../../components/AioVisual.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { AO } from '../../lib/aio-i18n.mjs';
+import { OL } from '../../lib/online-i18n.mjs';
+import { aioOptions } from '../../lib/aio-engine.mjs';
+import { isAio, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
+import { specValue } from '../../lib/offline-i18n.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = AO[lang], SP = OL[lang].spec;
+const list = all.filter(isAio).map((p) => ({ p, c: capacityOf(p), o: aioOptions(p), s: seriesName(p) })).sort((a, b) => a.c.va - b.c.va || a.s.localeCompare(b.s));
+const vas = list.map((x) => x.c.va).filter(Boolean);
+const kva = (v) => +(v / 1000).toFixed(1);
+const capTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? `${kva(vas[0])} kVA` : `${kva(Math.min(...vas))}–${kva(Math.max(...vas))} kVA`) : '1–3 kVA';
+const ns = list.flatMap((x) => x.o.map((o) => o.n)).filter(Boolean);
+const battTxt = ns.length ? (Math.min(...ns) === Math.max(...ns) ? `${ns[0]}` : `${Math.min(...ns)}–${Math.max(...ns)}`) : '2–6';
+const inTxt = (list.map((x) => specValue(x.p, 'inputVoltageRange', lang)).find(Boolean) || '90–300 VAC').replace(/\s+/g, ' ');
+const bn = (n) => T.battN.replace('{n}', n);
+const optTxt = (o) => (o.n ? `${bn(o.n)} · ${o.wh} Wh` : `${o.wh} Wh`);
+const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const UPS_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="172" rx="8" fill="#2f3739"/><rect x="70" y="26" width="60" height="24" rx="3" fill="#0b1a17"/><path d="M80 38h40" stroke="#5ef0a0" stroke-width="4"/><rect x="70" y="62" width="60" height="110" rx="4" fill="#1a2022"/><g fill="#dfe6e7"><rect x="74" y="66" width="25" height="32" rx="2"/><rect x="101" y="66" width="25" height="32" rx="2"/><rect x="74" y="101" width="25" height="32" rx="2"/><rect x="101" y="101" width="25" height="32" rx="2"/><rect x="74" y="136" width="25" height="32" rx="2"/><rect x="101" y="136" width="25" height="32" rx="2"/></g></svg>';
+const CMP = ['outputPower', 'phase', 'inputVoltageRange', 'inputFrequency', 'outputVoltage', 'waveform', 'transferTimeAcToBattery', 'batteryVoltage', 'batterySpec', 'chargeCurrent', 'interfacePort', 'dimensions', 'netWeight']
+  .filter((f) => list.some((x) => specValue(x.p, f, lang)));
+const cell = (p, f) => (specValue(p, f, lang) || '—').replace(/\*/g, ' × ');
+const APP_ICONS = [
+  '<path d="M4 15l11-9 11 9M7 13v12h16V13"/><rect x="12" y="17" width="6" height="5"/>',
+  '<path d="M4 11h22l-2-6H6zM6 11v14h18V11M10 16h4v4h-4z"/>',
+  '<path d="M4 10l18 5-2 6-18-5zM20 18l3 8M18 26h9"/>',
+  '<rect x="5" y="5" width="20" height="20" rx="2"/><path d="M15 9v12M9 15h12"/>',
+  '<rect x="4" y="6" width="22" height="14" rx="1.5"/><path d="M10 25h10M15 20v5"/>',
+  '<path d="M3 25h24M5 25V12l10-6 10 6v13M9 25v-8M15 25v-8M21 25v-8"/>',
+];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: T.crumbs, item: `${site}/${lang}/` },
+  { '@type': 'ListItem', position: 2, name: T.title, item: `${site}/${lang}/all-in-one-ups/` },
+] };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="all-in-one-ups/">
+<div class="off rbp aop">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.crumbUps} / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#builder">{T.ctaBuilder}</a>
+          {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
+        </div>
+      </div>
+      <div class="hero-facts">
+        <div><b class="num">{capTxt}</b><span>{T.facts.cap}</span></div>
+        <div><b class="num">{battTxt}</b><span>{T.facts.batt}</span></div>
+        <div><b class="num">{inTxt}</b><span>{T.facts.input}</span></div>
+        <div><b class="num">0 ms</b><span>{T.facts.transfer}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <AioVisual lang={lang} />
+
+  {list.length > 0 && (
+    <section class="block" id="models">
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <div class="grid">
+        {list.map(({ p, c, o }) => {
+          const img = p.images && p.images[0];
+          const inp = specValue(p, 'inputVoltageRange', lang);
+          return (
+            <article class="pcard">
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={UPS_SVG} />}
+                <span class="tags"><span class="tag k">LiFePO4</span><span class="tag u">Online</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                <span class="va">{fmtCap(c)}</span>
+                {o.length > 0 && <div class="opts" aria-label={T.cOpts}>{o.map((x) => <span>{optTxt(x)}</span>)}</div>}
+                <ul>
+                  {inp && <li>{T.cInput} <b>{inp}</b></li>}
+                </ul>
+                <div class="pact">
+                  <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
+    <div class="vs">
+      {(['aio', 'ext'] as const).map((k) => (
+        <div class:list={['card', { hi: k === 'aio' }]}>
+          <span class:list={['tag', k === 'aio' ? 'k' : 'u']}>{T.vs[k].tag}</span>
+          <h3>{T.vs[k].h}</h3>
+          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span><b>{b}</b></li>)}</ul>
+          <p class="best">{T.vs[k].best}</p>
+        </div>
+      ))}
+    </div>
+    <p class="see"><a href={`/${lang}/online-ups/`}>{T.seeOnline}</a><a href={`/${lang}/batteries/wall-lithium/`}>{T.seeWall}</a></p>
+  </section>
+
+  {list.length > 0 && (
+    <section class="block">
+      <div class="head"><span class="eyebrow">{T.compareEyebrow}</span><h2>{T.compareH}</h2></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>{SP.model}</th>{list.map((x) => <th><a href={`/${lang}/p/${x.p.slug}/`}>{x.p.model}</a></th>)}</tr></thead>
+        <tbody>
+          {list.some((x) => x.o.length) && <tr><th>{T.rowOpts}</th>{list.map((x) => <td class="num">{x.o.length ? x.o.map(optTxt).join(' / ') : '—'}</td>)}</tr>}
+          {CMP.map((f) => <tr><th>{SP[f]}</th>{list.map((x) => <td class="num">{cell(x.p, f)}</td>)}</tr>)}
+        </tbody>
+      </table></div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} /><span>{a}</span></div>)}</div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.projEyebrow}</span><h2>{T.projH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.proj.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.projCtaH}</h3>
+        <p>{T.projCtaP}</p>
+        {SITE.whatsapp && <div><a class="btn primary" href={wa(T.projMsg)} target="_blank" rel="noopener">{T.projCta}</a></div>}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(crumbLd)} />
+</div>
+</Base>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero::before { content: ""; position: absolute; right: -80px; top: -80px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(94,240,160,.22), transparent); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #5ef0a0; }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 580px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 24px/1.1 var(--display); color: #5ef0a0; }
+  .hero-facts span { font-size: 13px; color: #a9b8b4; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg :global(svg) { width: 78%; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  .tag.k { background: var(--ok-soft); color: var(--ok); }
+  .tag.pb { background: #ece7df; color: #5b4636; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: var(--ok); }
+  .feat h3 { font-size: 22px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .vs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+  .vs .card h3 { font-size: 26px; margin: 6px 0 8px; }
+  .vs .card.hi { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+  .vs li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .vs li span { color: var(--muted); }
+  .vs li b { font-weight: 500; }
+  .vs .best { font-size: 13px; color: var(--accent); font-weight: 600; margin: 10px 0 0; }
+  .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; display: flex; gap: 8px 22px; flex-wrap: wrap; }
+
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); }
+  .tbl-wrap a { color: var(--ink); }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: var(--ink); color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #c9d4d1; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .opts { display: flex; flex-wrap: wrap; gap: 5px; }
+  .opts span { font: 600 11.5px var(--mono); padding: 3px 8px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
+</style>

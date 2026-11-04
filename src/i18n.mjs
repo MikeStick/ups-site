@@ -114,6 +114,8 @@ const TERMS = {
   '离线式UPS': { es: 'UPS offline', en: 'Offline UPS', ru: 'Резервный ИБП (Offline)' },
   '离线式锂电UPS': { es: 'UPS offline de litio', en: 'Lithium-ion Offline UPS', ru: 'Резервный ИБП с литий-ионной батареей' },
   '在线互动式UPS': { es: 'UPS interactivo', en: 'Line-interactive UPS', ru: 'Линейно-интерактивный ИБП' },
+  '一体式锂电UPS': { es: 'UPS de litio todo en uno', en: 'All-in-one lithium UPS', ru: 'Литиевый ИБП «всё в одном»' },
+  '锂电一体式UPS': { es: 'UPS de litio todo en uno', en: 'All-in-one lithium UPS', ru: 'Литиевый ИБП «всё в одном»' },
   '在线式高频UPS': { es: 'UPS online de alta frecuencia', en: 'High-frequency online UPS', ru: 'Высокочастотный онлайн-ИБП' },
   '高频塔式UPS': { es: 'UPS torre de alta frecuencia', en: 'High-frequency tower UPS', ru: 'Высокочастотный ИБП (башня)' },
   '工频UPS': { es: 'UPS de baja frecuencia', en: 'Low-frequency UPS', ru: 'Низкочастотный ИБП' },

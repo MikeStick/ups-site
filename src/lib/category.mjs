@@ -82,6 +82,9 @@ export function battModule(p) {
 // 在线式高频 UPS 栏目（塔式，真双变换在线式，1–30 kVA；单相 / 三进单出 / 三进三出）
 export const ONLINE_TYPES = ['在线式高频UPS'];
 export const isOnline = (p) => has(p, ONLINE_TYPES);
+// 一体式锂电 UPS（All-in-One Lithium UPS，内置锂电池、电池节数可选，例如 C1K-Pro）：栏目 /all-in-one-ups/
+export const AIO_TYPES = ['一体式锂电UPS', '锂电一体式UPS'];
+export const isAio = (p) => has(p, AIO_TYPES);
 // 工频机 UPS 栏目（Industrial UPS）：带输出隔离变压器的工频在线式
 export const INDUSTRIAL_TYPES = ['工频UPS'];
 export const isIndustrial = (p) => has(p, INDUSTRIAL_TYPES);
@@ -99,7 +102,7 @@ export function phaseOf(p) {
   return '11';
 }
 // Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器 / 储能电池的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isInverter(p) && !isBattery(p));
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');
@@ -139,7 +142,7 @@ export function capacityOf(p) {
     if (!va) { const m = String(p.model || '').match(/(\d{3,4})/); if (m && +m[1] >= 300 && +m[1] <= 3000) va = +m[1]; }
   }
   // 机架式 / 在线式高频：型号里的 1K / 3KL / 10K → kVA
-  if (!va && (isRack(p) || isOnline(p))) { const m = String(p.model || '').match(/(\d+(?:\.\d+)?)\s*K/i); if (m && +m[1] > 0 && +m[1] <= 40) va = +m[1] * 1000; }
+  if (!va && (isRack(p) || isOnline(p) || isAio(p))) { const m = String(p.model || '').match(/(\d+(?:\.\d+)?)\s*K/i); if (m && +m[1] > 0 && +m[1] <= 40) va = +m[1] * 1000; }
   let w = num(/(\d+(?:\.\d+)?)\s*(k?)W(?!h)/i);
   const pf = parseFloat(String(p.powerFactor || p.outputPowerFactor || '').replace(',', '.'));
   if (!w && va && pf > 0 && pf <= 1) w = Math.round(va * pf);
@@ -148,7 +151,7 @@ export function capacityOf(p) {
   if (isModular(p) || isIndustrial(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
   // 工频机：额定功率没写单位时按 kVA；输出功率因数默认 0.8
   if (!va && isIndustrial(p)) { const m = String(p.ratedPower || p.outputPower || '').match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; }
-  if (!w && va) w = Math.round(va * (isRack(p) || isOnline(p) ? 0.9 : isModular(p) ? 1 : isIndustrial(p) ? 0.8 : 0.6));
+  if (!w && va) w = Math.round(va * (isRack(p) || isOnline(p) ? 0.9 : isAio(p) ? 1 : isModular(p) ? 1 : isIndustrial(p) ? 0.8 : 0.6));
   return { va, w };
 }
 
@@ -163,7 +166,7 @@ export function fmtCap(c) {
 // 同系列型号：同一栏目里字母前缀相同的型号（GF400 / GF600 / GF1000；Gi600 / Gi1000 / Gi1200 PRO），按容量数字排序
 const seriesKey = (p) => {
   const m = String(p.model || '').trim().toUpperCase().match(/^([A-Z]+)[-\s]?(\d+(?:\.\d+)?)(.*)$/);
-  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : isModular(p) ? 'u' : isIndustrial(p) ? 'i' : isOnline(p) ? 'h' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
+  return m ? { key: `${isOffline(p) ? 'o' : isRack(p) ? 'r' : isModular(p) ? 'u' : isIndustrial(p) ? 'i' : isOnline(p) ? 'h' : isAio(p) ? 'a' : 'm'}|${m[1]}`, n: parseFloat(m[2]), sfx: m[3].trim() } : null;
 };
 export function seriesOf(p, all) {
   const me = seriesKey(p);
