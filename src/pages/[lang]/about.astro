@@ -111,9 +111,13 @@ const WHY_ICONS = [
     <div class="range-grid">
       {FAMILIES.map((f) => (
         <article class:list={['rcard', { focus: f.online }]}>
-          {ph(`fam_${f.key}`)
-            ? <div class="ph light"><img src={ph(`fam_${f.key}`)} alt={T.fam[f.key][0]} loading="lazy" /></div>
-            : <div class="ricon"><svg viewBox="0 0 56 56" aria-hidden="true" set:html={ICONS[f.key]} /></div>}
+          {/* 图片 / 图标也能点：有栏目页的跳到栏目页，没有的打开 WhatsApp 询价（和下面的文字链接一致） */}
+          <a class="rimg" href={f.online ? `/${lang}/` : f.page ? `/${lang}/${f.page}` : wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)}
+            {...(!f.online && !f.page ? { target: '_blank', rel: 'noopener' } : {})} aria-label={T.fam[f.key][0]}>
+            {ph(`fam_${f.key}`)
+              ? <div class="ph light"><img src={ph(`fam_${f.key}`)} alt={T.fam[f.key][0]} loading="lazy" /></div>
+              : <div class="ricon"><svg viewBox="0 0 56 56" aria-hidden="true" set:html={ICONS[f.key]} /></div>}
+          </a>
           <div class="rbody">
             {f.online && <span class="tag">{T.orderOnline}</span>}
             <h3>{T.fam[f.key][0]}</h3>
@@ -306,6 +310,11 @@ const WHY_ICONS = [
 </script>
 
 <style>
+  .rimg { display: block; color: inherit; text-decoration: none; overflow: hidden; }
+  .rimg :global(img) { transition: transform .35s ease; }
+  .rimg:hover :global(img) { transform: scale(1.04); }
+  .rimg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .about .ph img { position: relative; width: 100%; height: 100%; object-fit: cover; }
   .hero.nophoto .wrap { grid-template-columns: minmax(0, 1fr); }
   .hero.nophoto .wrap > div { max-width: 820px; }
