@@ -101,6 +101,40 @@ async function saveDetailImage(url, slug, idx, prefix = 'd') {
   return { src: `/media/${slug}/${name}` };
 }
 
+// HTML 片段里的图片：保留透明背景（WebP），最宽 1200 px。和普通详情图分开处理，普通详情图会铺白底转 JPG
+async function saveHtmlImage(url, slug, idx) {
+  const r = await fetch(url, { headers: { 'x-site-key': KEY } });
+  if (!r.ok) { console.warn(`[fetch-data] HTML 片段图片下载失败 ${url} → HTTP ${r.status}`); return null; }
+  const buf = Buffer.from(await r.arrayBuffer());
+  const dir = path.join(MEDIA_DIR, slug);
+  await fs.mkdir(dir, { recursive: true });
+  if (sharp) {
+    const name = `h${idx + 1}-${hashOf(buf)}.webp`;
+    await sharp(buf, { limitInputPixels: false }).rotate().resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 82, alphaQuality: 90 }).toFile(path.join(dir, name));
+    return `/media/${slug}/${name}`;
+  }
+  const ext = (url.split('.').pop() || 'png').split('?')[0].toLowerCase();
+  const name = `h${idx + 1}-${hashOf(buf)}.${ext}`;
+  await fs.writeFile(path.join(dir, name), buf);
+  return `/media/${slug}/${name}`;
+}
+// 把 HTML 里指向 CRM 的图片地址（/api/public/tplmedia/...）换成网站自己的 /media/ 文件
+const TPL_IMG_URL = /https?:\/\/[^"'\s()<>]+\/api\/public\/tplmedia\/([A-Za-z0-9_-]+)\/[A-Za-z0-9_.%-]+/g;
+async function localizeHtml(h, cache, counters) {
+  const urls = [...new Set(String(h).match(TPL_IMG_URL) || [])];
+  let out = String(h);
+  for (const url of urls) {
+    if (!cache.has(url)) {
+      const tplId = decodeURIComponent(url.match(/\/tplmedia\/([^/]+)\//)[1]);
+      const n = counters.get(tplId) || 0; counters.set(tplId, n + 1);
+      cache.set(url, saveHtmlImage(url, `_tpl/${tplId}`, n).catch((e) => { console.warn(`[fetch-data] HTML 片段图片处理失败 ${url}：${e.message}`); return null; }));
+    }
+    const local = await cache.get(url);
+    if (local) out = out.split(url).join(local);
+  }
+  return out;
+}
+
 async function main() {
   await fs.rm(MEDIA_DIR, { recursive: true, force: true });
 
@@ -130,6 +164,7 @@ async function main() {
     tplCache.set(url, job);
     return job;
   }
+  const htmlImgCache = new Map(), htmlImgCounters = new Map();
   for (const p of list) {
     const imgs = [];
     for (const [i, url] of (p.images || []).entries()) {
@@ -154,7 +189,12 @@ async function main() {
       const seq = [];
       for (const x of p.templateDetail) {
         if (x && x.img) { const saved = await saveTemplateImage(x.img); if (saved) seq.push({ img: saved }); }
-        else if (x && x.html) seq.push({ html: x.html });
+        else if (x && x.html) {
+          // 每种语言的 HTML 里都可能有图片地址（译文只改文字，地址相同，下载只做一次）
+          const html = typeof x.html === 'string' ? await localizeHtml(x.html, htmlImgCache, htmlImgCounters)
+            : Object.fromEntries(await Promise.all(Object.entries(x.html).map(async ([k, v]) => [k, await localizeHtml(v, htmlImgCache, htmlImgCounters)])));
+          seq.push({ html });
+        }
       }
       p.templateDetail = seq;
     }
