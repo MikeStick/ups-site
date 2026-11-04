@@ -2,18 +2,22 @@
 // 壁挂式锂电池配置器：① 按能量 / 按负载和备电时间 ② 选电池（已发布型号，没有时用典型 10 kWh 壁挂电池）
 // 右侧：室内墙面，逆变器 + 一排壁挂电池（数量实时挂上墙），SOC 灯 + 线槽电流方向：停电放电 → 家里；光伏充电 → 电池。
 // 计算和机架式共用 src/lib/rackbatt-engine.mjs（generic = WALL_GENERIC，没有机柜）。
+// kind="floor"：落地式锂电池页面共用这个组件——电池立在地上（圆形屏幕 + 轮子），线槽改到电池上方。
 import { SITE } from '../config.mjs';
 import { WB } from '../lib/wallbatt-i18n.mjs';
-import { WALL_GENERIC } from '../lib/rackbatt-engine.mjs';
-import { isWallBattery, battModule } from '../lib/category.mjs';
+import { FB } from '../lib/floorbatt-i18n.mjs';
+import { WALL_GENERIC, FLOOR_GENERIC } from '../lib/rackbatt-engine.mjs';
+import { isWallBattery, isFloorBattery, battModule } from '../lib/category.mjs';
 import all from '../data/products.json';
-interface Props { lang: string }
-const { lang } = Astro.props;
-const T = WB[lang], C = T.c;
+interface Props { lang: string; kind?: 'wall' | 'floor' }
+const { lang, kind = 'wall' } = Astro.props;
+const floor = kind === 'floor';
+const T = (floor ? FB : WB)[lang], C = T.c;
+const GEN = floor ? FLOOR_GENERIC : WALL_GENERIC;
 const KWH_PRESETS = [5, 10, 15, 20, 30, 40];
-const mods = all.filter(isWallBattery).map((p) => ({ m: p.model, slug: p.slug, ...battModule(p), u: 0 })).filter((x) => x.kwh > 0).sort((a, b) => a.kwh - b.kwh);
-const list = mods.length ? mods : [{ m: C.generic, slug: '', ...WALL_GENERIC, par: 0 }];
-const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
+const mods = all.filter(floor ? isFloorBattery : isWallBattery).map((p) => ({ m: p.model, slug: p.slug, ...battModule(p), u: 0 })).filter((x) => x.kwh > 0).sort((a, b) => a.kwh - b.kwh);
+const list = mods.length ? mods : [{ m: C.generic, slug: '', ...GEN, par: 0 }];
+const cfg = { lang, kind, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
 ---
 <section class="block wbv" id="builder" data-wbv>
   <script type="application/json" data-wbv-cfg set:html={JSON.stringify(cfg)} />
@@ -55,7 +59,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
         <span>{C.s3}</span>
         <button type="button" class="on" data-mode="dis">{C.modes.dis}</button><button type="button" data-mode="chg">{C.modes.chg}</button>
       </div>
-      <div class="wb-wall" data-cabs data-m="dis">
+      <div class:list={['wb-wall', { fl: floor }]} data-cabs data-m="dis">
         <div class="wb-src"><span class="wb-pv"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M6 2h28l4 20H2z" /><path d="M14 2l-2 20M26 2l2 20M4 12h32" /></svg>{C.vis.pv}</span><span class="wb-home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 9.5V21h14V9.5M10 21v-6h4v6" /></svg>{C.vis.home}</span></div>
         <div class="wb-row">
           <div class="wb-inv"><span class="wb-scr"><b data-invkw>—</b><i></i></span><span class="wb-invl">{C.vis.inv}</span><span class="wb-vent"></span></div>
@@ -91,7 +95,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
 </section>
 
 <script>
-  import { sizeRack, WALL_GENERIC } from '../lib/rackbatt-engine.mjs';
+  import { sizeRack, WALL_GENERIC, FLOOR_GENERIC } from '../lib/rackbatt-engine.mjs';
   const root = document.querySelector('[data-wbv]') as HTMLElement | null;
   if (root) {
     const c = JSON.parse(root.querySelector('[data-wbv-cfg]')!.textContent || '{}'), T = c.t;
@@ -102,7 +106,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
     const st: any = { by: 'kwh', kwh: 10, load: 3, hours: 4, mi: 0, mode: 'dis' };
     let lastMsg = '', lastSubj = '', last: any = null, drawn = '', prevN = 0;
     // 墙面：最多挂 8 台（两排各 4 台），其余显示 +n；新增的电池从上往下"挂"上去
-    const MAXSHOW = 8;
+    const MAXSHOW = c.kind === 'floor' ? 5 : 8;
     function draw(r: any) {
       const box = $('[data-bats]');
       if (!r) { box.innerHTML = ''; drawn = ''; prevN = 0; $('[data-invkw]').textContent = '—'; return; }
@@ -115,7 +119,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
       let h = '';
       for (let i = 0; i < show; i++) {
         const isNew = i >= grow;
-        h += `<div class="wb-b${isNew ? ' ins' : ''}" style="--d:${(i - grow) * 70}ms"><span class="wb-logo"></span><span class="soc"><i></i><i></i><i></i><i></i><i></i></span><span class="lb">${r.mod.kwh} kWh</span><span class="wb-cab"></span></div>`;
+        h += `<div class="wb-b${isNew ? ' ins' : ''}" style="--d:${(i - grow) * 70}ms"><span class="wb-logo"></span>${c.kind === 'floor' ? '<span class="wb-scrn"></span>' : ''}<span class="soc"><i></i><i></i><i></i><i></i><i></i></span><span class="lb">${r.mod.kwh} kWh</span><span class="wb-cab"></span>${c.kind === 'floor' ? '<span class="wb-wh"></span><span class="wb-wh r"></span>' : ''}</div>`;
       }
       if (r.n > show) h += `<div class="wb-more">+${r.n - show}</div>`;
       box.innerHTML = h;
@@ -124,7 +128,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
     function update() {
       $$('[data-box]').forEach((b) => ((b as any).hidden = b.dataset.box !== st.by));
       const mod = c.mods[st.mi];
-      const r = sizeRack({ mode: st.by, kwh: st.kwh, loadKw: st.by === 'load' ? st.load : 0, hours: st.hours, mod, generic: WALL_GENERIC });
+      const r = sizeRack({ mode: st.by, kwh: st.kwh, loadKw: st.by === 'load' ? st.load : 0, hours: st.hours, mod, generic: c.kind === 'floor' ? FLOOR_GENERIC : WALL_GENERIC });
       last = r; draw(r);
       const go = $('[data-open]') as HTMLButtonElement | null;
       if (!r) { $('[data-big]').textContent = '—'; $('[data-rows]').innerHTML = `<div class="enter">${T.out.enter}</div>`; $('[data-checks]').innerHTML = ''; $('[data-sum]').innerHTML = ''; if (go) go.disabled = true; return; }
@@ -251,6 +255,20 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
   .wb-duct span { position: absolute; inset: 4px 6px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--flow) 0 14px, transparent 14px 28px); animation: wbFlow 1s linear infinite; opacity: .9; }
   .wb-wall[data-m="dis"] .wb-duct span { animation-direction: reverse; }
   @keyframes wbFlow { from { background-position: 0 0; } to { background-position: 28px 0; } }
+  .wb-wall.fl { display: flex; flex-direction: column; }
+  .wb-wall.fl .wb-duct { order: 1; margin: 0 0 10px; }
+  .wb-wall.fl .wb-row { order: 2; align-items: flex-end; }
+  .wb-wall.fl .wb-floor { order: 3; margin-top: 0; }
+  .wb-wall.fl .wb-inv { align-self: flex-start; }
+  .wb-wall.fl .wb-bats { grid-template-columns: repeat(5, minmax(0, 76px)); align-items: end; min-height: 160px; }
+  .wb-wall.fl .wb-bats :global(.wb-b) { height: 156px; margin-bottom: 12px; grid-template-rows: auto auto 1fr auto; gap: 6px; border-radius: 6px; }
+  .wb-wall.fl .wb-bats :global(.wb-logo) { background: #d22; }
+  .wb-wall.fl .wb-bats :global(.wb-scrn) { width: 30px; height: 30px; border-radius: 50%; background: #0b1a17; box-shadow: 0 0 0 3px #2a7fb8; }
+  .wb-wall.fl .wb-bats :global(.soc) { flex-direction: column-reverse; }
+  .wb-wall.fl .wb-bats :global(.soc i) { width: 4px; height: 6px; }
+  .wb-wall.fl .wb-bats :global(.wb-cab) { top: -10px; bottom: auto; }
+  .wb-wall.fl .wb-bats :global(.wb-wh) { position: absolute; bottom: -12px; left: 8px; width: 12px; height: 12px; border-radius: 50%; background: #3d3a33; box-shadow: inset 0 0 0 3px #8a877e; }
+  .wb-wall.fl .wb-bats :global(.wb-wh.r) { left: auto; right: 8px; }
   .wb-floor { height: 22px; margin: 14px -18px 0; background: linear-gradient(180deg, #b49b7a, #9c8263); box-shadow: inset 0 3px 0 #8a7256; }
   .rb-final { grid-area: fin; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
   .rb-sum { flex: 1 1 380px; font-size: 14px; }
@@ -284,6 +302,8 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
     .wb-bats :global(.lb) { font-size: 8.5px; white-space: nowrap; letter-spacing: -.02em; }
     .wb-row { gap: 10px; } .wb-inv { width: 58px; } .wb-scr { width: 48px; } .wb-scr b { font-size: 8.5px; }
     .wb-bats { gap: 8px; }
+    .wb-wall.fl .wb-bats :global(.wb-b) { height: 128px; }
+    .wb-wall.fl .wb-bats :global(.wb-wh) { width: 9px; height: 9px; left: 3px; bottom: -10px; } .wb-wall.fl .wb-bats :global(.wb-wh.r) { left: auto; right: 3px; }
   }
   @media (prefers-reduced-motion: reduce) { .wb-wall *, .wb-wall :global(*) { animation: none !important; } }
 </style>

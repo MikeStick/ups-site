@@ -52,7 +52,7 @@ export function invBattV(p) {
   const n = (String(p.batteryVoltage || '').match(/\d+(?:\.\d+)?/g) || []).map(Number);
   return !n.length ? '' : Math.max(...n) <= 60 ? 'lv' : 'hv';
 }
-// 储能电池：大类 = 储能电池。已有栏目：机架式磷酸铁锂电池（/batteries/rack-lithium/）、壁挂式锂电池（/batteries/wall-lithium/）；
+// 储能电池：大类 = 储能电池。已有栏目：机架式磷酸铁锂电池（/batteries/rack-lithium/）、壁挂式锂电池（/batteries/wall-lithium/）、落地式锂电池（/batteries/floor-lithium/）；
 // 铅酸、家庭储能系统的栏目还没做：不进任何列表，产品页照常生成
 export const isBattery = (p) => p.category === '储能电池';
 export const RACK_BATT_TYPES = ['机架式磷酸铁锂电池', '机架式锂电池'];
@@ -60,6 +60,8 @@ export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
 export const WALL_BATT_TYPES = ['壁挂式锂电池', '壁挂式磷酸铁锂电池'];
 export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
+export const FLOOR_BATT_TYPES = ['落地式锂电池', '落地式磷酸铁锂电池'];
+export const isFloorBattery = (p) => has(p, FLOOR_BATT_TYPES);
 const num1 = (v) => { const m = String(v || '').replace(',', '.').match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; };
 // 机架式电池模块：电压 V、容量 Ah、能量 kWh（优先填的"模块最大能量"，没有就 V × Ah）、最大放电电流 A、高度 U、重量 kg、最多并联数
 export function battModule(p) {

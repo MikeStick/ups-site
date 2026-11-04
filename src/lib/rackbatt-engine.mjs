@@ -14,6 +14,7 @@ export const ASSUME = {
 };
 // 壁挂式（家用）没有已发布型号时用的通用模块：常见 51.2 V 200 Ah 10 kWh
 export const WALL_GENERIC = { m: '51.2 V 200 Ah', v: 51.2, ah: 200, kwh: 10.24, maxA: 100, u: 0, kg: 90 };
+export const FLOOR_GENERIC = { m: '51.2 V 314 Ah', v: 51.2, ah: 314, kwh: 16.08, maxA: 200, u: 0, kg: 117 };
 export const KWH_PRESETS = [5, 10, 15, 20, 30, 40, 60];
 const r1 = (x) => Math.round(x * 10) / 10;
 
