@@ -28,7 +28,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
         </div>
         <div class="rb-in" data-box="load" hidden>
           <label class="rb-num"><span>{C.loadL}</span><input type="number" inputmode="decimal" min="0" step="any" value="5" data-load /><b>kW</b></label>
-          <label class="rb-num"><span>{C.hoursL}</span><input type="number" inputmode="decimal" min="0" step="any" value="4" data-hours /><b>{C.h}</b></label>
+          <label class="rb-num"><span>{C.hoursL}</span><input type="number" inputmode="decimal" min="0" step="any" value="4" data-hours /><b>{C.hu}</b></label>
         </div>
       </div>
       <div class="rb-grp">
@@ -143,7 +143,7 @@ const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
       const mods = `${r.n} × ${name}`;
       const bank = r.mod.v ? fmt(T.out.bankN, { ah: r.ahTotal, v: r.mod.v }) : `${r.totalKwh} kWh`;
       $('[data-sum]').innerHTML = `<div><span>${T.sumBank}</span><b>${mods} · ${r.totalKwh} kWh · ${bank}</b></div>`;
-      const need = st.by === 'load' ? `${st.load} kW × ${st.hours} ${T.h}` : `${st.kwh} kWh`;
+      const need = st.by === 'load' ? `${st.load} kW × ${st.hours} ${T.hu}` : `${st.kwh} kWh`;
       const extra = (r.cabinets ? `\n• ${T.out.cab}: ${fmt(T.out.cabN, { c: r.cabinets, p: r.perCab })}` : '') + (r.groups > 1 ? `\n• ${fmt(T.chk.groups, r.checks.find((x: any) => x.id === 'groups'))}` : '');
       lastMsg = fmt(T.msg, { need, mods, kwh: r.totalKwh, use: r.usableKwh, bank, extra });
       lastSubj = `${T.subj} · ${mods}`;

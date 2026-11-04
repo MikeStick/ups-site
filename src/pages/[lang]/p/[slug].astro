@@ -11,13 +11,14 @@ import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isOnline, isInverter, isRackBattery, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isOnline, isInverter, isRackBattery, isWallBattery, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
 import { OL } from '../../../lib/online-i18n.mjs';
 import { SL, INV_SPEC_FIELDS } from '../../../lib/solar-i18n.mjs';
 import { RB, RB_SPEC_FIELDS } from '../../../lib/rackbatt-i18n.mjs';
+import { WB } from '../../../lib/wallbatt-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import products from '../../../data/products.json';
@@ -47,9 +48,13 @@ const OH = OL[lang];
 const inverter = isInverter(P0);
 const S = SL[lang];
 // 机架式磷酸铁锂电池：电池参数表、询价面板（不选电压），横幅链接到电池组配置器
-const rbatt = isRackBattery(P0);
-const RBT = RB[lang];
+// 壁挂式锂电池：同一套电池参数表，面包屑和横幅指向壁挂式页面
+const wbatt = isWallBattery(P0);
+const rbatt = isRackBattery(P0) || wbatt;
+const RBT = wbatt ? { ...RB[lang], ...WB[lang] } : RB[lang];
+const battPage = wbatt ? 'batteries/wall-lithium/' : 'batteries/rack-lithium/';
 const bm = rbatt ? battModule(p) : null;
+if (bm && wbatt) bm.u = 0;
 const offline = isOffline(P0) || rack || modular || industrial || online || inverter || rbatt;
 const R = RT[lang];
 const U = rack ? rackUnits(p) : 0;
@@ -191,7 +196,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{rbatt ? <a href={`/${lang}/batteries/rack-lithium/`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/`}>{t.allProducts}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -221,7 +226,7 @@ const jsonLd = {
       )}
 
       {rbatt ? (
-        <a class="custom-banner" href={`/${lang}/batteries/rack-lithium/#builder`}>
+        <a class="custom-banner" href={`/${lang}/${battPage}#builder`}>
           <span>{RBT.banner}</span><b>{RBT.bannerCta} →</b>
         </a>
       ) : inverter ? (

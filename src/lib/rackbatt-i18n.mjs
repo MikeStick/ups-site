@@ -67,7 +67,7 @@ export const RB = {
     c: {
       eyebrow: 'Battery bank builder', h: 'Stack your battery bank, module by module',
       p: 'Tell us how much energy you need — or your load and backup time. We count the modules, check the discharge current and show the bank in a 19-inch cabinet.',
-      s1: 'Size by', by: { kwh: 'Energy needed', load: 'Load & backup time' }, kwhL: 'Usable energy', loadL: 'Load', hoursL: 'Backup time', h: 'h',
+      s1: 'Size by', by: { kwh: 'Energy needed', load: 'Load & backup time' }, kwhL: 'Usable energy', loadL: 'Load', hoursL: 'Backup time', hu: 'h',
       s2: 'Module', s2n: 'All modules in a bank are the same', generic: 'Typical 48 V module',
       s3: 'Battery', modes: { dis: 'Discharging', chg: 'Charging' },
       out: { n: 'Modules', nN: '{n} × {m}', total: 'Total energy', usable: 'Usable energy (90%)', time: 'Backup at {kw} kW', timeN: '≈ {h} h', power: 'Max. continuous power', bank: 'Bank', bankN: '{ah} Ah @ {v} V', cab: '42U cabinets', cabN: '{c} × ({p} modules each)', kg: 'Weight', model: 'Module', custom: 'Ask us — we will match a module', enter: 'Enter the energy or the load to size the bank.' },
@@ -120,7 +120,7 @@ export const RB = {
     c: {
       eyebrow: 'Configurador de banco de baterías', h: 'Arme su banco de baterías, módulo por módulo',
       p: 'Díganos cuánta energía necesita, o su carga y el tiempo de respaldo. Contamos los módulos, verificamos la corriente de descarga y mostramos el banco en un gabinete de 19".',
-      s1: 'Dimensionar por', by: { kwh: 'Energía necesaria', load: 'Carga y tiempo de respaldo' }, kwhL: 'Energía utilizable', loadL: 'Carga', hoursL: 'Tiempo de respaldo', h: 'h',
+      s1: 'Dimensionar por', by: { kwh: 'Energía necesaria', load: 'Carga y tiempo de respaldo' }, kwhL: 'Energía utilizable', loadL: 'Carga', hoursL: 'Tiempo de respaldo', hu: 'h',
       s2: 'Módulo', s2n: 'Todos los módulos de un banco son iguales', generic: 'Módulo típico de 48 V',
       s3: 'Batería', modes: { dis: 'Descargando', chg: 'Cargando' },
       out: { n: 'Módulos', nN: '{n} × {m}', total: 'Energía total', usable: 'Energía utilizable (90%)', time: 'Respaldo a {kw} kW', timeN: '≈ {h} h', power: 'Potencia continua máx.', bank: 'Banco', bankN: '{ah} Ah @ {v} V', cab: 'Gabinetes 42U', cabN: '{c} × ({p} módulos c/u)', kg: 'Peso', model: 'Módulo', custom: 'Consúltenos: le recomendamos un módulo', enter: 'Ingrese la energía o la carga para dimensionar el banco.' },
@@ -173,7 +173,7 @@ export const RB = {
     c: {
       eyebrow: 'Конфигуратор батарейного блока', h: 'Соберите батарейный блок модуль за модулем',
       p: 'Укажите, сколько энергии нужно, — или нагрузку и время резерва. Мы посчитаем модули, проверим ток разряда и покажем блок в 19-дюймовом шкафу.',
-      s1: 'Подбор по', by: { kwh: 'Нужной энергии', load: 'Нагрузке и времени' }, kwhL: 'Полезная энергия', loadL: 'Нагрузка', hoursL: 'Время резерва', h: 'ч',
+      s1: 'Подбор по', by: { kwh: 'Нужной энергии', load: 'Нагрузке и времени' }, kwhL: 'Полезная энергия', loadL: 'Нагрузка', hoursL: 'Время резерва', hu: 'ч',
       s2: 'Модуль', s2n: 'Все модули в блоке одинаковые', generic: 'Типовой модуль 48 В',
       s3: 'Батарея', modes: { dis: 'Разряд', chg: 'Заряд' },
       out: { n: 'Модули', nN: '{n} × {m}', total: 'Общая энергия', usable: 'Полезная энергия (90%)', time: 'Резерв при {kw} кВт', timeN: '≈ {h} ч', power: 'Макс. длительная мощность', bank: 'Блок', bankN: '{ah} А·ч @ {v} В', cab: 'Шкафы 42U', cabN: '{c} × (по {p} модулей)', kg: 'Масса', model: 'Модуль', custom: 'Напишите нам — подберём модуль', enter: 'Укажите энергию или нагрузку, чтобы подобрать блок.' },

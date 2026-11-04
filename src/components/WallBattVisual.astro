@@ -1,0 +1,289 @@
+---
+// 壁挂式锂电池配置器：① 按能量 / 按负载和备电时间 ② 选电池（已发布型号，没有时用典型 10 kWh 壁挂电池）
+// 右侧：室内墙面，逆变器 + 一排壁挂电池（数量实时挂上墙），SOC 灯 + 线槽电流方向：停电放电 → 家里；光伏充电 → 电池。
+// 计算和机架式共用 src/lib/rackbatt-engine.mjs（generic = WALL_GENERIC，没有机柜）。
+import { SITE } from '../config.mjs';
+import { WB } from '../lib/wallbatt-i18n.mjs';
+import { WALL_GENERIC } from '../lib/rackbatt-engine.mjs';
+import { isWallBattery, battModule } from '../lib/category.mjs';
+import all from '../data/products.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = WB[lang], C = T.c;
+const KWH_PRESETS = [5, 10, 15, 20, 30, 40];
+const mods = all.filter(isWallBattery).map((p) => ({ m: p.model, slug: p.slug, ...battModule(p), u: 0 })).filter((x) => x.kwh > 0).sort((a, b) => a.kwh - b.kwh);
+const list = mods.length ? mods : [{ m: C.generic, slug: '', ...WALL_GENERIC, par: 0 }];
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, mods: list, t: C };
+---
+<section class="block wbv" id="builder" data-wbv>
+  <script type="application/json" data-wbv-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{C.eyebrow}</span><h2>{C.h}</h2><p>{C.p}</p></div>
+  <div class="rb-stage">
+    <div class="rb-ctl">
+      <div class="rb-grp">
+        <div class="rb-gh"><span class="rb-n">1</span><b>{C.s1}</b></div>
+        <div class="rb-seg"><button type="button" class="on" data-by="kwh">{C.by.kwh}</button><button type="button" data-by="load">{C.by.load}</button></div>
+        <div class="rb-in" data-box="kwh">
+          <label class="rb-num"><span>{C.kwhL}</span><input type="number" inputmode="decimal" min="0" step="any" value="10" data-kwh /><b>kWh</b></label>
+          <div class="rb-chips">{KWH_PRESETS.map((k) => <button type="button" class:list={['rb-chip', { on: k === 10 }]} data-kp={k}>{k} kWh</button>)}</div>
+        </div>
+        <div class="rb-in" data-box="load" hidden>
+          <label class="rb-num"><span>{C.loadL}</span><input type="number" inputmode="decimal" min="0" step="any" value="3" data-load /><b>kW</b></label>
+          <label class="rb-num"><span>{C.hoursL}</span><input type="number" inputmode="decimal" min="0" step="any" value="4" data-hours /><b>{C.hu}</b></label>
+        </div>
+      </div>
+      <div class="rb-grp">
+        <div class="rb-gh"><span class="rb-n">2</span><b>{C.s2}</b><small>{C.s2n}</small></div>
+        <div class="rb-mods">
+          {list.map((x, i) => (
+            <button type="button" class:list={['rb-mod', { on: i === 0 }]} data-mi={i} aria-pressed={i === 0 ? 'true' : 'false'}>
+              <b>{x.m}</b>
+              <small>{[x.v && `${x.v} V`, x.ah && `${x.ah} Ah`, `${x.kwh} kWh`, x.kg && `${x.kg} kg`].filter(Boolean).join(' · ')}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="rb-read">
+        <div class="rb-big"><span>{C.out.n}</span><b data-big>—</b></div>
+        <dl class="rb-rows" data-rows></dl>
+        <ul class="rb-checks" data-checks></ul>
+      </div>
+    </div>
+
+    <div class="rb-view">
+      <div class="rb-modes" role="group" aria-label={C.s3}>
+        <span>{C.s3}</span>
+        <button type="button" class="on" data-mode="dis">{C.modes.dis}</button><button type="button" data-mode="chg">{C.modes.chg}</button>
+      </div>
+      <div class="wb-wall" data-cabs data-m="dis">
+        <div class="wb-src"><span class="wb-pv"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M6 2h28l4 20H2z" /><path d="M14 2l-2 20M26 2l2 20M4 12h32" /></svg>{C.vis.pv}</span><span class="wb-home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 9.5V21h14V9.5M10 21v-6h4v6" /></svg>{C.vis.home}</span></div>
+        <div class="wb-row">
+          <div class="wb-inv"><span class="wb-scr"><b data-invkw>—</b><i></i></span><span class="wb-invl">{C.vis.inv}</span><span class="wb-vent"></span></div>
+          <div class="wb-bats" data-bats></div>
+        </div>
+        <div class="wb-duct"><span></span></div>
+        <div class="wb-floor"></div>
+      </div>
+    </div>
+
+    <div class="rb-final">
+      <div class="rb-sum" data-sum></div>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="rb-go" data-open aria-haspopup="dialog">{C.send}</button>}
+    </div>
+    <details class="rb-assume">
+      <summary>{C.assumeH}</summary>
+      <ul>{C.assume.map((a) => <li>{a}</li>)}</ul>
+    </details>
+  </div>
+
+  <div class="rb-pop" data-pop hidden role="dialog" aria-modal="true" aria-labelledby="rb-pop-h">
+    <div class="rb-pop-box">
+      <button type="button" class="rb-pop-x" data-close aria-label={C.close}>×</button>
+      <h3 id="rb-pop-h">{C.popH}</h3>
+      <p>{C.popP}</p>
+      <pre data-msg></pre>
+      <div class="rb-pop-acts">
+        {SITE.whatsapp && <a class="rb-pop-btn wa" data-wa href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.6c-.5-.8-.9-1.8-.9-2.7s.5-1.7.8-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.8-.1 1.4z"/></svg>{C.viaWa}</a>}
+        {SITE.email && <a class="rb-pop-btn mail" data-mail href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3-8-5.3zM5.6 7l6.4 4.2L18.4 7H5.6z"/></svg>{C.viaMail}<small>{SITE.email}</small></a>}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { sizeRack, WALL_GENERIC } from '../lib/rackbatt-engine.mjs';
+  const root = document.querySelector('[data-wbv]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-wbv-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const num = (el: HTMLInputElement) => Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0);
+    const st: any = { by: 'kwh', kwh: 10, load: 3, hours: 4, mi: 0, mode: 'dis' };
+    let lastMsg = '', lastSubj = '', last: any = null, drawn = '', prevN = 0;
+    // 墙面：最多挂 8 台（两排各 4 台），其余显示 +n；新增的电池从上往下"挂"上去
+    const MAXSHOW = 8;
+    function draw(r: any) {
+      const box = $('[data-bats]');
+      if (!r) { box.innerHTML = ''; drawn = ''; prevN = 0; $('[data-invkw]').textContent = '—'; return; }
+      const key = `${r.n}|${r.mod.m}|${r.mod.kwh}`;
+      $('[data-invkw]').textContent = `${r.totalKwh} kWh`;
+      if (key === drawn) return;
+      const grow = drawn && drawn.split('|').slice(1).join('|') === `${r.mod.m}|${r.mod.kwh}` ? prevN : 0;
+      drawn = key;
+      const show = Math.min(r.n, MAXSHOW);
+      let h = '';
+      for (let i = 0; i < show; i++) {
+        const isNew = i >= grow;
+        h += `<div class="wb-b${isNew ? ' ins' : ''}" style="--d:${(i - grow) * 70}ms"><span class="wb-logo"></span><span class="soc"><i></i><i></i><i></i><i></i><i></i></span><span class="lb">${r.mod.kwh} kWh</span><span class="wb-cab"></span></div>`;
+      }
+      if (r.n > show) h += `<div class="wb-more">+${r.n - show}</div>`;
+      box.innerHTML = h;
+      prevN = r.n;
+    }
+    function update() {
+      $$('[data-box]').forEach((b) => ((b as any).hidden = b.dataset.box !== st.by));
+      const mod = c.mods[st.mi];
+      const r = sizeRack({ mode: st.by, kwh: st.kwh, loadKw: st.by === 'load' ? st.load : 0, hours: st.hours, mod, generic: WALL_GENERIC });
+      last = r; draw(r);
+      const go = $('[data-open]') as HTMLButtonElement | null;
+      if (!r) { $('[data-big]').textContent = '—'; $('[data-rows]').innerHTML = `<div class="enter">${T.out.enter}</div>`; $('[data-checks]').innerHTML = ''; $('[data-sum]').innerHTML = ''; if (go) go.disabled = true; return; }
+      if (go) go.disabled = false;
+      const name = mod.slug ? mod.m : `${r.mod.kwh} kWh`;
+      $('[data-big]').innerHTML = `${r.n}<small> × ${mod.slug ? mod.m : r.mod.kwh + ' kWh'}</small>`;
+      const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+      let h = row(T.out.total, `${r.totalKwh} kWh`) + row(T.out.usable, `${r.usableKwh} kWh`);
+      if (st.by === 'load' && st.load > 0) h += row(fmt(T.out.time, { kw: st.load }), fmt(T.out.timeN, { h: r.hours }));
+      if (r.maxKw) h += row(T.out.power, `${r.maxKw} kW`);
+      if (r.mod.v) h += row(T.out.bank, fmt(T.out.bankN, { ah: r.ahTotal, v: r.mod.v }));
+            if (r.kg) h += row(T.out.kg, `≈ ${r.kg} kg`);
+      h += mod.slug ? row(T.out.model, `<a href="/${c.lang}/p/${mod.slug}/">${mod.m}</a>`) : row(T.out.model, `<span class="cu">${T.out.custom}</span>`);
+      $('[data-rows]').innerHTML = h;
+      $('[data-checks]').innerHTML = r.checks.map((x: any) => `<li>${fmt(T.chk[x.id], x)}</li>`).join('');
+      const mods = `${r.n} × ${name}`;
+      const bank = r.mod.v ? fmt(T.out.bankN, { ah: r.ahTotal, v: r.mod.v }) : `${r.totalKwh} kWh`;
+      $('[data-sum]').innerHTML = `<div><span>${T.sumBank}</span><b>${mods} · ${r.totalKwh} kWh · ${bank}</b></div>`;
+      const need = st.by === 'load' ? `${st.load} kW × ${st.hours} ${T.hu}` : `${st.kwh} kWh`;
+      const extra = (r.groups > 1 ? `\n• ${fmt(T.chk.groups, r.checks.find((x: any) => x.id === 'groups'))}` : '');
+      lastMsg = fmt(T.msg, { need, mods, kwh: r.totalKwh, use: r.usableKwh, bank, extra });
+      lastSubj = `${T.subj} · ${mods}`;
+    }
+    $$('[data-by]').forEach((b) => b.addEventListener('click', () => { st.by = b.dataset.by; $$('[data-by]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $('[data-kwh]').addEventListener('input', (e: any) => { st.kwh = num(e.target); $$('[data-kp]').forEach((x) => x.classList.toggle('on', +x.dataset.kp! === st.kwh)); update(); });
+    $$('[data-kp]').forEach((b) => b.addEventListener('click', () => { st.kwh = +b.dataset.kp!; ($('[data-kwh]') as HTMLInputElement).value = String(st.kwh); $$('[data-kp]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $('[data-load]').addEventListener('input', (e: any) => { st.load = num(e.target); update(); });
+    $('[data-hours]').addEventListener('input', (e: any) => { st.hours = num(e.target); update(); });
+    $$('[data-mi]').forEach((b) => b.addEventListener('click', () => { st.mi = +b.dataset.mi!; $$('[data-mi]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); update(); }));
+    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { st.mode = b.dataset.mode; $('[data-cabs]').dataset.m = st.mode; $$('[data-mode]').forEach((x) => x.classList.toggle('on', x === b)); }));
+    const pop = $('[data-pop]'); let opener: HTMLElement | null = null;
+    function openPop() {
+      $('[data-msg]').textContent = lastMsg;
+      const wa = root!.querySelector('[data-wa]') as HTMLAnchorElement | null, mail = root!.querySelector('[data-mail]') as HTMLAnchorElement | null;
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(lastSubj) + '&body=' + encodeURIComponent(lastMsg);
+      pop.hidden = false; document.body.style.overflow = 'hidden';
+      (pop.querySelector('.rb-pop-btn') as HTMLElement | null)?.focus();
+    }
+    function closePop() { pop.hidden = true; document.body.style.overflow = ''; opener?.focus(); }
+    const ob = root.querySelector('[data-open]') as HTMLElement | null;
+    ob?.addEventListener('click', () => { if (!last) return; opener = ob; openPop(); });
+    pop.addEventListener('click', (e: any) => { if (e.target === pop || e.target.closest('[data-close]')) closePop(); else if (e.target.closest('.rb-pop-btn')) setTimeout(closePop, 300); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); });
+    update();
+  }
+</script>
+
+<style>
+  .rb-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl view" "fin fin" "as as"; gap: 22px; padding: 26px; border-radius: 18px; color: #e6efec;
+    background: radial-gradient(120% 90% at 75% 40%, #12302b 0%, #0a1514 55%, #070d0d 100%); }
+  .rb-ctl { grid-area: ctl; display: grid; gap: 12px; align-content: start; }
+  .rb-view { grid-area: view; display: grid; gap: 12px; align-content: start; justify-items: center; }
+  .rb-grp { width: 100%; box-sizing: border-box; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; }
+  .rb-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .rb-gh b { font-size: 15px; } .rb-gh small { color: #8fa7a1; font-size: 12px; }
+  .rb-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #5ef0a0; color: #062019; flex: none; align-self: center; }
+  .rb-seg { display: inline-flex; border: 1px solid rgba(255,255,255,.15); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+  .rb-seg button { padding: 0 14px; min-height: 40px; border: 0; background: transparent; color: #cfdcd8; font: 600 13.5px var(--body); cursor: pointer; }
+  .rb-seg button.on { background: #5ef0a0; color: #062019; }
+  .rb-in { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+  .rb-in[hidden] { display: none; }
+  .rb-num { display: grid; grid-template-columns: auto auto; gap: 4px 8px; align-items: center; font-size: 12px; color: #8fa7a1; }
+  .rb-num span { grid-column: 1 / 3; }
+  .rb-num input { width: 120px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: #0b1615; color: #fff; }
+  .rb-num input:focus { outline: 2px solid #5ef0a0; outline-offset: 1px; }
+  .rb-num b { font: 600 15px var(--mono); color: #8fa7a1; }
+  .rb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rb-chip { padding: 0 12px; min-height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #cfdcd8; font: 600 13px var(--mono); cursor: pointer; }
+  .rb-chip.on { background: #5ef0a0; border-color: #5ef0a0; color: #062019; }
+  .rb-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+  .rb-mod { display: grid; gap: 3px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); color: #cfdcd8; cursor: pointer; font-family: var(--body); }
+  .rb-mod b { font-size: 14px; } .rb-mod small { font: 11.5px var(--mono); color: #8fa7a1; }
+  .rb-mod.on { border-color: #5ef0a0; background: rgba(94,240,160,.1); color: #fff; box-shadow: 0 0 0 1px #5ef0a0 inset; }
+  .rb-read { display: grid; gap: 8px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(94,240,160,.12), rgba(94,240,160,.02)); border: 1px solid rgba(94,240,160,.25); }
+  .rb-big { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rb-big span { color: #8fa7a1; font-size: 13px; }
+  .rb-big b { font: 700 clamp(38px, 5vw, 54px)/1 var(--display); color: #5ef0a0; }
+  .rb-big :global(small) { font-size: 18px; color: #cfdcd8; }
+  .rb-rows { margin: 0; display: grid; font-size: 13.5px; }
+  .rb-rows :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,.1); }
+  .rb-rows :global(dt) { color: #8fa7a1; } .rb-rows :global(dd) { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; }
+  .rb-rows :global(a) { color: #fff; } .rb-rows :global(.cu) { color: #facc15; font-family: var(--body); }
+  .rb-rows :global(.enter) { border: 0; color: #cfdcd8; }
+  .rb-checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .rb-checks :global(li) { font-size: 12.5px; padding: 7px 10px; border-radius: 8px; background: rgba(250,204,21,.1); color: #fde68a; }
+  /* —— 墙面 —— */
+  .rb-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-self: stretch; }
+  .rb-modes span { margin-right: 4px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #8fa7a1; }
+  .rb-modes button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #cfdcd8; font: 600 12.5px var(--body); cursor: pointer; }
+  .rb-modes button.on { background: #fff; color: #0a1514; border-color: #fff; }
+  .wb-wall { --flow: #f59e0b; position: relative; width: 100%; box-sizing: border-box; padding: 16px 18px 0; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(180deg, #e7e4dc, #d8d4ca); box-shadow: inset 0 0 0 1px #c4bfb3, 0 24px 50px rgba(0,0,0,.45); }
+  .wb-wall[data-m="chg"] { --flow: #22c55e; }
+  .wb-src { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .wb-src span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 700 10.5px var(--mono); letter-spacing: .08em; color: #6b675e; background: rgba(255,255,255,.55); border: 1px solid #c4bfb3; transition: all .3s; }
+  .wb-src svg { width: 20px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+  .wb-wall[data-m="dis"] .wb-home, .wb-wall[data-m="chg"] .wb-pv { color: #fff; background: var(--flow); border-color: var(--flow); box-shadow: 0 0 14px var(--flow); }
+  .wb-row { display: flex; gap: 14px; align-items: flex-start; }
+  .wb-inv { flex: none; width: 74px; height: 112px; border-radius: 8px; display: grid; grid-template-rows: auto auto 1fr; justify-items: center; gap: 6px; padding-top: 10px; box-sizing: border-box;
+    background: linear-gradient(180deg, #fbfbfa, #e3e3df); box-shadow: inset 0 0 0 1px #b9b6ad, 4px 8px 14px rgba(60,50,30,.25); }
+  .wb-scr { width: 54px; height: 26px; border-radius: 4px; background: #0b1a17; display: grid; place-items: center; position: relative; }
+  .wb-scr b { font: 700 10px var(--mono); color: #5ef0a0; }
+  .wb-invl { font: 700 8px var(--mono); letter-spacing: .08em; color: #6b675e; }
+  .wb-vent { width: 44px; height: 22px; background: repeating-linear-gradient(0deg, #b9b6ad 0 2px, transparent 2px 5px); border-radius: 2px; }
+  .wb-bats { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 86px)); justify-content: start; gap: 10px 12px; align-items: start; min-height: 130px; }
+  .wb-bats :global(.wb-b) { position: relative; height: 128px; max-width: 86px; border-radius: 9px; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; padding: 10px 0 8px;
+    background: linear-gradient(90deg, #f6f6f4, #ffffff 40%, #e4e4e0); box-shadow: inset 0 0 0 1px #c2c0b8, 5px 9px 16px rgba(60,50,30,.28); }
+  .wb-bats :global(.wb-logo) { width: 26px; height: 4px; border-radius: 2px; background: #1e6e5a; }
+  .wb-bats :global(.soc) { align-self: center; display: flex; flex-direction: column-reverse; gap: 3px; }
+  .wb-bats :global(.soc i) { width: 16px; height: 5px; border-radius: 2px; background: #22c55e; box-shadow: 0 0 5px #22c55e; animation: wbSoc 3.6s steps(1) infinite; }
+  .wb-bats :global(.soc i:nth-child(5)) { animation-delay: 0s; } .wb-bats :global(.soc i:nth-child(4)) { animation-delay: .72s; } .wb-bats :global(.soc i:nth-child(3)) { animation-delay: 1.44s; } .wb-bats :global(.soc i:nth-child(2)) { animation-delay: 2.16s; }
+  .wb-bats :global(.soc i:nth-child(1)) { animation: none; }
+  @keyframes wbSoc { 0% { opacity: 1; } 80% { opacity: .15; } }
+  .wb-wall[data-m="chg"] .wb-bats :global(.soc i) { animation-name: wbSocC; }
+  .wb-wall[data-m="chg"] .wb-bats :global(.soc i:nth-child(2)) { animation-delay: 0s; } .wb-wall[data-m="chg"] .wb-bats :global(.soc i:nth-child(3)) { animation-delay: .72s; } .wb-wall[data-m="chg"] .wb-bats :global(.soc i:nth-child(4)) { animation-delay: 1.44s; } .wb-wall[data-m="chg"] .wb-bats :global(.soc i:nth-child(5)) { animation-delay: 2.16s; }
+  @keyframes wbSocC { 0% { opacity: .15; } 20% { opacity: 1; } }
+  .wb-bats :global(.lb) { font: 700 10px var(--mono); color: #3d3a33; }
+  .wb-bats :global(.wb-cab) { position: absolute; left: 50%; bottom: -10px; width: 4px; height: 10px; margin-left: -2px; background: #3d3a33; }
+  .wb-bats :global(.wb-b.ins) { animation: wbIn .55s cubic-bezier(.2,.9,.2,1) both; animation-delay: var(--d); }
+  @keyframes wbIn { from { transform: translateY(-40px); opacity: 0; } 70% { transform: translateY(3px); opacity: 1; } }
+  .wb-bats :global(.wb-more) { align-self: center; font: 700 20px var(--mono); color: #6b675e; }
+  .wb-duct { position: relative; height: 12px; margin: 12px 0 0; border-radius: 3px; background: #c9c5ba; box-shadow: inset 0 0 0 1px #b2ad9f; overflow: hidden; }
+  .wb-duct span { position: absolute; inset: 4px 6px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--flow) 0 14px, transparent 14px 28px); animation: wbFlow 1s linear infinite; opacity: .9; }
+  .wb-wall[data-m="dis"] .wb-duct span { animation-direction: reverse; }
+  @keyframes wbFlow { from { background-position: 0 0; } to { background-position: 28px 0; } }
+  .wb-floor { height: 22px; margin: 14px -18px 0; background: linear-gradient(180deg, #b49b7a, #9c8263); box-shadow: inset 0 3px 0 #8a7256; }
+  .rb-final { grid-area: fin; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .rb-sum { flex: 1 1 380px; font-size: 14px; }
+  .rb-sum :global(div) { display: flex; gap: 10px; flex-wrap: wrap; }
+  .rb-sum :global(span) { color: #8fa7a1; font: 600 12px/20px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .rb-sum :global(b) { font-family: var(--mono); font-weight: 600; }
+  .rb-go { min-height: 50px; padding: 0 26px; border-radius: 10px; border: 0; background: #5ef0a0; color: #062019; font: 700 16px var(--body); cursor: pointer; box-shadow: 0 10px 30px rgba(94,240,160,.25); }
+  .rb-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  @media (max-width: 520px) { .rb-go { width: 100%; } }
+  .rb-assume { grid-area: as; font-size: 13px; color: #8fa7a1; }
+  .rb-assume summary { cursor: pointer; font-weight: 600; color: #cfdcd8; }
+  .rb-assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+  .rb-pop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(3, 8, 8, .72); backdrop-filter: blur(4px); }
+  .rb-pop[hidden] { display: none; }
+  .rb-pop-box { position: relative; width: min(480px, 100%); padding: 24px; border-radius: 16px; color: #e6efec; background: linear-gradient(180deg, #12302b, #0a1514); border: 1px solid rgba(94,240,160,.3); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .rb-pop-box h3 { margin: 0 0 6px; font: 700 24px var(--display); text-transform: uppercase; }
+  .rb-pop-box > p { margin: 0 0 12px; font-size: 14px; color: #8fa7a1; }
+  .rb-pop-box pre { margin: 0 0 16px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; color: #cfdcd8; max-height: 220px; overflow: auto; }
+  .rb-pop-acts { display: grid; gap: 10px; }
+  .rb-pop-btn { display: grid; grid-template-columns: 26px 1fr; column-gap: 12px; align-items: center; padding: 13px 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; }
+  .rb-pop-btn svg { width: 26px; height: 26px; grid-row: 1 / 3; fill: currentColor; }
+  .rb-pop-btn small { grid-column: 2; font: 500 12px var(--mono); opacity: .75; }
+  .rb-pop-btn.wa { background: #25d366; color: #062019; }
+  .rb-pop-btn.mail { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .rb-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #cfdcd8; font-size: 22px; cursor: pointer; }
+  @media (max-width: 900px) {
+    .wbv .rb-stage { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+    .wbv .rb-ctl { display: contents; }
+    .wbv .rb-view { order: 1; } .wbv .rb-grp { order: 2; } .wbv .rb-read { order: 3; } .wbv .rb-final { order: 4; } .wbv .rb-assume { order: 5; }
+    .wb-bats :global(.wb-b) { height: 104px; }
+    .wb-bats :global(.lb) { font-size: 8.5px; white-space: nowrap; letter-spacing: -.02em; }
+    .wb-row { gap: 10px; } .wb-inv { width: 58px; } .wb-scr { width: 48px; } .wb-scr b { font-size: 8.5px; }
+    .wb-bats { gap: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .wb-wall *, .wb-wall :global(*) { animation: none !important; } }
+</style>

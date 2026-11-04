@@ -10,6 +10,7 @@ import { IT } from '../lib/industrial-i18n.mjs';
 import { OL } from '../lib/online-i18n.mjs';
 import { SL } from '../lib/solar-i18n.mjs';
 import { RB } from '../lib/rackbatt-i18n.mjs';
+import { WB } from '../lib/wallbatt-i18n.mjs';
 
 // full：页面自己控制宽度（About 页有通栏区块），不套 .wrap
 const { lang, title, description = '', path = '', full = false } = Astro.props;
@@ -115,6 +116,7 @@ const altHref = (l) => `/${l}/${path}`;
             <a href={`/${lang}/industrial-ups/`} aria-current={path === 'industrial-ups/' ? 'page' : undefined}>{IT[lang].nav}</a>
             <a class="nav-sep" href={`/${lang}/solar-inverters/`} aria-current={path === 'solar-inverters/' ? 'page' : undefined}>{SL[lang].nav}</a>
             <a href={`/${lang}/batteries/rack-lithium/`} aria-current={path === 'batteries/rack-lithium/' ? 'page' : undefined}>{RB[lang].nav}</a>
+            <a href={`/${lang}/batteries/wall-lithium/`} aria-current={path === 'batteries/wall-lithium/' ? 'page' : undefined}>{WB[lang].nav}</a>
           </div>
         </details>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>

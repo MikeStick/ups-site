@@ -244,7 +244,7 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
       const batt = r.modules ? fmt(T.out.battN, { m: r.modules, k: r.battInst }) : T.out.battNone;
       const pv = fmt(T.out.pvN, { n: r.panels, w: r.panelW, k: r.kwpInst });
       const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
-      rows.innerHTML = row(T.out.inv, inv) + row(T.out.batt, r.modules ? `<a href="/${c.lang}/batteries/rack-lithium/">${batt}</a>` : batt) + row(T.out.pv, pv) + row(T.out.gen, fmt(T.out.genN, { k: r.monthKwh }));
+      rows.innerHTML = row(T.out.inv, inv) + row(T.out.batt, r.modules ? `<a href="/${c.lang}/batteries/wall-lithium/">${batt}</a>` : batt) + row(T.out.pv, pv) + row(T.out.gen, fmt(T.out.genN, { k: r.monthKwh }));
       const link = (m: any, best: boolean) => `<a href="/${c.lang}/p/${m.slug}/"${best ? ' class="best"' : ''}><b>${m.m}</b><span>${c.kind[m.kind] || ''} · ${m.kw} kW${best && r.units > 1 ? ' × ' + r.units : ''}</span></a>`;
       $('[data-recs]').innerHTML = r.model ? `<span>${T.out.model}</span>` + link(r.model, true) + (r.alts.length ? `<span>${T.out.alt}</span>` + r.alts.map((m: any) => link(m, false)).join('') : '') : `<span>${T.out.model}</span><p class="cu">${T.out.custom}</p>`;
       $('[data-checks]').innerHTML = r.checks.map((x: any) => `<li class="${x.level}">${T.chk[x.id]}</li>`).join('');

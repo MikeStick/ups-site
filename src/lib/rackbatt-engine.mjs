@@ -12,12 +12,14 @@ export const ASSUME = {
   // 没有已发布型号时用的通用模块（典型 48 V 机架式）
   generic: { m: '51.2 V 100 Ah', v: 51.2, ah: 100, kwh: 5.12, maxA: 100, u: 3, kg: 45 },
 };
+// 壁挂式（家用）没有已发布型号时用的通用模块：常见 51.2 V 200 Ah 10 kWh
+export const WALL_GENERIC = { m: '51.2 V 200 Ah', v: 51.2, ah: 200, kwh: 10.24, maxA: 100, u: 0, kg: 90 };
 export const KWH_PRESETS = [5, 10, 15, 20, 30, 40, 60];
 const r1 = (x) => Math.round(x * 10) / 10;
 
-// q = { mode: 'kwh'|'load', kwh, loadKw, hours, mod: { v, ah, kwh, maxA, u, kg, par } }
+// q = { mode: 'kwh'|'load', kwh, loadKw, hours, mod: { v, ah, kwh, maxA, u, kg, par }, generic（可选，默认机架式通用模块） }
 export function sizeRack(q) {
-  const mod = { ...ASSUME.generic, ...Object.fromEntries(Object.entries(q.mod || {}).filter(([, v]) => v)) };
+  const mod = { ...(q.generic || ASSUME.generic), ...Object.fromEntries(Object.entries(q.mod || {}).filter(([, v]) => v)) };
   if (!mod.kwh && mod.v && mod.ah) mod.kwh = r1(mod.v * mod.ah / 1000);
   const loadKw = Math.max(0, +q.loadKw || 0);
   let needKwh;
