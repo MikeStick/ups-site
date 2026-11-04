@@ -491,7 +491,7 @@ const WHY_ICONS = [
   @media (max-width: 960px) { .range-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 520px) { .range-grid { grid-template-columns: minmax(0, 1fr); } }
   .rcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
-  .rcard.focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  /* 可在线下单的那张卡片：只用绿色图片底色和"Order online"标签突出，边框和其他卡片一样（原来的绿色内描边被图片挡住上半截，只剩下半截像一条多余的边框） */
   /* 产品家族图：1000×1000 方图。图框比方形矮 20%（上下各少 10%），左右留白不变；
      图片按宽度铺满，上下只裁掉图片自带的一点白边 */
   .rcard .ph { border-radius: 0; aspect-ratio: 5 / 4; background: #fff; }
