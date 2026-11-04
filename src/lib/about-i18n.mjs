@@ -45,7 +45,7 @@ export const AT = {
     whoP2: 'With more than 20 years in the industry we export to North and South America, Europe, the Middle East and Africa — and design custom models and OEM brands for importers in each market.',
     photo: { line: 'Production line', rd: 'R&D team', warehouse: 'Warehouse' },
     rangeEyebrow: 'Product range', rangeH: 'From 5 W to 1200 kVA, one factory',
-    rangeP: 'Eight product families, all designed and built in-house. The Mini DC UPS can be ordered online today; for the other families, ask us for a quote.',
+    rangeP: 'Eight product families, all designed and built in-house. Click a family to see the models and size your system with our online tools — the Mini DC UPS can also be ordered online.',
     orderOnline: 'Order online', browse: 'Browse models →', quote: 'Ask for a quote →',
     fam: {
       dc: ['DC UPS (Mini UPS)', 'Backup power for routers, fiber ONTs, IP cameras and Starlink.'],
@@ -103,7 +103,7 @@ export const AT = {
     whoP2: 'Con más de 20 años en el sector exportamos a Norte y Sudamérica, Europa, Medio Oriente y África, y diseñamos modelos a medida y marcas OEM para importadores de cada mercado.',
     photo: { line: 'Línea de producción', rd: 'Equipo de I+D', warehouse: 'Almacén' },
     rangeEyebrow: 'Gama de productos', rangeH: 'De 5 W a 1200 kVA, una sola fábrica',
-    rangeP: 'Ocho familias de productos, todas diseñadas y fabricadas por nosotros. El Mini UPS DC se puede pedir en línea hoy; para las demás familias, pídanos una cotización.',
+    rangeP: 'Ocho familias de productos, todas diseñadas y fabricadas por nosotros. Haga clic en una familia para ver los modelos y dimensionar su sistema con nuestras herramientas en línea; el Mini UPS DC también se puede pedir en línea.',
     orderOnline: 'Pedido en línea', browse: 'Ver modelos →', quote: 'Pedir cotización →',
     fam: {
       dc: ['UPS DC (Mini UPS)', 'Respaldo para routers, ONT de fibra, cámaras IP y Starlink.'],
@@ -161,7 +161,7 @@ export const AT = {
     whoP2: 'За 20 с лишним лет работы мы экспортируем в Северную и Южную Америку, Европу, на Ближний Восток и в Африку, а также разрабатываем модели на заказ и OEM-бренды для импортёров на каждом рынке.',
     photo: { line: 'Производственная линия', rd: 'Команда R&D', warehouse: 'Склад' },
     rangeEyebrow: 'Продукция', rangeH: 'От 5 Вт до 1200 кВА на одном заводе',
-    rangeP: 'Восемь линеек продукции, все разработаны и произведены у нас. Мини-ИБП постоянного тока можно заказать на сайте уже сейчас, по остальным линейкам запросите предложение.',
+    rangeP: 'Восемь линеек продукции, все разработаны и произведены у нас. Нажмите на линейку, чтобы посмотреть модели и подобрать систему с помощью онлайн-инструментов; мини-ИБП постоянного тока можно также заказать на сайте.',
     orderOnline: 'Заказ на сайте', browse: 'Смотреть модели →', quote: 'Запросить цену →',
     fam: {
       dc: ['ИБП постоянного тока (мини-ИБП)', 'Резервное питание для роутеров, оптических ONT, IP-камер и Starlink.'],
