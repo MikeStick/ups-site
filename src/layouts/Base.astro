@@ -15,6 +15,7 @@ import { FB } from '../lib/floorbatt-i18n.mjs';
 import { SD, NAV_GROUPS } from '../lib/designer-i18n.mjs';
 import { AO } from '../lib/aio-i18n.mjs';
 import { HV } from '../lib/hvcab-i18n.mjs';
+import { PB } from '../lib/pbr-i18n.mjs';
 
 // full：页面自己控制宽度（About 页有通栏区块），不套 .wrap
 const { lang, title, description = '', path = '', full = false } = Astro.props;
@@ -27,7 +28,7 @@ const NG = NAV_GROUPS[lang];
 const NAV = [
   { h: NG.ups, items: [['', OT[lang].navMini], ['offline-ups/', OT[lang].nav], ['online-ups/', OL[lang].nav], ['all-in-one-ups/', AO[lang].nav], ['rack-ups/', RT[lang].nav], ['modular-ups/', MT[lang].nav], ['industrial-ups/', IT[lang].nav]] },
   { h: NG.solar, items: [['solar-inverters/', SL[lang].nav], ['solar-designer/', SD[lang].nav]] },
-  { h: NG.batt, items: [['batteries/wall-lithium/', WB[lang].nav], ['batteries/floor-lithium/', FB[lang].nav], ['batteries/rack-lithium/', RB[lang].nav], ['batteries/hv-cabinet/', HV[lang].nav]] },
+  { h: NG.batt, items: [['batteries/wall-lithium/', WB[lang].nav], ['batteries/floor-lithium/', FB[lang].nav], ['batteries/rack-lithium/', RB[lang].nav], ['batteries/hv-cabinet/', HV[lang].nav], ['batteries/lead-acid-replacement/', PB[lang].nav]] },
 ];
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 ---

@@ -1,0 +1,20 @@
+import { replaceOne, buildBank, PB_GENERIC, classOf, pbKg, loadToWh } from '../src/lib/pbr-engine.mjs';
+let bad = 0; const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) bad++; };
+let r = replaceOne({ cls: 12, ah: 7, models: PB_GENERIC });
+ok(r.same.mod.m === 'LFP-12V7AH' && r.small && r.small.mod.ah === 6 && r.pb.kg === 2.1, `12V7Ah → ${r.same.mod.m}, smaller ${r.small && r.small.mod.m}, pb ${r.pb.kg} kg, save ${r.same.save}%`);
+r = replaceOne({ cls: 12, ah: 100, models: PB_GENERIC });
+ok(r.same.mod.m === 'LFP-12V100AH' && r.small.mod.ah === 60, `12V100Ah → ${r.same.mod.m}, smaller ${r.small.mod.m}`);
+r = replaceOne({ cls: 12, ah: 9, models: PB_GENERIC });
+ok(r.same.mod.ah === 10, '12V9Ah → 12V10AH');
+r = replaceOne({ cls: 12, ah: 300, models: PB_GENERIC });
+ok(r.tooBig && r.maxAh === 200, '12V300Ah → too big');
+r = replaceOne({ cls: 48, ah: 200, models: PB_GENERIC });
+ok(r.tooBig, '48V200Ah → too big');
+let b = buildBank({ sysV: 48, needWh: 4600, models: PB_GENERIC });
+ok(b.opts.length >= 2 && b.opts.some((o) => o.s === 1 && o.mod.m === 'LFP-48V100AH') && b.opts.some((o) => o.s === 4), '48 V 4.6 kWh → ' + b.opts.map((o) => `${o.s}S${o.p}P ${o.mod.m}`).join(' | '));
+b = buildBank({ sysV: 12, needWh: 4000, models: PB_GENERIC });
+ok(b.opts.every((o) => o.s === 1) && b.opts[0].usableWh >= 4000, '12 V 4 kWh → ' + b.opts.map((o) => `${o.s}S${o.p}P ${o.mod.m}`).join(' | '));
+b = buildBank({ sysV: 24, needWh: loadToWh(2000, 1), loadW: 2000, models: PB_GENERIC });
+ok(b.opts.every((o) => o.p * o.mod.maxA >= o.amps), '24 V 2 kW × 1 h current ok → ' + b.opts.map((o) => `${o.s}S${o.p}P ${o.mod.m} (${o.amps} A)`).join(' | '));
+ok(classOf(12.8) === 12 && classOf(25.6) === 24 && classOf(51.2) === 48 && pbKg(24, 100) === 60, 'classOf / pbKg');
+if (bad) { console.log(bad + ' failed'); process.exit(1); }

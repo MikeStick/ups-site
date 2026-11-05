@@ -60,6 +60,21 @@ export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
 export const WALL_BATT_TYPES = ['壁挂式锂电池', '壁挂式磷酸铁锂电池'];
 export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
+// 锂电替换铅酸电池（LiFePO4 drop-in，12.8 / 25.6 / 51.2 V，型号如 LFP-12V7AH）：栏目 /batteries/lead-acid-replacement/
+export const PBR_TYPES = ['锂电替换铅酸电池'];
+export const isPbReplace = (p) => has(p, PBR_TYPES);
+// 参数：电压（没填时按型号 12V / 24V / 48V 换成 12.8 / 25.6 / 51.2）、Ah、Wh（= V × Ah）、最大放电电流、尺寸 [长, 宽, 高]、重量
+export function pbModule(p) {
+  const mm = String(p.model || '').match(/(\d{2})\s*V\s*(\d+(?:\.\d+)?)\s*AH/i);
+  let v = num1(p.moduleVoltage || p.batteryVoltage);
+  if (!v && mm) v = { 12: 12.8, 24: 25.6, 48: 51.2 }[+mm[1]] || +mm[1];
+  const ah = num1(p.moduleCapacity) || (mm ? +mm[2] : 0);
+  const wh = v && ah ? Math.round(v * ah * 10) / 10 : 0;
+  const maxA = num1(p.maxDischargeCurrent || p.recommendedDischargeCurrent || p.maxChargeDischargeCurrent);
+  const kg = num1(p.moduleWeight || p.netWeight);
+  const dims = (String(p.moduleDimensions || p.dimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 3);
+  return { v, ah, wh, maxA, kg, dims: dims.length === 3 ? dims : [] };
+}
 // 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
 export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
 export const isHvCab = (p) => has(p, HV_CAB_TYPES);
