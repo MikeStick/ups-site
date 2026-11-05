@@ -182,7 +182,9 @@ export function phaseOf(p) {
   return '11';
 }
 // Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器 / 储能电池的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p));
+export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
+  && !isHomeEss(p) && !isCiEss(p) && !isWallBattery(p) && !isFloorBattery(p) && !isRackBattery(p) && !isHvCab(p) && !isPbReplace(p));
+// ↑ 储能一体机 / 工商业储能柜 / 各类锂电池在 CRM 里大类不一定填"储能电池"，按细分品类也排除，免得混进 Mini UPS 列表
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');

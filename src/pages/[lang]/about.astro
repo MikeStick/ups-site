@@ -64,7 +64,7 @@ const WHY_ICONS = [
         <h1>{T.h1a}<em>{T.h1b}</em></h1>
         <p>{T.lead}</p>
         <div class="hero-cta">
-          <a class="btn primary" href={`/${lang}/`}>{T.ctaMini}</a>
+          <a class="btn primary" href={`/${lang}/mini-ups/`}>{T.ctaMini}</a>
           <a class="btn ghost" href={`/${lang}/custom/`}>{T.ctaCustom}</a>
         </div>
       </div>
@@ -112,7 +112,7 @@ const WHY_ICONS = [
       {FAMILIES.map((f) => (
         <article class:list={['rcard', { focus: f.online }]}>
           {/* 图片 / 图标也能点：有栏目页的跳到栏目页，没有的打开 WhatsApp 询价（和下面的文字链接一致） */}
-          <a class="rimg" href={f.online ? `/${lang}/` : f.page ? `/${lang}/${f.page}` : wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)}
+          <a class="rimg" href={f.online ? `/${lang}/mini-ups/` : f.page ? `/${lang}/${f.page}` : wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)}
             {...(!f.online && !f.page ? { target: '_blank', rel: 'noopener' } : {})} aria-label={T.fam[f.key][0]}>
             {ph(`fam_${f.key}`)
               ? <div class="ph light"><img src={ph(`fam_${f.key}`)} alt={T.fam[f.key][0]} loading="lazy" /></div>
@@ -124,7 +124,7 @@ const WHY_ICONS = [
             <span class="range num">{f.key === 'backup' ? T.rangeHome : f.key === 'rack' ? `19" ${T.rangeRack}` : f.key === 'inverter' ? T.rangeInv : f.range}</span>
             <p>{T.fam[f.key][1]}</p>
             {f.online
-              ? <a href={`/${lang}/`}>{T.browse}</a>
+              ? <a href={`/${lang}/mini-ups/`}>{T.browse}</a>
               : f.page ? <a href={`/${lang}/${f.page}`}>{T.browse}</a>
               : <a href={wa(`${T.fam[f.key][0]} — ${T.quote.replace(' →', '')}`)} target="_blank" rel="noopener">{T.quote}</a>}
           </div>

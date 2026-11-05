@@ -4,6 +4,7 @@ import { UI } from '../i18n.mjs';
 import { CT } from '../lib/custom-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
+import { catalog } from '../lib/catalog.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
 import { IT } from '../lib/industrial-i18n.mjs';
@@ -25,13 +26,8 @@ const t = UI[lang];
 const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
 // path：不含语言前缀的路径，例如 "p/poe-36e-lfp-48v/"，用来生成其他语言版本的链接
 const altHref = (l) => `/${l}/${path}`;
-// 产品菜单：三栏（UPS / 光伏与储能 / 电池）。手机上排成一列，每组一个小标题。新增类目时在对应组里加一行。
-const NG = NAV_GROUPS[lang];
-const NAV = [
-  { h: NG.ups, items: [['', OT[lang].navMini], ['offline-ups/', OT[lang].nav], ['online-ups/', OL[lang].nav], ['all-in-one-ups/', AO[lang].nav], ['rack-ups/', RT[lang].nav], ['modular-ups/', MT[lang].nav], ['industrial-ups/', IT[lang].nav]] },
-  { h: NG.solar, items: [['solar-inverters/', SL[lang].nav], ['home-ess/', HE[lang].nav], ['ci-ess/', CI[lang].nav], ['solar-designer/', SD[lang].nav]] },
-  { h: NG.batt, items: [['batteries/wall-lithium/', WB[lang].nav], ['batteries/floor-lithium/', FB[lang].nav], ['batteries/rack-lithium/', RB[lang].nav], ['batteries/hv-cabinet/', HV[lang].nav], ['batteries/lead-acid-replacement/', PB[lang].nav]] },
-];
+// 产品菜单：三栏（UPS / 光伏与储能 / 电池），清单在 src/lib/catalog.mjs（首页也用它）。手机上排成一列，每组一个小标题。
+const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.map((x) => [x.page, x.label]) }));
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 ---
 <!doctype html>

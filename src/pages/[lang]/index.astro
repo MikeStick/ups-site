@@ -1,233 +1,266 @@
 ---
+// 首页（/）：让客户一进来就知道 SKE 做哪些产品。
+// 顺序：开场动画（HomeHero）→ 产品总览（UPS / 光伏与储能 / 电池 三组，每个栏目一张卡片：图、名称、一句话、规格范围、型号数）
+// → 按场景找产品 → 在线选型工具 → Mini UPS 在线订购（以前首页就是 Mini UPS 列表，现在在 /mini-ups/）→ 为什么选择 SKE。
+// 栏目清单在 src/lib/catalog.mjs（菜单也用）；文字在 src/lib/home-i18n.mjs。
+// 卡片图片：网站管理里的图片位 cat_<key>（比如 cat_online）→ 没有就用这个栏目第一个产品的主图 → 再没有就用线条图标。
 import Base from '../../layouts/Base.astro';
-import DevicePicker from '../../components/DevicePicker.astro';
 import HomeHero from '../../components/HomeHero.astro';
 import { LANGS, SITE } from '../../config.mjs';
-import { UI, term, tiersOf } from '../../i18n.mjs';
-import { batteryWh, totalMah, powerW, outputTags, EFFICIENCY, CALC_T } from '../../lib/power.mjs';
-import { CT } from '../../lib/custom-i18n.mjs';
-import allProducts from '../../data/products.json';
-import { isMini } from '../../lib/category.mjs';
-// 这个列表页是 Mini UPS 栏目；离线式 / 在线互动式 UPS 在 /offline-ups/
-const products = allProducts.filter(isMini);
+import { UI, tiersOf } from '../../i18n.mjs';
+import { HM } from '../../lib/home-i18n.mjs';
+import { AT, STATS } from '../../lib/about-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+import { capacityOf, invKw, essSpec, ciSpec, battModule, hvModule, pbModule, isMini } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+import site from '../../data/site.json';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
-
 const { lang } = Astro.params;
-const t = UI[lang];
-const C = CALC_T[lang];
-const items = products.map((p) => ({ p, tags: outputTags(p), wh: batteryWh(p), w: powerW(p), mah: totalMah(p) }));
-// 筛选项只列出现有产品里真实出现过的输出口
-const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
-  const o = (t) => (t === 'USB' ? 0 : t.startsWith('PoE') ? 1000 + parseFloat(t.slice(4)) : parseFloat(t));
-  return o(a) - o(b);
-});
-// 电池容量：每个出现过的总容量各一个选项，从小到大；以后新增更小或更大容量的型号会自动出现
-const caps = [...new Set(items.map((x) => x.mah).filter((v) => v > 0))].sort((a, b) => a - b);
-const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
-const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
-const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
+const T = HM[lang], t = UI[lang], A = AT[lang];
+const asset = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0] : null; };
+
+// 规格范围：按栏目的单位从已发布产品里算；没有产品时用 home-i18n 里的备用文字
+const fmtVa = (va) => (va >= 1000 ? `${+(va / 1000).toFixed(1)} kVA` : `${va} VA`);
+const span = (vals, f) => { const v = [...new Set(vals.filter((x) => x > 0))].sort((a, b) => a - b); if (!v.length) return ''; return v.length === 1 ? f(v[0]) : `${f(v[0])} – ${f(v[v.length - 1])}`; };
+const kwhOf = (key, p) => (key === 'homeess' ? essSpec(p).kwh : key === 'ciess' ? ciSpec(p).kwh : key === 'hvcab' ? hvModule(p).kwh : battModule(p).kwh);
+function rangeOf(it, ps) {
+  if (it.unit === 'va') return span(ps.map((p) => capacityOf(p).va), fmtVa);
+  if (it.unit === 'kw') return span(ps.map((p) => invKw(p)), (x) => `${x} kW`);
+  if (it.unit === 'kwh') return span(ps.map((p) => kwhOf(it.key, p)), (x) => `${+(+x).toFixed(1)} kWh`);
+  if (it.unit === 'v') { const v = [...new Set(ps.map((p) => pbModule(p).v).filter(Boolean))].sort((a, b) => a - b); return v.length ? `${v.join(' / ')} V` : ''; }
+  return '';
+}
+const groups = catalog(lang).map((g) => ({
+  ...g,
+  items: g.items.map((it) => {
+    const ps = it.f ? all.filter(it.f) : [];
+    const img = asset(`cat_${it.key}`) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
+    return { ...it, n: ps.length, range: it.tool ? '' : rangeOf(it, ps) || T.fallback[it.key] || '', img };
+  }),
+}));
+const byKey = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.key, x])));
+const minis = all.filter(isMini).sort((a, b) => (b.images && b.images.length ? 1 : 0) - (a.images && a.images.length ? 1 : 0)).slice(0, 4);
+const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const statPick = STATS.filter((s) => ['years', 'area', 'countries'].includes(s.k));
+
+// 栏目线条图标（48 × 48）
+const ICONS = {
+  mini: '<rect x="12" y="8" width="24" height="32" rx="4"/><path d="M18 16h12M20 34h8"/><path d="M24 20l-3 6h6l-3 6"/>',
+  offline: '<rect x="14" y="6" width="20" height="36" rx="3"/><circle cx="24" cy="16" r="3"/><path d="M19 26h10M19 31h10M19 36h10"/>',
+  online: '<rect x="12" y="6" width="24" height="36" rx="3"/><rect x="17" y="11" width="14" height="8" rx="1"/><path d="M17 26h14M17 31h14M17 36h14"/>',
+  aio: '<rect x="12" y="6" width="24" height="36" rx="3"/><rect x="17" y="11" width="14" height="7" rx="1"/><rect x="16" y="22" width="7" height="8" rx="1"/><rect x="25" y="22" width="7" height="8" rx="1"/><rect x="16" y="32" width="7" height="6" rx="1"/><rect x="25" y="32" width="7" height="6" rx="1"/>',
+  rack: '<rect x="6" y="10" width="36" height="8" rx="1.5"/><rect x="6" y="20" width="36" height="8" rx="1.5"/><rect x="6" y="30" width="36" height="8" rx="1.5"/><path d="M10 14h.01M10 24h.01M10 34h.01M30 14h8M30 24h8M30 34h8"/>',
+  modular: '<rect x="8" y="4" width="32" height="40" rx="2"/><path d="M12 10h24M12 17h24M12 24h24M12 31h24M12 38h24"/><path d="M33 10v1M33 17v1M33 24v1"/>',
+  industrial: '<path d="M4 42V22l10 6v-6l10 6v-6l10 6V8h10v34z"/><path d="M38 14h2"/>',
+  inverter: '<rect x="10" y="6" width="28" height="36" rx="3"/><rect x="15" y="11" width="18" height="9" rx="1"/><path d="M18 28l4 4 8-8"/>',
+  homeess: '<path d="M6 22L24 8l18 14M10 19v23h28V19"/><rect x="19" y="26" width="10" height="16" rx="1"/><path d="M22 31h4M22 36h4"/>',
+  ciess: '<rect x="6" y="10" width="15" height="30" rx="2"/><rect x="27" y="10" width="15" height="30" rx="2"/><path d="M13.5 14v22M34.5 14v22M4 42h40"/>',
+  designer: '<circle cx="34" cy="12" r="5"/><path d="M4 40l8-18h20l8 18zM14 22l-3 18M30 22l3 18M7 31h34"/>',
+  wall: '<path d="M8 4v40"/><rect x="16" y="8" width="18" height="32" rx="3"/><path d="M21 20h8M21 25h8M21 30h8"/>',
+  floor: '<rect x="13" y="6" width="22" height="32" rx="3"/><circle cx="24" cy="16" r="4"/><circle cx="17" cy="41" r="2.5"/><circle cx="31" cy="41" r="2.5"/>',
+  rackbatt: '<rect x="6" y="12" width="36" height="10" rx="1.5"/><rect x="6" y="26" width="36" height="10" rx="1.5"/><path d="M11 17h14M11 31h14M33 17h4M33 31h4"/>',
+  hvcab: '<rect x="12" y="4" width="24" height="40" rx="2"/><rect x="16" y="8" width="16" height="6" rx="1"/><path d="M16 19h16M16 24h16M16 29h16M16 34h16M16 39h16"/>',
+  pbr: '<rect x="6" y="14" width="36" height="24" rx="3"/><path d="M12 14v-4h6v4M30 14v-4h6v4M14 26h6M31 23v6M28 26h6"/>',
+};
+const APP_ICONS = {
+  home: '<path d="M6 22L24 8l18 14M10 19v23h28V19M20 42V30h8v12"/>',
+  shop: '<path d="M6 18h36l-3-9H9zM8 18v24h32V18M18 42V30h12v12"/>',
+  it: '<rect x="10" y="4" width="28" height="40" rx="2"/><path d="M15 11h18M15 18h18M15 25h18M15 32h18"/>',
+  factory: '<path d="M4 42V22l10 6v-6l10 6v-6l10 6V8h10v34z"/>',
+  solar: '<path d="M4 40l8-18h24l8 18zM16 22l-3 18M32 22l3 18M7 31h34"/><circle cx="36" cy="9" r="4"/>',
+  replace: '<rect x="6" y="16" width="16" height="22" rx="2"/><rect x="26" y="16" width="16" height="22" rx="2"/><path d="M14 8a10 10 0 0 1 18 2M30 6l2 4-4 1"/>',
+};
+const TOOL_ICON = '<rect x="6" y="6" width="36" height="36" rx="4"/><path d="M14 30l6-6 5 5 9-11"/><circle cx="34" cy="18" r="2"/>';
+const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: Astro.site ? `${String(Astro.site).replace(/\/$/, '')}/${lang}/` : undefined,
+  ...(SITE.email ? { email: SITE.email } : {}),
+  hasOfferCatalog: { '@type': 'OfferCatalog', name: T.prodEyebrow, itemListElement: groups.map((g) => ({ '@type': 'OfferCatalog', name: T.groups[g.key][0], itemListElement: g.items.filter((x) => !x.tool).map((x) => ({ '@type': 'OfferCatalog', name: x.label })) })) } };
 ---
-<Base lang={lang} title={`${t.products} · ${SITE.name}`} description={SITE.tagline[lang]} path="">
+<Base lang={lang} title={`${T.metaTitle} · ${SITE.name}`} description={T.metaDesc} path="">
   <HomeHero lang={lang} />
-  <h1 class="page-title" id="shop">{t.allProducts}</h1>
-  {products.length === 0 && <p class="empty">{t.noProducts}</p>}
 
-  {products.length > 0 && (
-    <div class="shop" data-shop>
-      <script type="application/json" data-shop-cfg set:html={JSON.stringify(cfg)} />
-
-      <details class="filters" open>
-        <summary>{C.filterTitle}</summary>
-        <div class="filters-body">
-          {allTags.length > 0 && (
-            <fieldset>
-              <legend>{C.outputs}</legend>
-              <div class="chips">
-                {allTags.map((tag) => (
-                  <label class="chip"><input type="checkbox" value={tag} data-tag /> <span>{tag}</span></label>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {caps.length > 0 && (
-            <fieldset>
-              <legend>{C.capacity} <span class="unit">({C.mah})</span></legend>
-              <div class="chips">
-                {caps.map((v) => (
-                  <label class="chip"><input type="checkbox" value={String(v)} data-cap /> <span class="num">{v} mAh</span></label>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {hasStock && hasGroup && (
-            <fieldset>
-              <legend>{C.avail}</legend>
-              <div class="chips">
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="" checked data-avail /> <span>{C.any}</span></label>
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="stock" data-avail /> <span>{C.stock}</span></label>
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="group" data-avail /> <span>{C.group}</span></label>
-              </div>
-            </fieldset>
-          )}
-
-          <fieldset>
-            <legend>{C.load} <span class="load-total num" data-load-total></span></legend>
-            <DevicePicker lang={lang} id={`list-${lang}`} />
-            <label class="check"><input type="checkbox" checked data-can-power /> {C.canPower}</label>
-          </fieldset>
-
-          <button type="button" class="clear" data-clear>{C.clear}</button>
+  <section class="hblock" id="products">
+    <div class="hhead"><span class="eyebrow">{T.prodEyebrow}</span><h2>{T.prodH}</h2><p>{T.prodP}</p></div>
+    {groups.map((g, gi) => (
+      <div class:list={['grp', `g-${g.key}`]}>
+        <div class="grp-h">
+          <span class="grp-n num">0{gi + 1}</span>
+          <h3>{T.groups[g.key][0]}</h3>
+          <p>{T.groups[g.key][1]}</p>
+          <span class="grp-tag">{g.h}</span>
         </div>
-      </details>
-
-      <div class="results">
-        <p class="count" data-count-label>{products.length === 1 ? C.count1 : C.count.replace('{n}', String(products.length))}</p>
-        <ul class="grid">
-          {items.map(({ p, tags, wh, w, mah }) => {
-            const tiers = tiersOf(p);
-            const cover = p.images && p.images[0];
-            const group = p.sale && p.sale.mode === 'group';
-            return (
-              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.sale ? (group ? 'group' : 'stock') : ''} data-wh={wh} data-w={w} data-mah={mah || ''}>
-                <a href={`/${lang}/p/${p.slug}/`}>
-                  <div class="thumb">
-                    {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
-                    {p.sale && <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>}
-                    <span class="runs num" data-runs hidden></span>
-                  </div>
-                  <div class="info">
-                    <span class="type">{term(p.type, lang)}</span>
-                    <strong>{p.model}</strong>
-                    <span class="meta num">{[
-                      p.outputPower,
-                      mah > 0 ? `${mah}mAh` : (p.batterySpec && String(p.batterySpec).replace(/\*/g, '×')),
-                      wh > 0 && `${Math.round(wh)}Wh`,
-                    ].filter(Boolean).join(' · ')}</span>
-                    {tags.length > 0 && <span class="tags">{tags.map((x) => <i>{x}</i>)}</span>}
-                    {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
-                  </div>
-                </a>
-              </li>
-            );
-          })}
+        <ul class="cats">
+          {g.items.map((it) => (
+            <li>
+              <a class:list={['cat', { istool: it.tool }]} href={`/${lang}/${it.page}`}>
+                <span class="cimg">
+                  {it.img ? <img src={it.img.thumb || it.img.src} alt={it.label} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS[it.key]} />}
+                </span>
+                <span class="cbody">
+                  <b>{it.label}</b>
+                  <small>{T.cats[it.key]}</small>
+                  <span class="cmeta">
+                    {it.range && <span class="num">{it.range}</span>}
+                    {it.tool ? <em>{T.tool}</em> : it.n > 0 && <em>{it.n === 1 ? T.model1 : T.models.replace('{n}', String(it.n))}</em>}
+                  </span>
+                </span>
+                <span class="carr" aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))}
         </ul>
-        <p class="empty" data-nomatch hidden>{C.noMatch} <a href={`/${lang}/custom/`}>{CT[lang].emptyCta} →</a></p>
       </div>
+    ))}
+  </section>
+
+  <section class="hblock">
+    <div class="hhead"><span class="eyebrow">{T.appEyebrow}</span><h2>{T.appH}</h2></div>
+    <div class="apps">
+      {T.apps.map((a) => (
+        <div class="app">
+          <svg viewBox="0 0 48 48" aria-hidden="true" set:html={APP_ICONS[a.k]} />
+          <h3>{a.h}</h3>
+          <div class="chips">{a.cats.map((k) => byKey[k] && <a href={`/${lang}/${byKey[k].page}`}>{byKey[k].label}</a>)}</div>
+        </div>
+      ))}
     </div>
+  </section>
+
+  <section class="hblock tools-b">
+    <div class="hhead"><span class="eyebrow">{T.toolsEyebrow}</span><h2>{T.toolsH}</h2></div>
+    <div class="tools">
+      {T.tools.map(([h, p, href]) => (
+        <a class="tool" href={`/${lang}/${href}`}><svg viewBox="0 0 48 48" aria-hidden="true" set:html={TOOL_ICON} /><span><b>{h}</b><small>{p}</small></span><i aria-hidden="true">→</i></a>
+      ))}
+    </div>
+  </section>
+
+  {minis.length > 0 && (
+    <section class="hblock">
+      <div class="hhead row">
+        <div><span class="eyebrow">{T.miniEyebrow}</span><h2>{T.miniH}</h2><p>{T.miniP}</p></div>
+        <a class="btn primary" href={`/${lang}/mini-ups/`}>{T.miniAll} →</a>
+      </div>
+      <ul class="minis">
+        {minis.map((p) => {
+          const tiers = tiersOf(p), cover = p.images && p.images[0];
+          return (
+            <li><a href={`/${lang}/p/${p.slug}/`}>
+              <span class="mimg">{cover ? <img src={cover.thumb} alt={p.model} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS.mini} />}</span>
+              <b>{p.model}</b>
+              {p.outputPower && <small class="num">{p.outputPower}</small>}
+              {tiers.length > 0 && (() => { const ps = tiers.map((x) => x.price), lo = Math.min(...ps), hi = Math.max(...ps); return <span class="price num">${lo.toFixed(2)}{hi > lo ? `–$${hi.toFixed(2)}` : ''}</span>; })()}
+            </a></li>
+          );
+        })}
+      </ul>
+    </section>
   )}
+
+  <section class="hblock why">
+    <div class="why-in">
+      <div>
+        <span class="eyebrow">{T.whyEyebrow}</span>
+        <h2>{T.whyH}</h2>
+        <p>{T.whyP}</p>
+        <div class="stats">{statPick.map((s) => <div><b class="num">{s.n}<small>{s.u}</small></b><span>{T.stats[s.k]}</span></div>)}</div>
+        <div class="why-cta">
+          <a class="btn dark" href={`/${lang}/about/`}>{T.ctaAbout}</a>
+          <a class="btn line" href={`/${lang}/custom/`}>{T.ctaCustom}</a>
+          {SITE.whatsapp && <a class="btn line" href={wa(T.ctaWa)} target="_blank" rel="noopener">{T.ctaWa}</a>}
+        </div>
+      </div>
+      <ul class="why-list">{T.why.map(([a, b]) => <li><b>{a}</b><span>{b}</span></li>)}</ul>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
 </Base>
 
-<script is:inline>
-(function () {
-  var root = document.querySelector('[data-shop]'); if (!root) return;
-  var c = JSON.parse(root.querySelector('[data-shop-cfg]').textContent);
-  var cards = [].slice.call(root.querySelectorAll('[data-card]'));
-  var counts = {};
-  var fmt = function (hours) {
-    var m = Math.round(hours * 60);
-    if (m < 60) return m + ' ' + c.min;
-    var h = Math.floor(m / 60), r = m % 60;
-    return h + ' ' + c.h + (r ? ' ' + r + ' ' + c.min : '');
-  };
-  function load() {
-    var total = 0;
-    root.querySelectorAll('[data-dev]').forEach(function (r) {
-      var n = counts[r.dataset.dev] || 0;
-      r.querySelector('[data-count]').textContent = n;
-      total += n * +r.dataset.w;
-    });
-    return total + Math.max(0, +root.querySelector('[data-custom]').value || 0);
-  }
-  function apply() {
-    var tags = [].slice.call(root.querySelectorAll('[data-tag]:checked')).map(function (x) { return x.value; });
-    var capsSel = [].slice.call(root.querySelectorAll('[data-cap]:checked')).map(function (x) { return x.value; });
-    var availEl = root.querySelector('[data-avail]:checked');
-    var avail = availEl ? availEl.value : '';
-    var total = load();
-    var canPower = root.querySelector('[data-can-power]').checked;
-    root.querySelector('[data-load-total]').textContent = total ? '· ' + total + ' W' : '';
-    var shown = 0;
-    cards.forEach(function (card) {
-      var have = card.dataset.tags ? card.dataset.tags.split('|') : [];
-      var ok = tags.every(function (t) { return have.indexOf(t) >= 0; });
-      if (capsSel.length && capsSel.indexOf(card.dataset.mah) < 0) ok = false;
-      if (avail && card.dataset.mode !== avail) ok = false;
-      var w = +card.dataset.w, wh = +card.dataset.wh;
-      if (total && canPower && w > 0 && total > w) ok = false;
-      var runs = card.querySelector('[data-runs]');
-      if (total && wh > 0 && !(w > 0 && total > w)) { runs.hidden = false; runs.textContent = c.runs.replace('{t}', fmt(wh * c.eff / total)); }
-      else runs.hidden = true;
-      card.hidden = !ok;
-      if (ok) shown++;
-    });
-    root.querySelector('[data-count-label]').textContent = shown === 1 ? c.count1 : c.count.replace('{n}', shown);
-    root.querySelector('[data-nomatch]').hidden = shown > 0;
-  }
-  root.querySelectorAll('[data-tag], [data-cap], [data-avail], [data-can-power]').forEach(function (el) { el.addEventListener('change', apply); });
-  root.querySelector('[data-custom]').addEventListener('input', apply);
-  root.querySelectorAll('[data-dev]').forEach(function (r) {
-    r.querySelectorAll('[data-step]').forEach(function (b) {
-      b.addEventListener('click', function () { var k = r.dataset.dev; counts[k] = Math.max(0, Math.min(20, (counts[k] || 0) + +b.dataset.step)); apply(); });
-    });
-  });
-  root.querySelector('[data-clear]').addEventListener('click', function () {
-    root.querySelectorAll('[data-tag], [data-cap]').forEach(function (x) { x.checked = false; });
-    var any = root.querySelector('[data-avail][value=""]'); if (any) any.checked = true;
-    counts = {}; root.querySelector('[data-custom]').value = '';
-    apply();
-  });
-  // 手机上默认收起筛选
-  if (window.matchMedia('(max-width: 860px)').matches) root.querySelector('.filters').open = false;
-  apply();
-})();
-</script>
-
 <style>
-  .page-title { font-size: clamp(30px, 5vw, 44px); margin: 32px 0 20px; }
-  .empty { color: var(--muted); }
-  .shop { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 28px; align-items: start; }
-  @media (max-width: 860px) { .shop { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
-  .filters { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .filters summary { font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
-  .filters summary::-webkit-details-marker { display: none; }
-  .filters summary::after { content: "▾"; color: var(--muted); }
-  .filters[open] summary::after { content: "▴"; }
-  .filters-body { display: grid; gap: 18px; margin-top: 14px; }
-  fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
-  legend { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0; margin-bottom: 8px; }
-  legend .unit { text-transform: none; letter-spacing: 0; }
-  .load-total { text-transform: none; letter-spacing: 0; color: var(--accent); }
+  .hblock { margin: 56px 0 0; }
+  .hhead { max-width: 760px; margin: 0 0 22px; }
+  .hhead.row { max-width: none; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  .hhead.row > div { max-width: 720px; }
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .hhead h2 { font-size: clamp(32px, 4.6vw, 52px); margin: 8px 0 10px; }
+  .hhead p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn:hover { filter: brightness(.96); }
+  /* —— 产品总览 —— */
+  .grp { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 22px; padding: 26px 0; border-top: 1px solid var(--line); }
+  .grp-h { position: sticky; top: 16px; align-self: start; display: grid; gap: 6px; }
+  .grp-n { font: 700 13px var(--mono); color: var(--accent); }
+  .grp-h h3 { margin: 0; font-family: var(--display); text-transform: uppercase; font-size: 28px; line-height: 1.05; }
+  .grp-h p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+  .grp-tag { justify-self: start; margin-top: 6px; padding: 3px 10px; border-radius: 999px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; background: #e3efeb; color: var(--accent); }
+  .g-solar .grp-tag { background: #fbefc6; color: #7a5a00; } .g-batt .grp-tag { background: #e6ecf8; color: #2b4f8f; }
+  .cats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .cat { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px; align-items: center; height: 100%; box-sizing: border-box; padding: 12px 34px 12px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .cat:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,107,92,.1); }
+  .cat:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cimg { width: 76px; height: 76px; border-radius: 10px; background: #f1f4f3; display: grid; place-items: center; overflow: hidden; }
+  .cimg img { width: 100%; height: 100%; object-fit: contain; }
+  .cimg svg { width: 40px; height: 40px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .g-solar .cimg svg { stroke: #b07f00; } .g-batt .cimg svg { stroke: #2b4f8f; }
+  .cat.istool { border-style: dashed; }
+  .cbody { display: grid; gap: 3px; min-width: 0; }
+  .cbody b { font-size: 15.5px; line-height: 1.25; }
+  .cbody small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  .cmeta { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 3px; font-size: 12px; }
+  .cmeta .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+  .cmeta em { font-style: normal; color: var(--accent); font-weight: 600; }
+  .carr { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); transition: color .15s, transform .15s; }
+  .cat:hover .carr { color: var(--accent); transform: translate(3px, -50%); }
+  /* —— 按场景 —— */
+  .apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .app { padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 10px; align-content: start; }
+  .app svg { width: 32px; height: 32px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .app h3 { margin: 0; font-size: 17px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { position: relative; cursor: pointer; }
-  .chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-  .chip span { display: inline-block; padding: 5px 11px; border: 1px solid var(--line); border-radius: 99px; font-size: 13px; background: var(--surface); }
-  .chip input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
-  .check input { margin-top: 3px; }
-  .clear { justify-self: start; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; }
-  .count { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
-  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-  .card a { display: flex; flex-direction: column; height: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: inherit; text-decoration: none; transition: border-color .15s; }
-  .card a:hover { border-color: var(--accent); }
-  .thumb { position: relative; aspect-ratio: 1; background: #eef2f1; max-width: 100%; }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .noimg { width: 100%; height: 100%; }
-  .pill { position: absolute; left: 10px; top: 10px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; }
-  .pill.stock { background: var(--ok-soft); color: var(--ok); }
-  .pill.group { background: var(--charge-soft); color: var(--warn); }
-  .runs { position: absolute; left: 10px; bottom: 10px; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; padding: 4px 9px; border-radius: 6px; }
-  /* 卡片内容竖向排列，价格固定在卡片底部：同一行的卡片价格始终对齐 */
-  .info { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 12px 14px 14px; }
-  .type { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .info strong { font-size: 17px; }
-  .meta { font-size: 13px; color: var(--muted); }
-  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
-  .tags i { font-style: normal; font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
-  .price { margin-top: auto; padding-top: 10px; font-weight: 600; color: var(--accent); }
+  .chips a { padding: 5px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); font-size: 13px; text-decoration: none; }
+  .chips a:hover { border-color: var(--accent); color: var(--accent); }
+  /* —— 工具 —— */
+  .tools-b { padding: 34px; border-radius: 20px; background: #0f1d1b; color: #e6efec; }
+  .tools-b .hhead p { color: #9fb2ad; } .tools-b .hhead h2 { color: #fff; }
+  .tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .tool { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: inherit; text-decoration: none; }
+  .tool:hover { border-color: #5ef0a0; background: rgba(94,240,160,.08); }
+  .tool svg { width: 30px; height: 30px; fill: none; stroke: #5ef0a0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tool b { display: block; font-size: 15px; color: #fff; } .tool small { color: #9fb2ad; font-size: 12.5px; } .tool i { font-style: normal; color: #5ef0a0; }
+  /* —— Mini UPS —— */
+  .minis { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .minis a { display: grid; gap: 4px; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; height: 100%; box-sizing: border-box; }
+  .minis a:hover { border-color: var(--accent); }
+  .mimg { aspect-ratio: 1; border-radius: 10px; background: #f1f4f3; display: grid; place-items: center; overflow: hidden; margin-bottom: 6px; }
+  .mimg img { width: 100%; height: 100%; object-fit: contain; } .mimg svg { width: 56px; height: 56px; fill: none; stroke: var(--accent); stroke-width: 2; }
+  .minis small { color: var(--muted); font-size: 13px; } .minis .price { color: var(--accent); font-weight: 700; font-size: 14px; }
+  /* —— 为什么选择 SKE —— */
+  .why { padding: 34px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; }
+  .why-in { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 30px; align-items: center; }
+  .why h2 { font-size: clamp(30px, 4vw, 46px); margin: 8px 0 10px; } .why p { color: var(--muted); margin: 0; line-height: 1.55; }
+  .stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 20px 0; }
+  .stats b { display: block; font-family: var(--display); font-size: 40px; line-height: 1; color: var(--accent); } .stats b small { font-size: .55em; margin-left: 2px; }
+  .stats span { font-size: 13px; color: var(--muted); }
+  .why-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .why-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .why-list li { display: grid; gap: 2px; padding: 14px 16px; border-radius: 12px; background: var(--bg); border-left: 3px solid var(--accent); }
+  .why-list b { font-size: 15px; } .why-list span { color: var(--muted); font-size: 13.5px; }
+  @media (max-width: 980px) {
+    .grp { grid-template-columns: minmax(0, 1fr); gap: 14px; } .grp-h { position: static; }
+    .apps, .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .minis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .why-in { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .hblock { margin-top: 40px; }
+    .apps, .tools { grid-template-columns: minmax(0, 1fr); }
+    .tools-b, .why { padding: 20px; border-radius: 16px; }
+    .cats { grid-template-columns: minmax(0, 1fr); }
+    .cat { grid-template-columns: 60px minmax(0, 1fr); } .cimg { width: 60px; height: 60px; }
+  }
 </style>
