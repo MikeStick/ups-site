@@ -1,0 +1,303 @@
+---
+// 家庭储能一体机规划器：① 外形（不限 / 壁挂 / 落地）② 用电器（数量 + 每天小时，清单同光伏选型器）③ 停电多久
+// → 推荐型号（功率够、电池够撑停电时间的最小一款）、同时运行功率、启动冲击、每天用电量、备电时间。
+// 右侧：房屋剖面 SVG——屋顶光伏、屋外电网、屋内一体机（壁挂 / 落地两种外形）和勾选的电器；可切换"白天 / 夜晚 / 停电"看能量流向。
+// 计算在 src/lib/ess-engine.mjs（测试：node scripts/test-ess-engine.mjs）。
+import { SITE } from '../config.mjs';
+import { HE } from '../lib/ess-i18n.mjs';
+import { SL } from '../lib/solar-i18n.mjs';
+import { ESS_GENERIC, OUTAGE_H } from '../lib/ess-engine.mjs';
+import { APPLIANCES } from '../lib/solar-engine.mjs';
+import { AP_ICONS } from '../lib/appliance-icons.mjs';
+import { isHomeEss, essSpec } from '../lib/category.mjs';
+import all from '../data/products.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = HE[lang], C = T.c, AP = SL[lang].c.ap;
+const pub = all.filter(isHomeEss).map((p) => ({ m: p.model, slug: p.slug, ...essSpec(p) })).filter((x) => x.kw > 0 && x.kwh > 0);
+const models = pub.length ? pub : ESS_GENERIC;
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, mountName: T.mount, ap: AP, aps: APPLIANCES.map((a) => ({ id: a.id, n: a.n, h: a.h })) };
+// 屋内电器图标位置：4 列 × 3 行
+const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 156 + Math.floor(i / 4) * 50 }));
+---
+<section class="block esv" id="builder" data-esv>
+  <script type="application/json" data-esv-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{C.eyebrow}</span><h2>{C.h}</h2><p>{C.p}</p></div>
+  <div class="rb-stage">
+    <div class="rb-ctl">
+      <div class="rb-grp">
+        <div class="rb-gh"><span class="rb-n">1</span><b>{C.s1}</b></div>
+        <div class="rb-in"><div class="rb-seg">{(['any', 'wall', 'floor'] as const).map((k, i) => <button type="button" class:list={{ on: i === 0 }} data-mount={k}>{C.mounts[k]}</button>)}</div></div>
+      </div>
+      <div class="rb-grp">
+        <div class="rb-gh"><span class="rb-n">2</span><b>{C.s2}</b><small class="es-sub">{C.s2n}</small></div>
+        <div class="es-aps">
+          {APPLIANCES.map((a) => (
+            <div class:list={['es-ap', { on: a.n > 0 }]} data-ap={a.id}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" set:html={AP_ICONS[a.id]} />
+              <div class="es-ap-t"><b>{AP[a.id]}</b><small>{a.w} W</small></div>
+              <div class="es-step"><button type="button" data-d="-1" aria-label="−">−</button><output data-n>{a.n}</output><button type="button" data-d="1" aria-label="+">+</button></div>
+              <label class="es-h"><input type="number" min="0" max="24" step="0.5" value={a.h} data-h aria-label={`${AP[a.id]} ${C.perDay}`} /><span>{C.perDay}</span></label>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="rb-grp">
+        <div class="rb-gh"><span class="rb-n">3</span><b>{C.s3}</b></div>
+        <div class="rb-in"><div class="rb-chips">{OUTAGE_H.map((h) => <button type="button" class:list={['rb-chip', { on: h === 4 }]} data-oh={h}>{h} {C.hu}</button>)}</div></div>
+      </div>
+      <div class="rb-read">
+        <div class="rb-big"><span>{C.out.model}</span><b data-big>—</b></div>
+        <dl class="rb-rows" data-rows></dl>
+        <ul class="rb-checks" data-checks></ul>
+      </div>
+    </div>
+
+    <div class="rb-view">
+      <div class="rb-modes" role="group" aria-label={C.s4}>
+        <span>{C.s4}</span>
+        {(['day', 'night', 'cut'] as const).map((k, i) => <button type="button" class:list={{ on: i === 0 }} data-mode={k}>{C.modes[k]}</button>)}
+      </div>
+      <div class="es-scene" data-scene data-m="day" data-um="wall">
+        <svg viewBox="0 0 560 340" role="img" aria-label={C.h}>
+          <rect x="0" y="0" width="560" height="340" class="sky" />
+          <circle cx="70" cy="50" r="18" class="sun" /><path d="M78 34a18 18 0 1 0 14 28a14 14 0 1 1-14-28z" class="moon" />
+          <polygon points="80,124 300,40 520,124" class="roof" />
+          <g class="pv"><polygon points="330,62 418,96 404,104 316,70" /><polygon points="420,98 500,128 486,136 406,106" /><polygon points="312,72 400,106 386,114 298,80" /></g>
+          <text x="458" y="84" class="lbl">{C.vis.pv}</text>
+          <rect x="100" y="124" width="400" height="186" class="wall" />
+          <rect x="0" y="310" width="560" height="30" class="ground" />
+          <g class="pylon"><path d="M40 310 L52 190 L64 310 M44 270 H60 M47 236 H57 M40 200 H64" /><text x="52" y="182" class="lbl">{C.vis.grid}</text><text x="72" y="214" class="x">✕</text></g>
+          <path d="M64 205 H100" class="ln g" /><path d="M100 205 H150" class="ln g wallonly" /><path d="M100 278 H145" class="ln g flooronly" /><path d="M100 205 V278" class="ln g flooronly" />
+          <path d="M404 110 V140 H180 V150" class="ln p wallonly" /><path d="M404 110 V140 H180 V226" class="ln p flooronly" />
+          <path d="M210 196 H282" class="ln h wallonly" /><path d="M216 270 H282" class="ln h flooronly" />
+          <g class="unit wallunit"><rect x="150" y="150" width="60" height="96" rx="6" /><rect x="160" y="160" width="40" height="18" rx="2" class="scr" /><text x="180" y="173" class="st" data-scr>—</text><rect x="168" y="186" width="24" height="46" rx="2" class="socbg" /><rect x="168" y="186" width="24" height="46" rx="2" class="soc" /></g>
+          <g class="unit floorunit"><rect x="145" y="226" width="72" height="84" rx="6" /><rect x="156" y="234" width="50" height="16" rx="2" class="scr" /><text x="181" y="246" class="st" data-scr2>—</text><rect x="169" y="256" width="24" height="44" rx="2" class="socbg" /><rect x="169" y="256" width="24" height="44" rx="2" class="soc" /></g>
+          {apPos.map((a) => <svg x={a.x} y={a.y} width="36" height="36" viewBox="-4 -4 32 32" class="ap" data-sap={a.id} set:html={`<rect x="-4" y="-4" width="32" height="32" rx="7" class="apbg"/>${AP_ICONS[a.id]}`} />)}
+          <text x="390" y="304" class="lbl">{C.vis.home}</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="rb-final">
+      <div class="rb-sum" data-sum></div>
+      {(SITE.whatsapp || SITE.email) && <button type="button" class="rb-go" data-open aria-haspopup="dialog">{C.send}</button>}
+    </div>
+    <details class="rb-assume">
+      <summary>{C.assumeH}</summary>
+      <ul>{C.assume.map((a) => <li>{a}</li>)}</ul>
+    </details>
+  </div>
+
+  <div class="rb-pop" data-pop hidden role="dialog" aria-modal="true" aria-labelledby="es-pop-h">
+    <div class="rb-pop-box">
+      <button type="button" class="rb-pop-x" data-close aria-label={C.close}>×</button>
+      <h3 id="es-pop-h">{C.popH}</h3>
+      <p>{C.popP}</p>
+      <pre data-msg></pre>
+      <div class="rb-pop-acts">
+        {SITE.whatsapp && <a class="rb-pop-btn wa" data-wa href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.6c-.5-.8-.9-1.8-.9-2.7s.5-1.7.8-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.8-.1 1.4z"/></svg>{C.viaWa}</a>}
+        {SITE.email && <a class="rb-pop-btn mail" data-mail href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3-8-5.3zM5.6 7l6.4 4.2L18.4 7H5.6z"/></svg>{C.viaMail}<small>{SITE.email}</small></a>}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { sizeEss } from '../lib/ess-engine.mjs';
+  const root = document.querySelector('[data-esv]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-esv-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const st: any = { mount: 'any', outageH: 4, items: {} };
+    for (const a of c.aps) st.items[a.id] = { n: a.n, h: a.h };
+    let lastMsg = '', lastSubj = '', last: any = null;
+    const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    function update() {
+      const r = sizeEss({ items: st.items, outageH: st.outageH, mount: st.mount, models: c.models });
+      const go = $('[data-open]') as HTMLButtonElement | null;
+      const used = new Set(r ? r.used : []);
+      $$('[data-sap]').forEach((x) => x.classList.toggle('on', used.has(x.dataset.sap!)));
+      last = r && r.model ? r : null;
+      const scene = $('[data-scene]');
+      if (!r) { $('[data-big]').textContent = '—'; $('[data-rows]').innerHTML = `<div class="enter">${T.out.enter}</div>`; $('[data-checks]').innerHTML = ''; $('[data-sum]').innerHTML = ''; if (go) go.disabled = true; return; }
+      let h = row(T.out.peak, `${r.peakW} W`) + row(T.out.surge, `${r.surgeW} W`) + row(T.out.daily, `${Math.round(r.dailyWh / 100) / 10} kWh`);
+      const ch = [];
+      if (r.over) {
+        $('[data-big]').textContent = '—'; ch.push(fmt(T.chk.over, { kw: r.needKw, max: r.maxKw }));
+        $('[data-rows]').innerHTML = h; $('[data-checks]').innerHTML = ch.map((x) => `<li>${x}</li>`).join(''); $('[data-sum]').innerHTML = ''; if (go) go.disabled = true; return;
+      }
+      if (go) go.disabled = false;
+      const m = r.model, mn = c.mountName[m.mount];
+      $('[data-big]').innerHTML = m.slug ? `<a href="/${c.lang}/p/${m.slug}/">${m.m}</a><small> · ${mn}</small>` : `${m.m}<small> · ${mn}</small>`;
+      h += row(T.out.loadPct, `${r.loadPct}%`) + row(T.out.batt, `${m.kwh} kWh${m.v ? ` · ${m.v} V` : ''}`) + row(T.out.runtime, fmt(T.out.runtimeN, { h: r.runtime }));
+      if (!m.slug) h += row(T.out.model, `<span class="cu">${T.out.custom}</span>`);
+      $('[data-rows]').innerHTML = h;
+      if (r.short) ch.push(fmt(T.chk.short, { h: r.runtime, need: r.outageH }));
+      if (r.bySurge) ch.push(T.chk.surge);
+      $('[data-checks]').innerHTML = ch.map((x) => `<li>${x}</li>`).join('');
+      scene.dataset.um = m.mount;
+      const scr = `${m.kw}kW`; $('[data-scr]').textContent = scr; $('[data-scr2]').textContent = scr;
+      $('[data-sum]').innerHTML = `<div><span>${T.sum}</span><b>${m.m} · ${mn} · ≈ ${r.runtime} ${T.hu}</b></div>`;
+      const aps = r.used.map((id: string) => `${c.ap[id]} × ${st.items[id].n}`).join(', ');
+      lastMsg = fmt(T.msg, { model: m.m, mount: mn, aps, peak: r.peakW, daily: Math.round(r.dailyWh / 100) / 10, hours: r.outageH, rt: r.runtime });
+      lastSubj = `${T.subj} · ${m.m} · ${mn}`;
+    }
+    $$('[data-ap]').forEach((el) => {
+      const id = el.dataset.ap!, out = el.querySelector('[data-n]') as HTMLElement, hin = el.querySelector('[data-h]') as HTMLInputElement;
+      el.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => { const it = st.items[id]; it.n = Math.max(0, Math.min(20, it.n + +(b as HTMLElement).dataset.d!)); out.textContent = String(it.n); el.classList.toggle('on', it.n > 0); update(); }));
+      hin.addEventListener('input', () => { st.items[id].h = Math.min(24, Math.max(0, parseFloat(hin.value.replace(',', '.')) || 0)); update(); });
+    });
+    $$('[data-mount]').forEach((b) => b.addEventListener('click', () => { st.mount = b.dataset.mount; $$('[data-mount]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-oh]').forEach((b) => b.addEventListener('click', () => { st.outageH = +b.dataset.oh!; $$('[data-oh]').forEach((x) => x.classList.toggle('on', x === b)); update(); }));
+    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { $('[data-scene]').dataset.m = b.dataset.mode; $$('[data-mode]').forEach((x) => x.classList.toggle('on', x === b)); }));
+    const pop = $('[data-pop]'); let opener: HTMLElement | null = null;
+    function openPop() {
+      $('[data-msg]').textContent = lastMsg;
+      const wa = root!.querySelector('[data-wa]') as HTMLAnchorElement | null, mail = root!.querySelector('[data-mail]') as HTMLAnchorElement | null;
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(lastMsg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(lastSubj) + '&body=' + encodeURIComponent(lastMsg);
+      pop.hidden = false; document.body.style.overflow = 'hidden';
+      (pop.querySelector('.rb-pop-btn') as HTMLElement | null)?.focus();
+    }
+    function closePop() { pop.hidden = true; document.body.style.overflow = ''; opener?.focus(); }
+    const ob = root.querySelector('[data-open]') as HTMLElement | null;
+    ob?.addEventListener('click', () => { if (!last) return; opener = ob; openPop(); });
+    pop.addEventListener('click', (e: any) => { if (e.target === pop || e.target.closest('[data-close]')) closePop(); else if (e.target.closest('.rb-pop-btn')) setTimeout(closePop, 300); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); });
+    update();
+  }
+</script>
+
+<style>
+
+
+  .rb-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl view" "fin fin" "as as"; gap: 22px; padding: 26px; border-radius: 18px; color: #e6efec;
+    background: radial-gradient(120% 90% at 75% 40%, #12302b 0%, #0a1514 55%, #070d0d 100%); }
+  .rb-ctl { grid-area: ctl; display: grid; gap: 12px; align-content: start; }
+  .rb-view { grid-area: view; display: grid; gap: 12px; align-content: start; justify-items: center; }
+  .rb-grp { width: 100%; box-sizing: border-box; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; }
+  .rb-gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .rb-gh b { font-size: 15px; } .rb-gh small { color: #8fa7a1; font-size: 12px; }
+  .rb-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #5ef0a0; color: #062019; flex: none; align-self: center; }
+  .rb-seg { display: inline-flex; border: 1px solid rgba(255,255,255,.15); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+  .rb-seg button { padding: 0 14px; min-height: 40px; border: 0; background: transparent; color: #cfdcd8; font: 600 13.5px var(--body); cursor: pointer; }
+  .rb-seg button.on { background: #5ef0a0; color: #062019; }
+  .rb-in { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+  .rb-in[hidden] { display: none; }
+  .rb-num { display: grid; grid-template-columns: auto auto; gap: 4px 8px; align-items: center; font-size: 12px; color: #8fa7a1; }
+  .rb-num span { grid-column: 1 / 3; }
+  .rb-num input { width: 120px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: #0b1615; color: #fff; }
+  .rb-num input:focus { outline: 2px solid #5ef0a0; outline-offset: 1px; }
+  .rb-num b { font: 600 15px var(--mono); color: #8fa7a1; }
+  .rb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rb-chip { padding: 0 12px; min-height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #cfdcd8; font: 600 13px var(--mono); cursor: pointer; }
+  .rb-chip.on { background: #5ef0a0; border-color: #5ef0a0; color: #062019; }
+  .rb-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+  .rb-mod { display: grid; gap: 3px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); color: #cfdcd8; cursor: pointer; font-family: var(--body); }
+  .rb-mod b { font-size: 14px; } .rb-mod small { font: 11.5px var(--mono); color: #8fa7a1; }
+  .rb-mod.on { border-color: #5ef0a0; background: rgba(94,240,160,.1); color: #fff; box-shadow: 0 0 0 1px #5ef0a0 inset; }
+  .rb-read { display: grid; gap: 8px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(94,240,160,.12), rgba(94,240,160,.02)); border: 1px solid rgba(94,240,160,.25); }
+  .rb-big { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rb-big span { color: #8fa7a1; font-size: 13px; }
+  .rb-big b { font: 700 clamp(38px, 5vw, 54px)/1 var(--display); color: #5ef0a0; }
+  .rb-big :global(small) { font-size: 18px; color: #cfdcd8; }
+  .rb-rows { margin: 0; display: grid; font-size: 13.5px; }
+  .rb-rows :global(div) { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,.1); }
+  .rb-rows :global(dt) { color: #8fa7a1; } .rb-rows :global(dd) { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; }
+  .rb-rows :global(a) { color: #fff; } .rb-rows :global(.cu) { color: #facc15; font-family: var(--body); }
+  .rb-rows :global(.enter) { border: 0; color: #cfdcd8; }
+  .rb-checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .rb-checks :global(li) { font-size: 12.5px; padding: 7px 10px; border-radius: 8px; background: rgba(250,204,21,.1); color: #fde68a; }
+  .rb-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-self: stretch; }
+  .rb-modes span { margin-right: 4px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #8fa7a1; }
+  .rb-modes button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #cfdcd8; font: 600 12.5px var(--body); cursor: pointer; }
+  .rb-modes button.on { background: #fff; color: #0a1514; border-color: #fff; }
+  .rb-big b { font-size: clamp(30px, 4vw, 44px); }
+  .rb-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-self: stretch; }
+  .rb-modes span { margin-right: 4px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #8fa7a1; }
+  .rb-modes button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #cfdcd8; font: 600 12.5px var(--body); cursor: pointer; }
+  .rb-modes button.on { background: #fff; color: #0a1514; border-color: #fff; }
+  .rb-big b { font-size: clamp(24px, 3vw, 36px); } .rb-big b :global(a) { color: inherit; text-decoration: none; }
+  .rb-seg { display: inline-flex; flex-wrap: wrap; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+  .rb-seg button { padding: 7px 14px; border: 0; border-radius: 999px; background: transparent; color: #cfdcd8; font: 600 13px var(--body); cursor: pointer; }
+  .rb-seg button.on { background: #5ef0a0; color: #062019; }
+  .es-sub { margin-left: 8px; font-size: 12px; color: #8fa7a1; font-weight: 500; }
+  .es-aps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; }
+  .es-ap { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
+  .es-ap.on { border-color: rgba(94,240,160,.45); background: rgba(94,240,160,.07); }
+  .es-ap svg { width: 22px; height: 22px; fill: none; stroke: #8fa7a1; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .es-ap.on svg { stroke: #5ef0a0; }
+  .es-ap-t { display: grid; min-width: 0; } .es-ap-t b { font-size: 13px; color: #e6efec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .es-ap-t small { font: 11px var(--mono); color: #8fa7a1; }
+  .es-step { display: flex; align-items: center; gap: 2px; }
+  .es-step button { width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #e6efec; cursor: pointer; font-size: 14px; line-height: 1; }
+  .es-step output { min-width: 20px; text-align: center; font: 700 13px var(--mono); color: #fff; }
+  .es-h { display: flex; align-items: center; gap: 3px; } .es-h input { width: 42px; padding: 3px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.25); color: #fff; font: 12px var(--mono); }
+  .es-h span { font: 10px var(--mono); color: #8fa7a1; }
+  .es-ap:not(.on) .es-h { opacity: .45; }
+  /* —— 房屋场景 —— */
+  .es-scene { width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 24px 50px rgba(0,0,0,.45); }
+  .es-scene svg { display: block; width: 100%; height: auto; }
+  .es-scene .sky { fill: #cfe6f5; transition: fill .5s; }
+  .es-scene[data-m="night"] .sky, .es-scene[data-m="cut"] .sky { fill: #1c2a3d; }
+  .es-scene .sun { fill: #fbbf24; } .es-scene .moon { fill: #e5e7eb; opacity: 0; }
+  .es-scene[data-m="night"] .sun, .es-scene[data-m="cut"] .sun { opacity: 0; } .es-scene[data-m="night"] .moon, .es-scene[data-m="cut"] .moon { opacity: 1; }
+  .es-scene .roof { fill: #8b5e3c; } .es-scene .pv polygon { fill: #1e3a5f; stroke: #9cc3e6; stroke-width: 1.2; }
+  .es-scene[data-m="day"] .pv polygon { fill: #24548a; }
+  .es-scene .wall { fill: #efe9df; } .es-scene[data-m="night"] .wall { fill: #e2d9c8; } .es-scene[data-m="cut"] .wall { fill: #b8b0a2; }
+  .es-scene .ground { fill: #8d9a6b; }
+  .es-scene .pylon path { stroke: #4b5563; stroke-width: 3; fill: none; }
+  .es-scene .lbl { font: 700 10px var(--mono); fill: #374151; text-anchor: middle; letter-spacing: .06em; }
+  .es-scene[data-m="night"] .pylon .lbl, .es-scene[data-m="cut"] .pylon .lbl, .es-scene[data-m="night"] text.lbl, .es-scene[data-m="cut"] text.lbl { fill: #e5e7eb; }
+  .es-scene .x { font: 700 18px var(--body); fill: #dc2626; opacity: 0; } .es-scene[data-m="cut"] .x { opacity: 1; }
+  .es-scene .ln { fill: none; stroke: #b9b2a5; stroke-width: 5; stroke-linecap: round; }
+  .es-scene .ln.on, .es-scene[data-m="day"] .ln.p, .es-scene .ln.h { stroke-dasharray: 10 8; animation: esFlow .8s linear infinite; }
+  .es-scene[data-m="day"] .ln.p { stroke: #f59e0b; } .es-scene .ln.h { stroke: #22c55e; }
+  .es-scene[data-m="cut"] .ln.g { stroke: #dc2626; stroke-dasharray: 3 7; opacity: .6; }
+  @keyframes esFlow { to { stroke-dashoffset: -18; } }
+  .es-scene[data-um="wall"] .flooronly, .es-scene[data-um="wall"] .floorunit, .es-scene[data-um="floor"] .wallonly, .es-scene[data-um="floor"] .wallunit { display: none; }
+  .es-scene .unit > rect:first-child { fill: #f8faf9; stroke: #1e6e5a; stroke-width: 2.5; }
+  .es-scene .scr { fill: #0b1a17; } .es-scene .st { font: 700 9px var(--mono); fill: #5ef0a0; text-anchor: middle; }
+  .es-scene .socbg { fill: #d7dedb; } .es-scene .soc { fill: #22c55e; transform-box: fill-box; transform-origin: 50% 100%; animation: esChg 4s ease-in-out infinite; }
+  .es-scene[data-m="night"] .soc, .es-scene[data-m="cut"] .soc { animation-name: esDis; fill: #f59e0b; }
+  @keyframes esChg { 0% { transform: scaleY(.35); } 100% { transform: scaleY(1); } }
+  @keyframes esDis { 0% { transform: scaleY(1); } 100% { transform: scaleY(.3); } }
+  .es-scene .ap { opacity: .28; transition: opacity .3s; } .es-scene .ap.on { opacity: 1; }
+  .es-scene .ap :global(path), .es-scene .ap :global(circle), .es-scene .ap :global(rect:not(.apbg)) { fill: none; stroke: #374151; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .es-scene .ap :global(.apbg) { fill: #fff; stroke: #d6cfc2; }
+  .es-scene .ap.on :global(.apbg) { fill: #fef3c7; stroke: #f59e0b; }
+  .es-scene[data-m="cut"] .ap.on :global(.apbg) { fill: #dcfce7; stroke: #22c55e; }
+  .rb-final { grid-area: fin; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .rb-sum { flex: 1 1 380px; font-size: 14px; }
+  .rb-sum :global(div) { display: flex; gap: 10px; flex-wrap: wrap; }
+  .rb-sum :global(span) { color: #8fa7a1; font: 600 12px/20px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .rb-sum :global(b) { font-family: var(--mono); font-weight: 600; }
+  .rb-go { min-height: 50px; padding: 0 26px; border-radius: 10px; border: 0; background: #5ef0a0; color: #062019; font: 700 16px var(--body); cursor: pointer; box-shadow: 0 10px 30px rgba(94,240,160,.25); }
+  .rb-go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  @media (max-width: 520px) { .rb-go { width: 100%; } }
+  .rb-assume { grid-area: as; font-size: 13px; color: #8fa7a1; }
+  .rb-assume summary { cursor: pointer; font-weight: 600; color: #cfdcd8; }
+  .rb-assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+  .rb-pop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(3, 8, 8, .72); backdrop-filter: blur(4px); }
+  .rb-pop[hidden] { display: none; }
+  .rb-pop-box { position: relative; width: min(480px, 100%); padding: 24px; border-radius: 16px; color: #e6efec; background: linear-gradient(180deg, #12302b, #0a1514); border: 1px solid rgba(94,240,160,.3); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .rb-pop-box h3 { margin: 0 0 6px; font: 700 24px var(--display); text-transform: uppercase; }
+  .rb-pop-box > p { margin: 0 0 12px; font-size: 14px; color: #8fa7a1; }
+  .rb-pop-box pre { margin: 0 0 16px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; color: #cfdcd8; max-height: 220px; overflow: auto; }
+  .rb-pop-acts { display: grid; gap: 10px; }
+  .rb-pop-btn { display: grid; grid-template-columns: 26px 1fr; column-gap: 12px; align-items: center; padding: 13px 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; }
+  .rb-pop-btn svg { width: 26px; height: 26px; grid-row: 1 / 3; fill: currentColor; }
+  .rb-pop-btn small { grid-column: 2; font: 500 12px var(--mono); opacity: .75; }
+  .rb-pop-btn.wa { background: #25d366; color: #062019; }
+  .rb-pop-btn.mail { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .rb-pop-x { position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.06); color: #cfdcd8; font-size: 22px; cursor: pointer; }
+  @media (max-width: 900px) {
+    .esv .rb-stage { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+    .esv .rb-ctl { display: contents; }
+    .esv .rb-view { order: 1; } .esv .rb-grp { order: 2; } .esv .rb-read { order: 3; } .esv .rb-final { order: 4; } .esv .rb-assume { order: 5; }
+  }
+  @media (max-width: 520px) { .rb-seg { display: flex; } .rb-seg button { flex: 1; padding: 7px 6px; font-size: 12.5px; } }
+  @media (prefers-reduced-motion: reduce) { .es-scene *, .es-scene :global(*) { animation: none !important; } }
+</style>

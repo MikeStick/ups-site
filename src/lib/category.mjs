@@ -60,6 +60,28 @@ export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
 export const WALL_BATT_TYPES = ['壁挂式锂电池', '壁挂式磷酸铁锂电池'];
 export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
+// 家庭储能一体机（电池 + 逆变器一体）：壁挂式 / 落地式两个细分品类，合在一个栏目 /home-ess/
+export const ESS_WALL_TYPES = ['壁挂式储能一体机'];
+export const ESS_FLOOR_TYPES = ['落地式储能一体机'];
+export const isHomeEss = (p) => has(p, [...ESS_WALL_TYPES, ...ESS_FLOOR_TYPES]);
+export const essMount = (p) => (has(p, ESS_FLOOR_TYPES) ? 'floor' : 'wall');
+// 参数：电池 kWh、逆变器 kW（型号名就是"2.5kWh + 3kW"这种写法，字段没填时从型号里读）、电池电压 / Ah、尺寸、重量
+export function essSpec(p) {
+  const name = String(p.model || '');
+  let kwh = num1(p.moduleMaxEnergy || p.batteryCapacity);
+  if (kwh > 100) kwh /= 1000;
+  const mk = name.match(/(\d+(?:\.\d+)?)\s*kWh/i);
+  if (!kwh && mk) kwh = +mk[1];
+  const v = num1(p.moduleVoltage || p.batteryVoltage), ah = num1(p.moduleCapacity);
+  if (!kwh && v && ah) kwh = Math.round(v * ah / 10) / 100; // 规格书写的是 2.5 / 5 kWh，填了就按填的显示
+  let kw = num1(p.ratedPower || p.outputPower || p.inverterPower);
+  if (kw > 100) kw /= 1000;
+  const mw = name.match(/(\d+(?:\.\d+)?)\s*kW(?!h)/i);
+  if (mw && (!kw || /w/i.test(String(p.ratedPowerUnit || '')) && kw > 100)) kw = +mw[1];
+  if (!kw && mw) kw = +mw[1];
+  const dims = (String(p.dimensions || p.moduleDimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 3);
+  return { mount: essMount(p), kwh, kw, v, ah, kg: num1(p.netWeight || p.moduleWeight), dims: dims.length === 3 ? dims : [] };
+}
 // 锂电替换铅酸电池（LiFePO4 drop-in，12.8 / 25.6 / 51.2 V，型号如 LFP-12V7AH）：栏目 /batteries/lead-acid-replacement/
 export const PBR_TYPES = ['锂电替换铅酸电池'];
 export const isPbReplace = (p) => has(p, PBR_TYPES);

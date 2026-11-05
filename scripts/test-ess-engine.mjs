@@ -1,0 +1,14 @@
+import { sizeEss, loadOf, ESS_GENERIC } from '../src/lib/ess-engine.mjs';
+let bad = 0; const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) bad++; };
+const basic = { light: { n: 8 }, fan: { n: 2 }, tv: { n: 1 }, router: { n: 1 }, fridge: { n: 1 } };
+let r = sizeEss({ items: basic, outageH: 4, mount: 'wall', models: ESS_GENERIC });
+ok(r.model.kw === 3 && r.model.mount === 'wall' && !r.short, `basic home 4 h → ${r.model.m} ${r.model.mount} (peak ${r.peakW} W, need ${r.needKw} kW, ${r.runtime} h)`);
+r = sizeEss({ items: { ...basic, ac: { n: 1 } }, outageH: 8, mount: 'floor', models: ESS_GENERIC });
+ok(r.model.kw === 5 && r.model.mount === 'floor', `with AC 8 h → ${r.model.m} (need ${r.needKw} kW, runtime ${r.runtime} h, short ${r.short})`);
+r = sizeEss({ items: { heater: { n: 2 }, ac: { n: 2 } }, outageH: 4, models: ESS_GENERIC });
+ok(r.over && r.maxKw === 5, `too big → over (need ${r.needKw} kW)`);
+r = sizeEss({ items: { ...basic, freezer: { n: 1 } }, outageH: 48, models: ESS_GENERIC });
+ok(r.short && r.model.kwh === 5, `48 h → biggest battery, short (${r.runtime} h)`);
+ok(sizeEss({ items: {}, outageH: 4, models: ESS_GENERIC }) === null, 'no load → null');
+ok(loadOf(basic).peakW === 80 + 120 + 100 + 15 + 150, 'peak sum');
+if (bad) { console.log(bad + ' failed'); process.exit(1); }

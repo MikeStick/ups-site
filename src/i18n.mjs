@@ -122,6 +122,8 @@ const TERMS = {
   '机架式磷酸铁锂电池': { es: 'Batería LiFePO4 para rack', en: 'Rack-mount LiFePO4 battery', ru: 'Стоечный аккумулятор LiFePO4' },
   '壁挂式锂电池': { es: 'Batería de litio de pared', en: 'Wall-mount lithium battery', ru: 'Настенный литиевый аккумулятор' },
   '壁挂式磷酸铁锂电池': { es: 'Batería LiFePO4 de pared', en: 'Wall-mount LiFePO4 battery', ru: 'Настенный аккумулятор LiFePO4' },
+  '壁挂式储能一体机': { es: 'ESS doméstico todo en uno de pared', en: 'Wall-mounted all-in-one home ESS', ru: 'Настенная домашняя ESS «всё в одном»' },
+  '落地式储能一体机': { es: 'ESS doméstico todo en uno de piso', en: 'Floor-standing all-in-one home ESS', ru: 'Напольная домашняя ESS «всё в одном»' },
   '锂电替换铅酸电池': { es: 'Batería LiFePO4 de reemplazo de plomo-ácido', en: 'LiFePO4 lead-acid replacement battery', ru: 'Аккумулятор LiFePO4 на замену свинцовому' },
   '磷酸铁锂储能柜': { es: 'Gabinete de batería LiFePO4', en: 'LiFePO4 battery cabinet', ru: 'Батарейный шкаф LiFePO4' },
   '高压锂电池柜': { es: 'Gabinete de batería de litio de alta tensión', en: 'High-voltage lithium battery cabinet', ru: 'Высоковольтный литиевый батарейный шкаф' },

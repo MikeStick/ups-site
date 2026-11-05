@@ -1,0 +1,282 @@
+---
+// 家庭储能一体机栏目页（/home-ess/，菜单在"光伏"栏）：家庭备电规划器（用电器 + 停电时长 → 型号，房屋剖面示意）→ 型号卡片（按壁挂 / 落地页签筛选）
+// → 卖点 → 一体机 vs 分体逆变器 + 电池 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
+// 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机（两种外形型号名相同，靠细分品类区分）。
+import Base from '../../layouts/Base.astro';
+import EssVisual from '../../components/EssVisual.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { HE } from '../../lib/ess-i18n.mjs';
+import { isHomeEss, essSpec, seriesName } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = HE[lang];
+const list = all.filter(isHomeEss).map((p) => ({ p, e: essSpec(p), s: seriesName(p) })).sort((a, b) => (a.e.mount > b.e.mount ? 1 : a.e.mount < b.e.mount ? -1 : 0) * -1 || a.e.kw - b.e.kw || a.s.localeCompare(b.s));
+const MOUNTS = ['wall', 'floor'].filter((m) => list.some((x) => x.e.mount === m));
+const kwhs = [...new Set(list.map((x) => x.e.kwh).filter(Boolean))].sort((a, b) => a - b);
+const comboTxt = kwhs.length ? `${Math.min(...kwhs)}–${Math.max(...kwhs)} kWh` : '2.5–5 kWh';
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const WALL_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="60" y="14" width="80" height="172" rx="10" fill="#f6f7f6" stroke="#1e6e5a" stroke-width="4"/><rect x="74" y="32" width="52" height="24" rx="3" fill="#0b1a17"/><path d="M82 44h28" stroke="#5ef0a0" stroke-width="4"/><rect x="88" y="72" width="24" height="70" rx="3" fill="#d7dedb"/><rect x="88" y="98" width="24" height="44" rx="3" fill="#22c55e"/></svg>';
+const FLOOR_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="48" y="40" width="104" height="140" rx="10" fill="#f6f7f6" stroke="#1e6e5a" stroke-width="4"/><rect x="64" y="56" width="72" height="24" rx="3" fill="#0b1a17"/><path d="M72 68h40" stroke="#5ef0a0" stroke-width="4"/><rect x="88" y="96" width="24" height="64" rx="3" fill="#d7dedb"/><rect x="88" y="118" width="24" height="42" rx="3" fill="#22c55e"/><rect x="56" y="180" width="88" height="6" rx="2" fill="#3d3a33"/></svg>';
+const APP_ICONS = [
+  '<path d="M17 3L9 17h6l-2 10 8-14h-6z"/>',
+  '<path d="M4 16l11-9 11 9M7 14v11h16V14"/><path d="M17 4l2 3h3l-2 3"/>',
+  '<path d="M4 11h22l-2-6H6zM6 11v14h18V11M12 25v-7h6v7"/>',
+  '<rect x="4" y="6" width="22" height="14" rx="1.5"/><path d="M10 25h10M15 20v5"/>',
+  '<rect x="5" y="5" width="20" height="20" rx="2"/><path d="M15 9v12M9 15h12"/>',
+  '<path d="M5 26V12l10-7 10 7v14zM12 26v-7h6v7M9 15h3M18 15h3"/>',
+];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: T.crumbs, item: `${site}/${lang}/` },
+  { '@type': 'ListItem', position: 2, name: T.title, item: `${site}/${lang}/home-ess/` },
+] };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="home-ess/">
+<div class="off rbp esp">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.crumbSolar} / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#builder">{T.ctaPlanner}</a>
+          {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
+        </div>
+      </div>
+      <div class="hero-facts">
+        <div><b class="num">{comboTxt}</b><span>{T.facts.combo}</span></div>
+        <div><b class="num">{T.mountV}</b><span>{T.facts.mount}</span></div>
+        <div><b class="num">{T.inputV}</b><span>{T.facts.input}</span></div>
+        <div><b class="num">{T.upsV}</b><span>{T.facts.ups}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <EssVisual lang={lang} />
+
+  {list.length > 0 && (
+    <section class="block" id="models" data-esm>
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      {MOUNTS.length > 1 && (
+        <div class="vtabs" role="tablist">
+          <button type="button" class="on" data-mt="all">{T.tabAll} <small>{list.length}</small></button>
+          {MOUNTS.map((m) => <button type="button" data-mt={m}>{T.mount[m]} <small>{list.filter((x) => x.e.mount === m).length}</small></button>)}
+        </div>
+      )}
+      <div class="grid">
+        {list.map(({ p, e }) => {
+          const img = p.images && p.images[0];
+          return (
+            <article class="pcard" data-m={e.mount}>
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                {img ? <img src={img.thumb || img.src} alt={`${p.model} ${T.mount[e.mount]}`} loading="lazy" /> : <Fragment set:html={e.mount === 'floor' ? FLOOR_SVG : WALL_SVG} />}
+                <span class="tags"><span class="tag k">{T.mount[e.mount]}</span><span class="tag u">LiFePO4</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                <span class="va">{T.mount[e.mount]}</span>
+                <ul>
+                  {e.kwh > 0 && <li>{T.cBatt} <b>{e.kwh} kWh{e.v ? ` · ${e.v} V` : ''}</b></li>}
+                  {e.kw > 0 && <li>{T.cInv} <b>{e.kw} kW</b></li>}
+                  {e.dims.length > 0 && <li>{T.cSize} <b>{e.dims.join(' × ')} mm</b></li>}
+                  {e.kg > 0 && <li>{T.cWeight} <b>≈ {e.kg} kg</b></li>}
+                </ul>
+                <div class="pact">
+                  <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(qMsg.replace('{m}', `${p.model} (${T.mount[e.mount]})`))} target="_blank" rel="noopener">{T.quote}</a>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">0{i + 1}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.vsEyebrow}</span><h2>{T.vsH}</h2></div>
+    <div class="vs">
+      {(['aio', 'sep'] as const).map((k) => (
+        <div class:list={['card', { hi: k === 'aio' }]}>
+          <span class:list={['tag', k === 'aio' ? 'k' : 'u']}>{T.vs[k].tag}</span>
+          <h3>{T.vs[k].h}</h3>
+          <ul>{T.vs[k].rows.map(([a, b]) => <li><span>{a}</span><b>{b}</b></li>)}</ul>
+          <p class="best">{T.vs[k].best}</p>
+        </div>
+      ))}
+    </div>
+    <p class="see"><a href={`/${lang}/solar-inverters/`}>{T.seeInv}</a><a href={`/${lang}/batteries/wall-lithium/`}>{T.seeWall}</a><a href={`/${lang}/batteries/floor-lithium/`}>{T.seeFloor}</a><a href={`/${lang}/solar-designer/`}>{T.seeDesigner}</a></p>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} /><span>{a}</span></div>)}</div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.projEyebrow}</span><h2>{T.projH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.proj.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.projCtaH}</h3>
+        <p>{T.projCtaP}</p>
+        {SITE.whatsapp && <div><a class="btn primary" href={wa(T.projMsg)} target="_blank" rel="noopener">{T.projCta}</a></div>}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(crumbLd)} />
+</div>
+</Base>
+
+<script>
+  // 型号卡片按外形页签筛选
+  const box = document.querySelector('[data-esm]');
+  if (box) box.querySelectorAll('[data-mt]').forEach((b) => b.addEventListener('click', () => {
+    const v = (b as HTMLElement).dataset.mt;
+    box.querySelectorAll('[data-mt]').forEach((x) => x.classList.toggle('on', x === b));
+    box.querySelectorAll('.pcard[data-m]').forEach((c) => ((c as HTMLElement).hidden = v !== 'all' && (c as HTMLElement).dataset.m !== v));
+  }));
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero::before { content: ""; position: absolute; right: -80px; top: -80px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(94,240,160,.22), transparent); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #5ef0a0; }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 580px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 24px/1.1 var(--display); color: #5ef0a0; }
+  .hero-facts span { font-size: 13px; color: #a9b8b4; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg :global(svg) { width: 78%; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
+  .tag.k { background: var(--ok-soft); color: var(--ok); }
+  .tag.pb { background: #ece7df; color: #5b4636; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: var(--ok); }
+  .feat h3 { font-size: 22px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .vs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+  .vs .card h3 { font-size: 26px; margin: 6px 0 8px; }
+  .vs .card.hi { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+  .vs li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .vs li span { color: var(--muted); }
+  .vs li b { font-weight: 500; }
+  .vs .best { font-size: 13px; color: var(--accent); font-weight: 600; margin: 10px 0 0; }
+  .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; display: flex; gap: 8px 22px; flex-wrap: wrap; }
+
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); }
+  .tbl-wrap a { color: var(--ink); }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: var(--ink); color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #c9d4d1; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .vtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+  .vtabs button { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface, #fff); color: var(--ink); font: 600 13.5px var(--body); cursor: pointer; }
+  .vtabs button small { font: 600 11px var(--mono); color: var(--muted); margin-left: 4px; }
+  .vtabs button.on { background: #0f2a25; color: #fff; border-color: #0f2a25; } .vtabs button.on small { color: #5ef0a0; }
+  .pcard[hidden] { display: none; }
+</style>
