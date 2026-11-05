@@ -1,0 +1,89 @@
+---
+// 二合一扫码页（/c/）：Contact 页上那一个二维码指向这里。
+//  - 微信里打开（微信扫码）→ 显示微信个人二维码，长按识别即可加好友，并可复制微信号
+//  - 其他浏览器打开（手机相机扫码 / WhatsApp 扫码打开链接）→ 自动跳转到 WhatsApp 聊天
+// 微信二维码图片：CRM 网站管理 → Contact 联系页面 → 微信个人二维码（contact_wechat）
+import { SITE, CONTACT } from '../config.mjs';
+import site from '../data/site.json';
+const wcQr = (site.assets && site.assets.contact_wechat && site.assets.contact_wechat[0]) || null;
+const wa = `https://wa.me/${SITE.whatsapp}`;
+const cfg = { wa, wc: CONTACT.wechat };
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>{SITE.name} · WhatsApp / WeChat</title>
+  <link rel="icon" href="/favicon.svg" />
+  <style>
+    :root { --ink: #12201d; --muted: #5d6f6b; --line: #dfe6e4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 18px; background: #f3f5f4; color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .card { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 26px 22px; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,.08); }
+    .brand { font-weight: 800; letter-spacing: .04em; font-size: 20px; }
+    .brand small { display: block; font-weight: 500; letter-spacing: 0; font-size: 13px; color: var(--muted); }
+    h1 { font-size: 19px; margin: 18px 0 6px; }
+    p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
+    .qr { width: 240px; max-width: 100%; margin: 6px auto 14px; border-radius: 14px; border: 1px solid var(--line); padding: 8px; background: #fff; }
+    .qr img { width: 100%; display: block; }
+    .id { font: 700 18px ui-monospace, Menlo, monospace; margin: 6px 0 12px; }
+    .btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; border-radius: 10px; border: 0; font: 700 16px inherit; text-decoration: none; cursor: pointer; margin-top: 8px; }
+    .wa { background: #25d366; color: #06301a; } .wc { background: #07c160; color: #fff; } .ln { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    .alt { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="card" data-c>
+    <script type="application/json" data-cfg set:html={JSON.stringify(cfg)} />
+    <div class="brand">{SITE.name}<small>{SITE.whatsappDisplay}</small></div>
+
+    <section data-view="wc" hidden>
+      <h1 data-t="wcH">Add us on WeChat</h1>
+      {wcQr ? (
+        <>
+          <p data-t="wcP">Long-press the QR code below and choose “Recognize QR code”.</p>
+          <div class="qr"><img src={wcQr.src} alt="WeChat QR" /></div>
+        </>
+      ) : <p data-t="wcP2">Search our WeChat ID and add us.</p>}
+      <div class="id">{CONTACT.wechat}</div>
+      <button type="button" class="btn wc" data-copy data-t="copy">Copy WeChat ID</button>
+    </section>
+
+    <section data-view="wa" hidden>
+      <h1 data-t="waH">Opening WhatsApp…</h1>
+      <p data-t="waP">If WhatsApp does not open, tap the button.</p>
+      <a class="btn wa" href={wa} data-t="waBtn">Chat on WhatsApp</a>
+      <div class="alt"><span data-t="alt">Prefer WeChat? WeChat ID:</span> <b>{CONTACT.wechat}</b></div>
+    </section>
+  </main>
+  <script is:inline>
+    (function () {
+      var root = document.querySelector('[data-c]'), c = JSON.parse(root.querySelector('[data-cfg]').textContent);
+      var L = (navigator.language || 'en').toLowerCase().slice(0, 2);
+      var T = {
+        zh: { wcH: '添加微信好友', wcP: '长按下方二维码，选择“识别图中二维码”即可添加', wcP2: '搜索下方微信号添加好友', copy: '复制微信号', copied: '已复制', waH: '正在打开 WhatsApp…', waP: '如果没有自动打开，请点击下方按钮', waBtn: '打开 WhatsApp 聊天', alt: '用微信？微信号：', hello: '您好，我想咨询产品。' },
+        es: { wcH: 'Agréguenos en WeChat', wcP: 'Mantenga pulsado el código QR y elija “Reconocer código QR”.', wcP2: 'Busque nuestro ID de WeChat y agréguenos.', copy: 'Copiar ID de WeChat', copied: 'Copiado', waH: 'Abriendo WhatsApp…', waP: 'Si WhatsApp no se abre, toque el botón.', waBtn: 'Chatear por WhatsApp', alt: '¿Prefiere WeChat? ID:', hello: 'Hola SKE Power, me gustaría información sobre sus productos.' },
+        ru: { wcH: 'Добавьте нас в WeChat', wcP: 'Нажмите и удерживайте QR-код, выберите «Распознать QR-код».', wcP2: 'Найдите наш WeChat ID и добавьте нас.', copy: 'Копировать WeChat ID', copied: 'Скопировано', waH: 'Открываем WhatsApp…', waP: 'Если WhatsApp не открылся, нажмите кнопку.', waBtn: 'Написать в WhatsApp', alt: 'Удобнее WeChat? ID:', hello: 'Здравствуйте, SKE Power! Хочу узнать о вашей продукции.' },
+        en: { copy: 'Copy WeChat ID', copied: 'Copied', hello: 'Hello SKE Power, I would like to know more about your products.' },
+      };
+      var t = T[L] || T.en;
+      root.querySelectorAll('[data-t]').forEach(function (el) { var k = el.getAttribute('data-t'); if (t[k]) el.textContent = t[k]; });
+      if (L === 'zh') document.documentElement.lang = 'zh';
+      var waUrl = c.wa + '?text=' + encodeURIComponent(t.hello);
+      var inWeChat = /MicroMessenger/i.test(navigator.userAgent);
+      root.querySelector('[data-view="' + (inWeChat ? 'wc' : 'wa') + '"]').hidden = false;
+      var a = root.querySelector('a.wa'); if (a) a.href = waUrl;
+      if (!inWeChat) setTimeout(function () { location.href = waUrl; }, 300);
+      var b = root.querySelector('[data-copy]');
+      if (b) b.addEventListener('click', function () {
+        var done = function () { b.textContent = t.copied; setTimeout(function () { b.textContent = t.copy; }, 1500); };
+        if (navigator.clipboard) navigator.clipboard.writeText(c.wc).then(done, done);
+        else { var ta = document.createElement('textarea'); ta.value = c.wc; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done(); }
+      });
+    })();
+  </script>
+</body>
+</html>

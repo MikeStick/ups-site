@@ -12,8 +12,16 @@ export const SITE = {
 export const CONTACT = {
   tz: 'Asia/Shanghai',
   wechat: '15201273157',            // 微信号；二维码图片在 CRM 网站管理 → Contact 联系页面 → 微信个人二维码
-  address: { en: '', es: '', ru: '' }, // 工厂地址（三语），填了才显示"参观工厂"一栏
-  mapUrl: '',                       // 地图链接（Google 地图分享链接）
+  // 二合一扫码页：网站上的那个码指向这里。手机相机扫 → 跳到 WhatsApp；微信扫 → 显示微信二维码（长按加好友）
+  scanUrl: 'https://ups-china.com/c/',
+  address: {
+    en: 'Shanke Industrial Park, No. 185 Keji Road, Dongkeng Town, Dongguan, Guangdong 523660, China',
+    es: 'Parque Industrial Shanke, Keji Road n.º 185, Dongkeng, Dongguan, Guangdong 523660, China',
+    ru: 'Индустриальный парк Shanke, Keji Road, 185, Дункэн, Дунгуань, Гуандун 523660, Китай',
+  },
+  addressZh: '广东省东莞市东坑镇科技路185号山克工业园',
+  lat: 22.82724, lng: 114.17262,
+  mapUrl: 'https://maps.app.goo.gl/P23PYMecKo8RuHvWA',
   languages: ['English', 'Español', 'Русский', '中文'],
 };
 

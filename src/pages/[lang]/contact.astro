@@ -16,10 +16,13 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const T = CO[lang], H = HM[lang];
 const waUrl = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '';
-const qr = waUrl ? await QRCode.toString(waUrl, { type: 'svg', margin: 0, color: { dark: '#0f1d1b', light: '#ffffff' } }) : '';
+const qr = waUrl ? await QRCode.toString(CONTACT.scanUrl || waUrl, { type: 'svg', margin: 0, errorCorrectionLevel: 'H', color: { dark: '#0f1d1b', light: '#ffffff' } }) : '';
 const groups = catalog(lang).map((g) => ({ key: g.key, h: H.strip[g.key][0],
   items: g.items.filter((x) => !x.tool).flatMap((x) => [{ key: x.key, label: x.label }, ...(x.sub ? [{ key: 'custom', label: x.sub.label }] : [])]) }));
 const addr = CONTACT.address && CONTACT.address[lang];
+const factoryPhoto = (site.assets && site.assets.hero && site.assets.hero[0]) || null;
+const mapEmbed = CONTACT.lat ? `https://maps.google.com/maps?q=${CONTACT.lat},${CONTACT.lng}&t=k&z=17&hl=${lang}&output=embed` : '';
+const dirUrl = CONTACT.lat ? `https://www.google.com/maps/dir/?api=1&destination=${CONTACT.lat},${CONTACT.lng}` : '';
 const wcQr = (site.assets && site.assets.contact_wechat && site.assets.contact_wechat[0]) || null;
 const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
   t: { hello: T.msgHello, mRole: T.mRole, mProducts: T.mProducts, mQty: T.mQty, mCountry: T.mCountry, mName: T.mName, mCompany: T.mCompany, subject: T.mailSubject, empty: T.emptyHint, copied: T.copied, copy: T.copy, copyMsg: T.copyMsg } };
@@ -45,25 +48,18 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
 
     <section class="chan">
       {waUrl && (
-        <div class="ch ch-qr ch-wa">
+        <div class="ch ch-qr ch-duo">
           <div class="ch-t">
-            <h2>{T.waH}</h2>
-            <p>{T.waP}</p>
+            <h2><span class="ic-wa">WhatsApp</span> · <span class="ic-wc">WeChat</span></h2>
+            <p>{T.duoP}</p>
             <span class="ch-v num">{SITE.whatsappDisplay}</span>
-            <a class="btn wa" href={waUrl} target="_blank" rel="noopener">{T.waBtn}</a>
+            <span class="ch-s">{T.duoNo}</span>
+            <div class="ch-btns">
+              <a class="btn wa" href={waUrl} target="_blank" rel="noopener">{T.waBtn}</a>
+              {CONTACT.wechat && <button type="button" class="btn wc" data-copy={CONTACT.wechat}>{T.wcCopy}</button>}
+            </div>
           </div>
-          <span class="qr" set:html={qr} aria-hidden="true" />
-        </div>
-      )}
-      {CONTACT.wechat && (
-        <div class:list={['ch', 'ch-wc', { 'ch-qr': wcQr }]}>
-          <div class="ch-t">
-            <h2>{T.wcH}</h2>
-            <p>{T.wcP}</p>
-            <span class="ch-v num"><small>{T.wcId}</small> {CONTACT.wechat}</span>
-            <button type="button" class="btn wc" data-copy={CONTACT.wechat}>{T.copy}</button>
-          </div>
-          {wcQr && <span class="qr qr-img"><img src={wcQr.src} alt="WeChat QR" loading="lazy" /></span>}
+          <span class="qr qr-duo"><span set:html={qr} aria-hidden="true" /><i aria-hidden="true"><b class="d-wa"></b><b class="d-wc"></b></i></span>
         </div>
       )}
       {SITE.email && (
@@ -131,8 +127,24 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
     </section>
 
     {addr && (
-      <section class="visit">
-        <div><h2>{T.visitH}</h2><p>{T.visitP}</p><p class="addr">{addr}</p>{CONTACT.mapUrl && <a class="btn line" href={CONTACT.mapUrl} target="_blank" rel="noopener">{T.map}</a>}</div>
+      <section class="visit" id="factory">
+        <div class="v-info">
+          <h2>{T.visitH}</h2>
+          <p>{T.visitP}</p>
+          <p class="addr">{addr}</p>
+          {CONTACT.addressZh && <div class="zh"><small>{T.zhAddr}</small><span lang="zh">{CONTACT.addressZh}</span><button type="button" class="btn line sm" data-copy={CONTACT.addressZh}>{T.copy}</button></div>}
+          <div class="ch-btns">
+            {CONTACT.mapUrl && <a class="btn dark" href={CONTACT.mapUrl} target="_blank" rel="noopener">{T.map}</a>}
+            {dirUrl && <a class="btn line" href={dirUrl} target="_blank" rel="noopener">{T.dir}</a>}
+          </div>
+          {factoryPhoto && <figure class="v-photo"><img src={factoryPhoto.src} alt={T.photo} loading="lazy" /><figcaption>{T.photo}</figcaption></figure>}
+        </div>
+        {mapEmbed && (
+          <div class="v-map">
+            <iframe src={mapEmbed} title={T.visitH} loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            <a class="v-note" href={CONTACT.mapUrl} target="_blank" rel="noopener">{T.mapNote}</a>
+          </div>
+        )}
       </section>
     )}
   </div>
@@ -209,14 +221,23 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
   .clock-s { font-size: 14px; line-height: 1.45; color: #c9d6d2; margin-top: 4px; }
   .clock-h { font: 600 12px var(--mono); color: #5ef0a0; }
   /* 联系渠道 */
-  .chan { display: grid; grid-template-columns: 1.25fr 1.25fr 1fr; gap: 14px; }
+  .chan { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; }
   .ch { display: grid; gap: 8px; align-content: start; padding: 22px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
   .ch h2 { font-size: 22px; margin: 0; } .ch p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
   .ch-v { font: 600 17px var(--mono); margin: 4px 0 6px; word-break: break-all; }
   .ch-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .ch-qr { grid-template-columns: minmax(0, 1fr) 132px; gap: 18px; align-items: center; }
   .ch-wa { border-color: #b7ebcb; background: linear-gradient(135deg, #f1fbf5, var(--surface)); }
-  .ch-wc { border-color: #bfe8cf; background: linear-gradient(135deg, #eefaf3, var(--surface)); }
+  .ch-duo { grid-template-columns: minmax(0, 1fr) 156px; border-color: #b7ebcb; background: linear-gradient(135deg, #f1fbf5, var(--surface)); }
+  .ch-duo h2 .ic-wa { color: #128c4a; } .ch-duo h2 .ic-wc { color: #07a34f; }
+  .ch-s { font-size: 12.5px; color: var(--muted); margin-top: -6px; }
+  .qr-duo { position: relative; width: 156px; height: 156px; }
+  .qr-duo > span :global(svg) { width: 100%; height: 100%; display: block; }
+  /* 码中间的 WhatsApp + 微信 小标（纠错等级够，不影响识别） */
+  .qr-duo i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 3px; padding: 4px; border-radius: 8px; background: #fff; }
+  .qr-duo i b { width: 18px; height: 18px; border-radius: 5px; display: block; }
+  .qr-duo .d-wa { background: #25d366 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M12 4a8 8 0 0 0-6.9 12l-1 3.7 3.8-1A8 8 0 1 0 12 4zm4.3 11.2c-.2.5-1 1-1.5 1-.4.1-.9.1-1.5-.1-1.6-.5-3.6-2.3-4.3-3.6-.4-.7-.6-1.4-.5-1.9.1-.6.6-1.1.9-1.2h.6c.2 0 .4.6.6 1.1.1.3.1.5 0 .7l-.4.5c-.1.1-.1.3 0 .5.5.9 1.3 1.6 2.2 2 .2.1.4.1.5-.1l.5-.6c.1-.2.3-.2.5-.1l1.4.7c.2.1.3.2.3.3 0 .3 0 .6-.2.8z'/%3E%3C/svg%3E") center / 14px no-repeat; }
+  .qr-duo .d-wc { background: #07c160 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M9.5 5C6 5 3.5 7.2 3.5 9.9c0 1.5.8 2.8 2.1 3.7l-.5 1.6 1.9-1c.8.2 1.6.3 2.5.3h.4a4.5 4.5 0 0 1-.2-1.3c0-2.7 2.6-4.8 5.8-4.8h.4C15.3 6.4 12.7 5 9.5 5zm-2 2.6a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4zm4 0a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4zM16 9.7c-2.8 0-4.9 1.8-4.9 4s2.1 4 4.9 4c.6 0 1.2-.1 1.8-.3l1.5.8-.4-1.3c1-.7 1.6-1.9 1.6-3.2 0-2.2-2.1-4-4.5-4zm-1.7 2.2a.6.6 0 1 1 0 1.2.6.6 0 0 1 0-1.2zm3.3 0a.6.6 0 1 1 0 1.2.6.6 0 0 1 0-1.2z'/%3E%3C/svg%3E") center / 14px no-repeat; }
   .ch-v small { font: 600 11px var(--mono); color: var(--muted); text-transform: uppercase; margin-right: 4px; }
   .btn.wc { background: #07c160; color: #fff; } .btn.wc:hover { background: #06ad56; }
   .qr-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -268,17 +289,26 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
   .faq summary::after { content: '+'; color: var(--accent); font-size: 20px; line-height: 1; }
   .faq details[open] summary::after { content: '−'; }
   .faq p { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-  .visit { margin-top: 40px; padding: 26px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
-  .visit p { color: var(--muted); margin: 0 0 10px; } .visit .addr { color: var(--ink); font-weight: 600; }
+  .visit { margin-top: 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 0; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+  .v-info { padding: 26px; display: grid; gap: 12px; align-content: start; }
+  .v-info h2 { margin: 0; } .v-info p { color: var(--muted); margin: 0; line-height: 1.55; } .v-info .addr { color: var(--ink); font-weight: 600; font-size: 15.5px; }
+  .zh { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px dashed var(--line); }
+  .zh small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; } .zh span { font-weight: 700; font-size: 15px; }
+  .btn.sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+  .v-photo { margin: 4px 0 0; position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; background: var(--bg); }
+  .v-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .v-photo figcaption { position: absolute; left: 10px; bottom: 10px; padding: 3px 9px; border-radius: 6px; background: rgba(15,29,27,.75); color: #fff; font-size: 12px; font-weight: 600; }
+  .v-map { position: relative; min-height: 420px; background: #dfe6e4; }
+  .v-map iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .v-note { position: absolute; right: 10px; bottom: 10px; padding: 5px 10px; border-radius: 6px; background: rgba(255,255,255,.92); color: var(--ink); font-size: 12px; text-decoration: none; }
   @media (max-width: 980px) {
     .ct-head, .inq-grid { grid-template-columns: minmax(0, 1fr); }
-    .chan { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .chan > .ch:last-child { grid-column: 1 / -1; }
+    .chan { grid-template-columns: minmax(0, 1fr); } .visit { grid-template-columns: minmax(0, 1fr); } .v-map { min-height: 340px; }
     .inq-p { position: static; }
   }
   @media (max-width: 640px) {
     .chan, .faq-l, .row3 { grid-template-columns: minmax(0, 1fr); }
-    .chan > .ch:last-child { grid-column: auto; }
-    .ch-qr { grid-template-columns: minmax(0, 1fr) 104px; } .qr { width: 104px; height: 104px; padding: 5px; }
+    .ch-duo { grid-template-columns: minmax(0, 1fr); } .qr-duo { width: 170px; height: 170px; justify-self: start; }
     .inq { padding: 18px; } .pg { grid-template-columns: minmax(0, 1fr); gap: 4px; } .pg-h { padding-top: 4px; }
     .clock b { font-size: 42px; }
   }
