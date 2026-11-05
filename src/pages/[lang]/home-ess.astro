@@ -1,7 +1,7 @@
 ---
 // 家庭储能一体机栏目页（/home-ess/，菜单在"光伏"栏）：家庭备电规划器（用电器 + 停电时长 → 型号，房屋剖面示意）→ 型号卡片（按壁挂 / 落地页签筛选）
 // → 卖点 → 一体机 vs 分体逆变器 + 电池 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
-// 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机（两种外形型号名相同，靠细分品类区分）。
+// 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机 / 高压堆叠式储能一体机 / 低压堆叠式储能一体机（型号名会重复，靠细分品类区分）。
 import Base from '../../layouts/Base.astro';
 import EssVisual from '../../components/EssVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -14,13 +14,18 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = HE[lang];
-const list = all.filter(isHomeEss).map((p) => ({ p, e: essSpec(p), s: seriesName(p) })).sort((a, b) => (a.e.mount > b.e.mount ? 1 : a.e.mount < b.e.mount ? -1 : 0) * -1 || a.e.kw - b.e.kw || a.s.localeCompare(b.s));
-const MOUNTS = ['wall', 'floor'].filter((m) => list.some((x) => x.e.mount === m));
+const ORDER = { wall: 0, floor: 1, stack: 2 }, VORDER = { lv: 0, hv: 1, '': 0 };
+const list = all.filter(isHomeEss).map((p) => ({ p, e: essSpec(p), s: seriesName(p) })).sort((a, b) => ORDER[a.e.mount] - ORDER[b.e.mount] || VORDER[a.e.volt] - VORDER[b.e.volt] || a.e.kw - b.e.kw || a.e.kwh - b.e.kwh || a.s.localeCompare(b.s));
+const MOUNTS = ['wall', 'floor', 'stack'].filter((m) => list.some((x) => x.e.mount === m));
+// 显示用的外形名：堆叠式写成"高压堆叠式 / 低压堆叠式"
+const shapeOf = (e) => (e.mount === 'stack' ? T.stackName[e.volt] || T.mount.stack : T.mount[e.mount]);
+const svgOf = (e) => (e.mount === 'stack' ? STACK_SVG : e.mount === 'floor' ? FLOOR_SVG : WALL_SVG);
 const kwhs = [...new Set(list.map((x) => x.e.kwh).filter(Boolean))].sort((a, b) => a - b);
 const comboTxt = kwhs.length ? `${Math.min(...kwhs)}–${Math.max(...kwhs)} kWh` : '2.5–5 kWh';
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
 const WALL_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="60" y="14" width="80" height="172" rx="10" fill="#f6f7f6" stroke="#1e6e5a" stroke-width="4"/><rect x="74" y="32" width="52" height="24" rx="3" fill="#0b1a17"/><path d="M82 44h28" stroke="#5ef0a0" stroke-width="4"/><rect x="88" y="72" width="24" height="70" rx="3" fill="#d7dedb"/><rect x="88" y="98" width="24" height="44" rx="3" fill="#22c55e"/></svg>';
+const STACK_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="52" y="18" width="96" height="34" rx="6" fill="#e8eeec" stroke="#1e6e5a" stroke-width="4"/><rect x="66" y="27" width="68" height="15" rx="2" fill="#0b1a17"/><g fill="#f8faf9" stroke="#1e6e5a" stroke-width="3"><rect x="52" y="58" width="96" height="30" rx="3"/><rect x="52" y="92" width="96" height="30" rx="3"/><rect x="52" y="126" width="96" height="30" rx="3"/><rect x="52" y="160" width="96" height="30" rx="3"/></g><g fill="#22c55e"><rect x="62" y="70" width="50" height="6" rx="2"/><rect x="62" y="104" width="50" height="6" rx="2"/><rect x="62" y="138" width="50" height="6" rx="2"/><rect x="62" y="172" width="50" height="6" rx="2"/></g></svg>';
 const FLOOR_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="48" y="40" width="104" height="140" rx="10" fill="#f6f7f6" stroke="#1e6e5a" stroke-width="4"/><rect x="64" y="56" width="72" height="24" rx="3" fill="#0b1a17"/><path d="M72 68h40" stroke="#5ef0a0" stroke-width="4"/><rect x="88" y="96" width="24" height="64" rx="3" fill="#d7dedb"/><rect x="88" y="118" width="24" height="42" rx="3" fill="#22c55e"/><rect x="56" y="180" width="88" height="6" rx="2" fill="#3d3a33"/></svg>';
 const APP_ICONS = [
   '<path d="M17 3L9 17h6l-2 10 8-14h-6z"/>',
@@ -78,21 +83,22 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
           return (
             <article class="pcard" data-m={e.mount}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
-                {img ? <img src={img.thumb || img.src} alt={`${p.model} ${T.mount[e.mount]}`} loading="lazy" /> : <Fragment set:html={e.mount === 'floor' ? FLOOR_SVG : WALL_SVG} />}
-                <span class="tags"><span class="tag k">{T.mount[e.mount]}</span><span class="tag u">LiFePO4</span></span>
+                {img ? <img src={img.thumb || img.src} alt={`${p.model} ${shapeOf(e)}`} loading="lazy" /> : <Fragment set:html={svgOf(e)} />}
+                <span class="tags"><span class="tag k">{T.mount[e.mount]}</span>{e.volt ? <span class="tag u">{T.volt[e.volt]}</span> : <span class="tag u">LiFePO4</span>}</span>
               </a>
               <div class="pbody">
                 <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
-                <span class="va">{T.mount[e.mount]}</span>
+                <span class="va">{shapeOf(e)}</span>
                 <ul>
                   {e.kwh > 0 && <li>{T.cBatt} <b>{e.kwh} kWh{e.v ? ` · ${e.v} V` : ''}</b></li>}
+                  {e.layers > 0 && <li>{T.cLayers} <b>{e.layers} × 5 kWh</b></li>}
                   {e.kw > 0 && <li>{T.cInv} <b>{e.kw} kW</b></li>}
                   {e.dims.length > 0 && <li>{T.cSize} <b>{e.dims.join(' × ')} mm</b></li>}
                   {e.kg > 0 && <li>{T.cWeight} <b>≈ {e.kg} kg</b></li>}
                 </ul>
                 <div class="pact">
                   <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
-                  {SITE.whatsapp && <a class="btn sm dark" href={wa(qMsg.replace('{m}', `${p.model} (${T.mount[e.mount]})`))} target="_blank" rel="noopener">{T.quote}</a>}
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(qMsg.replace('{m}', `${p.model} (${shapeOf(e)})`))} target="_blank" rel="noopener">{T.quote}</a>}
                 </div>
               </div>
             </article>

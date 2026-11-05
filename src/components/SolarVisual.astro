@@ -13,7 +13,7 @@ interface Props { lang: string }
 const { lang } = Astro.props;
 const T = SL[lang], C = T.c;
 const models = all.filter(isInverter).map((p) => ({ m: p.model, slug: p.slug, kw: invKw(p), kind: invKind(p), phase: invPhase(p) })).filter((x) => x.kw > 0);
-// 系统在 5 kW / 5 kWh 以内时，提示也可以选家庭储能一体机（/home-ess/）
+// 系统在 10 kW / 25 kWh 以内（单台逆变器）时，提示也可以选家庭储能一体机（/home-ess/，含堆叠式）
 const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, kind: T.kind, ess: { hint: HE[lang].designerHint, cta: HE[lang].designerHintCta } };
 // 用电器图标在 src/lib/appliance-icons.mjs（家庭储能一体机页面也用）
 const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(o[k] ?? ''));
@@ -237,7 +237,7 @@ const fmt = (s: string, o: Record<string, string | number>) => s.replace(/\{(\w+
       rows.innerHTML = row(T.out.inv, inv) + row(T.out.batt, r.modules ? `<a href="/${c.lang}/batteries/wall-lithium/">${batt}</a>` : batt) + row(T.out.pv, pv) + row(T.out.gen, fmt(T.out.genN, { k: r.monthKwh }));
       const link = (m: any, best: boolean) => `<a href="/${c.lang}/p/${m.slug}/"${best ? ' class="best"' : ''}><b>${m.m}</b><span>${c.kind[m.kind] || ''} · ${m.kw} kW${best && r.units > 1 ? ' × ' + r.units : ''}</span></a>`;
       $('[data-recs]').innerHTML = r.model ? `<span>${T.out.model}</span>` + link(r.model, true) + (r.alts.length ? `<span>${T.out.alt}</span>` + r.alts.map((m: any) => link(m, false)).join('') : '') : `<span>${T.out.model}</span><p class="cu">${T.out.custom}</p>`;
-      const essFit = r.units === 1 && r.invKw <= 5 && (!r.modules || r.battInst <= 5.12);
+      const essFit = r.units === 1 && r.invKw <= 10 && (!r.modules || r.battInst <= 25);
       $('[data-checks]').innerHTML = r.checks.map((x: any) => `<li class="${x.level}">${T.chk[x.id]}</li>`).join('') + (essFit ? `<li class="ok">${c.ess.hint} <a href="/${c.lang}/home-ess/">${c.ess.cta}</a></li>` : '');
       const invTxt = (r.model ? `${r.model.m} · ` : '') + inv;
       $('[data-sum]').innerHTML = `<div><span>${T.sumSys}</span><b>${invTxt} · ${batt} · ${pv}</b></div><div><span>${T.sumLoad}</span><b>${r.dailyKwh} kWh / day · ${r.peakW} W</b></div>`;

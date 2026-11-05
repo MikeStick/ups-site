@@ -63,8 +63,12 @@ export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
 // 家庭储能一体机（电池 + 逆变器一体）：壁挂式 / 落地式两个细分品类，合在一个栏目 /home-ess/
 export const ESS_WALL_TYPES = ['壁挂式储能一体机'];
 export const ESS_FLOOR_TYPES = ['落地式储能一体机'];
-export const isHomeEss = (p) => has(p, [...ESS_WALL_TYPES, ...ESS_FLOOR_TYPES]);
-export const essMount = (p) => (has(p, ESS_FLOOR_TYPES) ? 'floor' : 'wall');
+// 堆叠式（逆变器主机 + 一层层电池模块，每层约 5 kWh）：高压 / 低压两个细分品类，型号名会重复（都有 15kWh、20kWh），靠细分品类区分
+export const ESS_STACK_HV_TYPES = ['高压堆叠式储能一体机'];
+export const ESS_STACK_LV_TYPES = ['低压堆叠式储能一体机'];
+export const isHomeEss = (p) => has(p, [...ESS_WALL_TYPES, ...ESS_FLOOR_TYPES, ...ESS_STACK_HV_TYPES, ...ESS_STACK_LV_TYPES]);
+export const essMount = (p) => (has(p, [...ESS_STACK_HV_TYPES, ...ESS_STACK_LV_TYPES]) ? 'stack' : has(p, ESS_FLOOR_TYPES) ? 'floor' : 'wall');
+export const essVolt = (p) => (has(p, ESS_STACK_HV_TYPES) ? 'hv' : has(p, ESS_STACK_LV_TYPES) ? 'lv' : '');
 // 参数：电池 kWh、逆变器 kW（型号名就是"2.5kWh + 3kW"这种写法，字段没填时从型号里读）、电池电压 / Ah、尺寸、重量
 export function essSpec(p) {
   const name = String(p.model || '');
@@ -80,7 +84,10 @@ export function essSpec(p) {
   if (mw && (!kw || /w/i.test(String(p.ratedPowerUnit || '')) && kw > 100)) kw = +mw[1];
   if (!kw && mw) kw = +mw[1];
   const dims = (String(p.dimensions || p.moduleDimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 3);
-  return { mount: essMount(p), kwh, kw, v, ah, kg: num1(p.netWeight || p.moduleWeight), dims: dims.length === 3 ? dims : [] };
+  const mount = essMount(p);
+  // 堆叠层数：每层约 5.12 kWh
+  const layers = mount === 'stack' && kwh ? Math.max(1, Math.round(kwh / 5.12)) : 0;
+  return { mount, volt: essVolt(p), layers, kwh, kw, v, ah, kg: num1(p.netWeight || p.moduleWeight), dims: dims.length === 3 ? dims : [] };
 }
 // 锂电替换铅酸电池（LiFePO4 drop-in，12.8 / 25.6 / 51.2 V，型号如 LFP-12V7AH）：栏目 /batteries/lead-acid-replacement/
 export const PBR_TYPES = ['锂电替换铅酸电池'];

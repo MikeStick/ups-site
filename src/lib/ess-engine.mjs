@@ -1,4 +1,4 @@
-// 家庭储能一体机（电池 + 逆变器一体，壁挂式 / 落地式）规划：
+// 家庭储能一体机（电池 + 逆变器一体，壁挂式 / 落地式 / 堆叠式高压 / 堆叠式低压）规划：
 // 用电器（数量、每天小时）→ 同时运行功率、启动冲击、每天用电量 → 逆变器功率够不够、停电时电池能撑几小时 → 推荐型号。
 // 用电器清单、冲击倍数和光伏选型器共用（solar-engine.mjs 的 APPLIANCES）。测试：node scripts/test-ess-engine.mjs
 import { APPLIANCES } from './solar-engine.mjs';
@@ -11,6 +11,13 @@ export const ESS_GENERIC = [
   { m: '5kWh + 5kW', mount: 'wall', kwh: 5, kw: 5, v: 51.2, ah: 100, dims: [500, 140, 700], kg: 56 },
   { m: '2.5kWh + 3kW', mount: 'floor', kwh: 2.5, kw: 3, v: 25.6, ah: 100, dims: [370, 240, 450], kg: 30 },
   { m: '5kWh + 5kW', mount: 'floor', kwh: 5, kw: 5, v: 51.2, ah: 100, dims: [370, 285, 475], kg: 55 },
+  // 堆叠式（规格书：高压 10 kW 逆变器 + 2–4 层 102 V 模块；低压 5 kW 逆变器 + 3–5 层 51.2 V 模块）
+  { m: '10kWh', mount: 'stack', volt: 'hv', layers: 2, kwh: 10, kw: 10, v: 204, ah: 50, dims: [460, 450, 670], kg: 112.5 },
+  { m: '15kWh', mount: 'stack', volt: 'hv', layers: 3, kwh: 15, kw: 10, v: 307, ah: 50, dims: [460, 450, 820], kg: 155 },
+  { m: '20kWh', mount: 'stack', volt: 'hv', layers: 4, kwh: 20, kw: 10, v: 409, ah: 50, dims: [460, 450, 970], kg: 197.5 },
+  { m: '15kWh', mount: 'stack', volt: 'lv', layers: 3, kwh: 15, kw: 5, v: 51.2, ah: 300, dims: [460, 450, 710], kg: 144 },
+  { m: '20kWh', mount: 'stack', volt: 'lv', layers: 4, kwh: 20, kw: 5, v: 51.2, ah: 400, dims: [460, 450, 860], kg: 168 },
+  { m: '25kWh', mount: 'stack', volt: 'lv', layers: 5, kwh: 25, kw: 5, v: 51.2, ah: 500, dims: [460, 450, 1010], kg: 228 },
 ];
 
 export function loadOf(items) {
@@ -39,8 +46,9 @@ export function sizeEss(q) {
   const powerOk = pool.filter((m) => m.kw >= needKw - 1e-9);
   const base = { ...L, needKw: r1(needKw), bySurge, avgW: Math.round(avgW), outageH, needWh: Math.round(needWh) };
   if (!powerOk.length) return { ...base, over: true, maxKw: pool.length ? pool[pool.length - 1].kw : 0 };
+  // 功率够的里面：按功率从小到大、电池从小到大，取第一个电池也够的；都不够时取电池最大的（一样大取功率小的）
   const both = powerOk.find((m) => usable(m) >= needWh - 1e-9);
-  const pick = both || powerOk[powerOk.length - 1];
+  const pick = both || [...powerOk].sort((a, b) => b.kwh - a.kwh || a.kw - b.kw)[0];
   const rt = avgW > 0 ? usable(pick) / avgW : 0;
   return { ...base, model: pick, short: !both, runtime: r1(Math.min(rt, 99)), loadPct: Math.round((L.peakW / (pick.kw * 1000)) * 100), usableWh: Math.round(usable(pick)) };
 }

@@ -6,9 +6,17 @@ ok(r.model.kw === 3 && r.model.mount === 'wall' && !r.short, `basic home 4 h →
 r = sizeEss({ items: { ...basic, ac: { n: 1 } }, outageH: 8, mount: 'floor', models: ESS_GENERIC });
 ok(r.model.kw === 5 && r.model.mount === 'floor', `with AC 8 h → ${r.model.m} (need ${r.needKw} kW, runtime ${r.runtime} h, short ${r.short})`);
 r = sizeEss({ items: { heater: { n: 2 }, ac: { n: 2 } }, outageH: 4, models: ESS_GENERIC });
-ok(r.over && r.maxKw === 5, `too big → over (need ${r.needKw} kW)`);
-r = sizeEss({ items: { ...basic, freezer: { n: 1 } }, outageH: 48, models: ESS_GENERIC });
-ok(r.short && r.model.kwh === 5, `48 h → biggest battery, short (${r.runtime} h)`);
+ok(!r.over && r.model.mount === 'stack' && r.model.volt === 'hv', `heater + AC → HV stacked ${r.model.m} (need ${r.needKw} kW)`);
+r = sizeEss({ items: { heater: { n: 4 }, ac: { n: 3 } }, outageH: 4, models: ESS_GENERIC });
+ok(r.over && r.maxKw === 10, `very big → over (need ${r.needKw} kW)`);
+r = sizeEss({ items: { ...basic, freezer: { n: 1 }, ac: { n: 1 } }, outageH: 12, models: ESS_GENERIC });
+ok(r.model.mount === 'stack' && r.model.kw === 5 && !r.short, `AC 12 h → LV stacked ${r.model.m} (${r.runtime} h)`);
+r = sizeEss({ items: basic, outageH: 4, mount: 'stack', models: ESS_GENERIC });
+ok(r.model.mount === 'stack' && r.model.volt === 'lv' && r.model.kwh === 15, `stack only, small load → LV 15kWh (${r.model.m})`);
+r = sizeEss({ items: { ...basic, freezer: { n: 1 } }, outageH: 48, mount: 'wall', models: ESS_GENERIC });
+ok(r.short && r.model.kwh === 5, `wall only 48 h → biggest wall battery, short (${r.runtime} h)`);
+r = sizeEss({ items: { ...basic, freezer: { n: 1 }, ac: { n: 2 } }, outageH: 48, models: ESS_GENERIC });
+ok(r.short && r.model.kwh === 25, `48 h with AC → biggest battery LV 25kWh (${r.model.m}, ${r.runtime} h)`);
 ok(sizeEss({ items: {}, outageH: 4, models: ESS_GENERIC }) === null, 'no load → null');
 ok(loadOf(basic).peakW === 80 + 120 + 100 + 15 + 150, 'peak sum');
 if (bad) { console.log(bad + ' failed'); process.exit(1); }

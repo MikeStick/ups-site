@@ -11,7 +11,7 @@ import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
@@ -66,13 +66,13 @@ const hvcab = isHvCab(P0);
 const pbr = isPbReplace(P0);
 // 家庭储能一体机（壁挂 / 落地）：电池参数表 + 逆变器功率一行，标题后面注明外形，指向 /home-ess/
 const hess = isHomeEss(P0);
-const essMountName = hess ? HE[lang].mount[essMount(P0)] : '';
+const essMountName = hess ? (essMount(P0) === 'stack' ? HE[lang].stackName[essVolt(P0)] || HE[lang].mount.stack : HE[lang].mount[essMount(P0)]) : '';
 const fbatt = isFloorBattery(P0);
 const wbatt = isWallBattery(P0) || fbatt;
 const rbatt = isRackBattery(P0) || wbatt || hvcab || pbr || hess;
 const RBT = hess ? { ...RB[lang], ...HE[lang], crumbBatt: HE[lang].crumbSolar } : pbr ? { ...RB[lang], ...PB[lang] } : hvcab ? { ...RB[lang], ...HV[lang] } : fbatt ? { ...RB[lang], ...FB[lang] } : wbatt ? { ...RB[lang], ...WB[lang] } : RB[lang];
 const battPage = hess ? 'home-ess/' : pbr ? 'batteries/lead-acid-replacement/' : hvcab ? 'batteries/hv-cabinet/' : fbatt ? 'batteries/floor-lithium/' : wbatt ? 'batteries/wall-lithium/' : 'batteries/rack-lithium/';
-const bm = hess ? (() => { const x = essSpec(p); return { v: x.v, ah: x.ah, kwh: x.kwh, maxA: 0, kg: x.kg, u: 0, par: 0, kw: x.kw }; })() : pbr ? (() => { const x = pbModule(p); return { v: x.v, ah: x.ah, kwh: Math.round(x.wh) / 1000, maxA: x.maxA, kg: x.kg, u: 0, par: 0 }; })() : hvcab ? hvModule(p) : rbatt ? battModule(p) : null;
+const bm = hess ? (() => { const x = essSpec(p); return { v: x.v, ah: x.ah, kwh: x.kwh, maxA: 0, kg: x.kg, u: 0, par: 0, kw: x.kw, layers: x.layers }; })() : pbr ? (() => { const x = pbModule(p); return { v: x.v, ah: x.ah, kwh: Math.round(x.wh) / 1000, maxA: x.maxA, kg: x.kg, u: 0, par: 0 }; })() : hvcab ? hvModule(p) : rbatt ? battModule(p) : null;
 if (bm && wbatt) bm.u = 0;
 const offline = isOffline(P0) || rack || modular || industrial || online || inverter || rbatt;
 const R = RT[lang];
@@ -133,7 +133,7 @@ const tSeries = tableSeries();
 const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = rbatt
-  ? [[RBT.spec.model, p.model], ...(hess ? [[HE[lang].c.s1, essMountName], ...(bm.kw ? [[HE[lang].cInv, `${bm.kw} kW`]] : [])] : []), ...(bm.u ? [[RBT.spec.rackU, `${bm.u}U`]] : []), ...(bm.kwh && !specValue(p, 'moduleMaxEnergy', lang) ? [[RBT.spec.moduleMaxEnergy, bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`]] : []),
+  ? [[RBT.spec.model, p.model], ...(hess ? [[HE[lang].c.s1, essMountName], ...(bm.kw ? [[HE[lang].cInv, `${bm.kw} kW`]] : []), ...(bm.layers ? [[HE[lang].cLayers, `${bm.layers} × 5 kWh`]] : [])] : []), ...(bm.u ? [[RBT.spec.rackU, `${bm.u}U`]] : []), ...(bm.kwh && !specValue(p, 'moduleMaxEnergy', lang) ? [[RBT.spec.moduleMaxEnergy, bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`]] : []),
      ...RB_SPEC_FIELDS.map((f) => [RBT.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v), ...(bm.par ? [[RBT.spec.parallel, String(bm.par)]] : [])]
   : inverter
   ? [[S.spec.model, p.model], [S.spec.kind, S.kind[invKind(p)]], ...INV_SPEC_FIELDS.map((f) => [S.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v)]

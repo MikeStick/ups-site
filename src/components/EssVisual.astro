@@ -1,7 +1,7 @@
 ---
-// 家庭储能一体机规划器：① 外形（不限 / 壁挂 / 落地）② 用电器（数量 + 每天小时，清单同光伏选型器）③ 停电多久
+// 家庭储能一体机规划器：① 外形（不限 / 壁挂 / 落地 / 堆叠）② 用电器（数量 + 每天小时，清单同光伏选型器）③ 停电多久
 // → 推荐型号（功率够、电池够撑停电时间的最小一款）、同时运行功率、启动冲击、每天用电量、备电时间。
-// 右侧：房屋剖面 SVG——屋顶光伏、屋外电网、屋内一体机（壁挂 / 落地两种外形）和勾选的电器；可切换"白天 / 夜晚 / 停电"看能量流向。
+// 右侧：房屋剖面 SVG——屋顶光伏、屋外电网、屋内一体机（壁挂 / 落地 / 堆叠三种外形，堆叠按层数画）和勾选的电器；可切换"白天 / 夜晚 / 停电"看能量流向。
 // 计算在 src/lib/ess-engine.mjs（测试：node scripts/test-ess-engine.mjs）。
 import { SITE } from '../config.mjs';
 import { HE } from '../lib/ess-i18n.mjs';
@@ -16,7 +16,7 @@ const { lang } = Astro.props;
 const T = HE[lang], C = T.c, AP = SL[lang].c.ap;
 const pub = all.filter(isHomeEss).map((p) => ({ m: p.model, slug: p.slug, ...essSpec(p) })).filter((x) => x.kw > 0 && x.kwh > 0);
 const models = pub.length ? pub : ESS_GENERIC;
-const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, mountName: T.mount, ap: AP, aps: APPLIANCES.map((a) => ({ id: a.id, n: a.n, h: a.h })) };
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, mountName: T.mount, stackName: T.stackName, ap: AP, aps: APPLIANCES.map((a) => ({ id: a.id, n: a.n, h: a.h })) };
 // 屋内电器图标位置：4 列 × 3 行
 const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 156 + Math.floor(i / 4) * 50 }));
 ---
@@ -27,7 +27,7 @@ const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 15
     <div class="rb-ctl">
       <div class="rb-grp">
         <div class="rb-gh"><span class="rb-n">1</span><b>{C.s1}</b></div>
-        <div class="rb-in"><div class="rb-seg">{(['any', 'wall', 'floor'] as const).map((k, i) => <button type="button" class:list={{ on: i === 0 }} data-mount={k}>{C.mounts[k]}</button>)}</div></div>
+        <div class="rb-in"><div class="rb-seg">{(['any', 'wall', 'floor', 'stack'] as const).map((k, i) => <button type="button" class:list={{ on: i === 0 }} data-mount={k}>{C.mounts[k]}</button>)}</div></div>
       </div>
       <div class="rb-grp">
         <div class="rb-gh"><span class="rb-n">2</span><b>{C.s2}</b><small class="es-sub">{C.s2n}</small></div>
@@ -73,6 +73,7 @@ const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 15
           <path d="M210 196 H282" class="ln h wallonly" /><path d="M216 270 H282" class="ln h flooronly" />
           <g class="unit wallunit"><rect x="150" y="150" width="60" height="96" rx="6" /><rect x="160" y="160" width="40" height="18" rx="2" class="scr" /><text x="180" y="173" class="st" data-scr>—</text><rect x="168" y="186" width="24" height="46" rx="2" class="socbg" /><rect x="168" y="186" width="24" height="46" rx="2" class="soc" /></g>
           <g class="unit floorunit"><rect x="145" y="226" width="72" height="84" rx="6" /><rect x="156" y="234" width="50" height="16" rx="2" class="scr" /><text x="181" y="246" class="st" data-scr2>—</text><rect x="169" y="256" width="24" height="44" rx="2" class="socbg" /><rect x="169" y="256" width="24" height="44" rx="2" class="soc" /></g>
+          <g class="unit stackunit" data-stack></g>
           {apPos.map((a) => <svg x={a.x} y={a.y} width="36" height="36" viewBox="-4 -4 32 32" class="ap" data-sap={a.id} set:html={`<rect x="-4" y="-4" width="32" height="32" rx="7" class="apbg"/>${AP_ICONS[a.id]}`} />)}
           <text x="390" y="304" class="lbl">{C.vis.home}</text>
         </svg>
@@ -115,6 +116,22 @@ const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 15
     for (const a of c.aps) st.items[a.id] = { n: a.n, h: a.h };
     let lastMsg = '', lastSubj = '', last: any = null;
     const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    const nameOf = (m: any) => (m.mount === 'stack' ? (c.stackName[m.volt] || c.mountName.stack) : c.mountName[m.mount]);
+    // 堆叠式：逆变器主机在上，下面 n 层电池模块，从地面（y = 310）往上叠
+    let drawnLayers = -1;
+    function drawStack(n: number, kw: number) {
+      if (n === drawnLayers) { const t = root!.querySelector('[data-scr3]'); if (t) t.textContent = `${kw}kW`; return; }
+      const grow = drawnLayers > 0 ? drawnLayers : 0; drawnLayers = n;
+      const x = 140, w = 84, lh = 24, hh = 36, base = 310;
+      let g = '';
+      for (let i = 0; i < n; i++) {
+        const y = base - (i + 1) * lh;
+        g += `<g class="lay${i >= grow ? ' ins' : ''}" style="--d:${(i - grow) * 80}ms"><rect x="${x}" y="${y}" width="${w}" height="${lh - 2}" rx="3" class="mod"/><rect x="${x + 8}" y="${y + 8}" width="${w - 30}" height="5" rx="2" class="led"/><text x="${x + w - 10}" y="${y + 15}" class="ln2">${i + 1}</text></g>`;
+      }
+      const top = base - n * lh - hh;
+      g += `<g class="head"><rect x="${x}" y="${top}" width="${w}" height="${hh - 2}" rx="5" class="hd"/><rect x="${x + 12}" y="${top + 7}" width="${w - 24}" height="16" rx="2" class="scr"/><text x="${x + w / 2}" y="${top + 19}" class="st" data-scr3>${kw}kW</text></g>`;
+      $('[data-stack]').innerHTML = g;
+    }
     function update() {
       const r = sizeEss({ items: st.items, outageH: st.outageH, mount: st.mount, models: c.models });
       const go = $('[data-open]') as HTMLButtonElement | null;
@@ -130,15 +147,17 @@ const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 15
         $('[data-rows]').innerHTML = h; $('[data-checks]').innerHTML = ch.map((x) => `<li>${x}</li>`).join(''); $('[data-sum]').innerHTML = ''; if (go) go.disabled = true; return;
       }
       if (go) go.disabled = false;
-      const m = r.model, mn = c.mountName[m.mount];
+      const m = r.model, mn = nameOf(m);
       $('[data-big]').innerHTML = m.slug ? `<a href="/${c.lang}/p/${m.slug}/">${m.m}</a><small> · ${mn}</small>` : `${m.m}<small> · ${mn}</small>`;
-      h += row(T.out.loadPct, `${r.loadPct}%`) + row(T.out.batt, `${m.kwh} kWh${m.v ? ` · ${m.v} V` : ''}`) + row(T.out.runtime, fmt(T.out.runtimeN, { h: r.runtime }));
+      h += row(T.out.loadPct, `${r.loadPct}%`) + row(T.out.batt, `${m.kwh} kWh${m.v ? ` · ${m.v} V` : ''}${m.layers ? ` · ${m.layers} × 5 kWh` : ''}`) + row(T.out.runtime, fmt(T.out.runtimeN, { h: r.runtime }));
       if (!m.slug) h += row(T.out.model, `<span class="cu">${T.out.custom}</span>`);
       $('[data-rows]').innerHTML = h;
       if (r.short) ch.push(fmt(T.chk.short, { h: r.runtime, need: r.outageH }));
       if (r.bySurge) ch.push(T.chk.surge);
+      if (m.mount === 'stack' && m.layers) ch.unshift(fmt(T.chk.layers, { n: m.layers }));
       $('[data-checks]').innerHTML = ch.map((x) => `<li>${x}</li>`).join('');
       scene.dataset.um = m.mount;
+      if (m.mount === 'stack') drawStack(m.layers || Math.max(1, Math.round(m.kwh / 5.12)), m.kw);
       const scr = `${m.kw}kW`; $('[data-scr]').textContent = scr; $('[data-scr2]').textContent = scr;
       $('[data-sum]').innerHTML = `<div><span>${T.sum}</span><b>${m.m} · ${mn} · ≈ ${r.runtime} ${T.hu}</b></div>`;
       const aps = r.used.map((id: string) => `${c.ap[id]} × ${st.items[id].n}`).join(', ');
@@ -258,6 +277,16 @@ const apPos = APPLIANCES.map((a, i) => ({ id: a.id, x: 292 + (i % 4) * 50, y: 15
   .es-scene[data-m="cut"] .ln.g { stroke: #dc2626; stroke-dasharray: 3 7; opacity: .6; }
   @keyframes esFlow { to { stroke-dashoffset: -18; } }
   .es-scene[data-um="wall"] .flooronly, .es-scene[data-um="wall"] .floorunit, .es-scene[data-um="floor"] .wallonly, .es-scene[data-um="floor"] .wallunit { display: none; }
+  .es-scene[data-um="stack"] .wallonly, .es-scene[data-um="stack"] .wallunit, .es-scene[data-um="stack"] .floorunit, .es-scene[data-um="wall"] .stackunit, .es-scene[data-um="floor"] .stackunit { display: none; }
+  .es-scene .stackunit :global(.mod) { fill: #f8faf9; stroke: #1e6e5a; stroke-width: 2; }
+  .es-scene .stackunit :global(.hd) { fill: #e8eeec; stroke: #1e6e5a; stroke-width: 2.5; }
+  .es-scene .stackunit :global(.led) { fill: #22c55e; }
+  .es-scene .stackunit :global(.scr) { fill: #0b1a17; } .es-scene .stackunit :global(.st) { font: 700 9px var(--mono); fill: #5ef0a0; text-anchor: middle; }
+  .es-scene[data-m="night"] .stackunit :global(.led), .es-scene[data-m="cut"] .stackunit :global(.led) { fill: #f59e0b; animation: esBlink 1.6s steps(1) infinite; }
+  @keyframes esBlink { 50% { opacity: .35; } }
+  .es-scene .stackunit :global(.ln2) { font: 700 8px var(--mono); fill: #6b7280; text-anchor: middle; }
+  .es-scene .stackunit :global(.lay.ins) { animation: esIn .45s cubic-bezier(.2,.9,.2,1) both; animation-delay: var(--d); }
+  @keyframes esIn { from { opacity: 0; transform: translateY(-14px); } }
   .es-scene .unit > rect:first-child { fill: #f8faf9; stroke: #1e6e5a; stroke-width: 2.5; }
   .es-scene .scr { fill: #0b1a17; } .es-scene .st { font: 700 9px var(--mono); fill: #5ef0a0; text-anchor: middle; }
   .es-scene .socbg { fill: #d7dedb; } .es-scene .soc { fill: #22c55e; transform-box: fill-box; transform-origin: 50% 100%; animation: esChg 4s ease-in-out infinite; }
