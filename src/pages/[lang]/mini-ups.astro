@@ -28,11 +28,22 @@ const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
 const caps = [...new Set(items.map((x) => x.mah).filter((v) => v > 0))].sort((a, b) => a - b);
 const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
 const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
+// Mini UPS 定制入口（OEM 贴牌 / ODM 完全定制）——以前在顶部菜单，现在放在 Mini DC UPS 栏目里
+const CB = {
+  en: ['Custom Mini UPS — OEM & ODM', 'Your outputs, battery and brand. OEM from 1000 pcs; ODM sample fee US$2,000, refunded in your mass-production order.', 'Design yours'],
+  es: ['Mini UPS a medida — OEM y ODM', 'Sus salidas, su batería y su marca. OEM desde 1000 uds; muestra ODM US$2.000, descontada del pedido de producción.', 'Diseñe el suyo'],
+  ru: ['Mini UPS на заказ — OEM и ODM', 'Ваши выходы, батарея и бренд. OEM от 1000 шт.; образец ODM 2000 $, засчитывается в серийный заказ.', 'Создать свой'],
+};
 const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
 ---
 <Base lang={lang} title={`${OT[lang].navMini} · ${SITE.name}`} description={SITE.tagline[lang]} path="mini-ups/">
   <nav class="crumbs"><a href={`/${lang}/`}>{OT[lang].navProducts}</a> / {OT[lang].navMini}</nav>
   <h1 class="page-title" id="shop">{OT[lang].navMini}</h1>
+  <a class="cz-banner" href={`/${lang}/custom/`}>
+    <span class="czb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></span>
+    <span class="czb-t"><b>{CB[lang][0]}</b><small>{CB[lang][1]}</small></span>
+    <span class="czb-go">{CB[lang][2]} →</span>
+  </a>
   {products.length === 0 && <p class="empty">{t.noProducts}</p>}
 
   {products.length > 0 && (
@@ -188,7 +199,14 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
 </script>
 
 <style>
-  .page-title { font-size: clamp(30px, 5vw, 44px); margin: 32px 0 20px; }
+  .page-title { font-size: clamp(30px, 5vw, 44px); margin: 32px 0 16px; }
+  .cz-banner { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; margin: 0 0 22px; padding: 14px 18px; border-radius: 14px; background: #0f1d1b; color: #e6efec; text-decoration: none; border: 1px solid #0f1d1b; transition: border-color .15s; }
+  .cz-banner:hover { border-color: var(--charge); }
+  .czb-ic { width: 44px; height: 44px; border-radius: 10px; background: rgba(94,240,160,.12); display: grid; place-items: center; }
+  .czb-ic svg { width: 22px; height: 22px; fill: none; stroke: #5ef0a0; stroke-width: 1.8; stroke-linejoin: round; }
+  .czb-t b { display: block; color: #fff; font-size: 16px; } .czb-t small { color: #9fb2ad; font-size: 13.5px; line-height: 1.45; }
+  .czb-go { font-weight: 700; color: var(--ink); background: var(--charge); padding: 9px 14px; border-radius: 8px; white-space: nowrap; }
+  @media (max-width: 640px) { .cz-banner { grid-template-columns: 36px minmax(0, 1fr); } .czb-ic { width: 36px; height: 36px; } .czb-go { grid-column: 1 / -1; justify-self: start; } }
   .empty { color: var(--muted); }
   .shop { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 28px; align-items: start; }
   @media (max-width: 860px) { .shop { grid-template-columns: minmax(0, 1fr); gap: 16px; } }

@@ -16,6 +16,7 @@ import { HV } from './hvcab-i18n.mjs';
 import { PB } from './pbr-i18n.mjs';
 import { HE } from './ess-i18n.mjs';
 import { CI } from './cie-i18n.mjs';
+import { CT } from './custom-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
   isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace,
@@ -25,7 +26,8 @@ export function catalog(lang) {
   const NG = NAV_GROUPS[lang];
   return [
     { key: 'ups', h: NG.ups, items: [
-      { key: 'mini', page: 'mini-ups/', label: OT[lang].navMini, f: isMini, unit: 'dc' },
+      { key: 'mini', page: 'mini-ups/', label: OT[lang].navMini, f: isMini, unit: 'dc',
+        sub: { page: 'custom/', label: CT[lang].title } }, // 菜单里 Mini DC UPS 下面缩进一行：定制 Mini UPS（OEM / ODM）
       { key: 'offline', page: 'offline-ups/', label: OT[lang].nav, f: isOffline, unit: 'va' },
       { key: 'online', page: 'online-ups/', label: OL[lang].nav, f: isOnline, unit: 'va' },
       { key: 'aio', page: 'all-in-one-ups/', label: AO[lang].nav, f: isAio, unit: 'va' },

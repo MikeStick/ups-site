@@ -46,6 +46,7 @@ const tpl = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
   <div class="cz" data-cz>
     <script type="application/json" data-cz-cfg set:html={JSON.stringify(cfg)} />
 
+    <nav class="cz-crumbs"><a href={`/${lang}/`}>{OT[lang].navProducts}</a> / <a href={`/${lang}/mini-ups/`}>{OT[lang].navMini}</a> / {T.title}</nav>
     <header class="cz-head">
       <h1>{T.title}</h1>
       <p>{T.lead}</p>

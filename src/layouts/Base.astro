@@ -1,7 +1,7 @@
 ---
 import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
-import { CT } from '../lib/custom-i18n.mjs';
+import { CO } from '../lib/contact-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
@@ -27,7 +27,7 @@ const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
 // path：不含语言前缀的路径，例如 "p/poe-36e-lfp-48v/"，用来生成其他语言版本的链接
 const altHref = (l) => `/${l}/${path}`;
 // 产品菜单：三栏（UPS / 光伏与储能 / 电池），清单在 src/lib/catalog.mjs（首页也用它）。手机上排成一列，每组一个小标题。
-const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.map((x) => [x.page, x.label]) }));
+const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.flatMap((x) => [[x.page, x.label], ...(x.sub ? [[x.sub.page, x.sub.label, 'sub']] : [])]) }));
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 ---
 <!doctype html>
@@ -92,6 +92,8 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
     .nav-gh { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 4px 10px 8px; }
     .nav-list a { color: var(--ink) !important; text-decoration: none; font-size: 14px; padding: 8px 10px; border-radius: 7px; box-shadow: none !important; }
     .nav-list a:hover { background: var(--bg); }
+    .nav-list a.sub { margin: -2px 0 2px 12px; padding: 5px 10px; font-size: 13px; color: var(--accent) !important; font-weight: 600; }
+    .nav-list a.sub i { font-style: normal; margin-right: 6px; color: var(--muted); }
     @media (max-width: 700px) {
       .nav-list { grid-template-columns: minmax(0, 1fr); padding: 10px; gap: 4px; }
       .nav-col + .nav-col { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 8px; }
@@ -130,14 +132,14 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
             {NAV.map((g) => (
               <div class="nav-col">
                 <span class="nav-gh">{g.h}</span>
-                {g.items.map(([href, label]) => <a href={`/${lang}/${href}`} aria-current={path === href ? 'page' : undefined}>{label}</a>)}
+                {g.items.map(([href, label, cls]) => <a class={cls} href={`/${lang}/${href}`} aria-current={path === href ? 'page' : undefined}>{cls === 'sub' && <i aria-hidden="true">↳</i>}{label}</a>)}
               </div>
             ))}
           </div>
         </details>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
       </nav>
-      <a class="nav-custom" href={`/${lang}/custom/`} aria-current={path === 'custom/' ? 'page' : undefined}>{CT[lang].nav}</a>
+      <a class="nav-custom" href={`/${lang}/contact/`} aria-current={path === 'contact/' ? 'page' : undefined}>{CO[lang].nav}</a>
       <details class="lang-menu" data-lang-menu>
         <summary aria-label="Language">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -158,6 +160,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
       <span>© {new Date().getFullYear()} {SITE.name}</span>
       {SITE.whatsapp && <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
       {SITE.email && <a href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      <a href={`/${lang}/contact/`}>{CO[lang].nav}</a>
     </div>
   </footer>
   <script is:inline>

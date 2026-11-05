@@ -39,10 +39,15 @@ const groups = catalog(lang).map((g) => ({
   ...g,
   items: g.items.map((it) => {
     const ps = it.f ? all.filter(it.f) : [];
-    const img = asset(`cat_${it.key}`) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
+    const img = asset(`cat_${it.key}`) || (it.key === 'designer' ? { src: '/img/cat_designer.png' } : null) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
     return { ...it, n: ps.length, range: it.tool ? '' : rangeOf(it, ps) || T.fallback[it.key] || '', img };
   }),
 }));
+// 开场动画下面的一排产品照片：每组三张类目图（中间大、两边小），点了跳到产品总览里对应的组
+const STRIP_PICK = { ups: ['online', 'modular', 'mini'], solar: ['inverter', 'homeess', 'ciess'], batt: ['wall', 'hvcab', 'pbr'] };
+const byKey0 = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.key, x])));
+const strip = groups.map((g) => ({ key: g.key, n: g.items.filter((x) => !x.tool).length, pics: STRIP_PICK[g.key].map((k) => byKey0[k]).filter(Boolean),
+  names: g.items.filter((x) => !x.tool).map((x) => x.label) }));
 const byKey = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.key, x])));
 const minis = all.filter(isMini).sort((a, b) => (b.images && b.images.length ? 1 : 0) - (a.images && a.images.length ? 1 : 0)).slice(0, 4);
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
@@ -83,10 +88,29 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
 <Base lang={lang} title={`${T.metaTitle} · ${SITE.name}`} description={T.metaDesc} path="">
   <HomeHero lang={lang} />
 
+  <section class="strip" aria-label={T.prodEyebrow}>
+    {strip.map((g) => (
+      <a class:list={['st', `g-${g.key}`]} href={`#g-${g.key}`}>
+        <span class="st-pics">
+          {[g.pics[1], g.pics[0], g.pics[2]].map((it, i) => it && (
+            <span class:list={['st-pic', { mid: i === 1 }]}>
+              {it.img ? <img src={it.img.thumb || it.img.src} alt={it.label} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS[it.key]} />}
+            </span>
+          ))}
+        </span>
+        <span class="st-b">
+          <b>{T.strip[g.key][0]}</b>
+          <small>{T.strip[g.key][1]}</small>
+          <span class="st-n">{T.stripCats.replace('{n}', String(g.n))} · {T.stripGo} ↓</span>
+        </span>
+      </a>
+    ))}
+  </section>
+
   <section class="hblock" id="products">
     <div class="hhead"><span class="eyebrow">{T.prodEyebrow}</span><h2>{T.prodH}</h2><p>{T.prodP}</p></div>
     {groups.map((g, gi) => (
-      <div class:list={['grp', `g-${g.key}`]}>
+      <div class:list={['grp', `g-${g.key}`]} id={`g-${g.key}`}>
         <div class="grp-h">
           <span class="grp-n num">0{gi + 1}</span>
           <h3>{T.groups[g.key][0]}</h3>
@@ -193,6 +217,23 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .btn.dark { background: var(--accent); color: #fff; }
   .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
   .btn:hover { filter: brightness(.96); }
+  /* —— 开场动画下的产品照片条 —— */
+  .strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 26px 0 0; }
+  .st { display: grid; grid-template-rows: auto 1fr; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .st:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 14px 30px rgba(15,107,92,.12); }
+  .st-pics { display: grid; grid-template-columns: 1fr 1.4fr 1fr; align-items: end; gap: 0; padding: 18px 14px 0; height: 190px; box-sizing: border-box; background: linear-gradient(#f1f4f3, #e6ecea); }
+  .g-solar .st-pics { background: linear-gradient(#faf5e6, #f3ead0); } .g-batt .st-pics { background: linear-gradient(#eef2fa, #e0e7f4); }
+  .st-pic { position: relative; height: 72%; display: grid; place-items: center; }
+  .st-pic.mid { height: 100%; }
+  .st-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; mix-blend-mode: multiply; transition: transform .25s; }
+  .st:hover .st-pic img { transform: translateY(-4px); }
+  .st-pic svg { width: 56%; max-width: 70px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .g-solar .st-pic svg { stroke: #b07f00; } .g-batt .st-pic svg { stroke: #2b4f8f; }
+  .st-b { display: grid; gap: 4px; align-content: start; padding: 16px 18px 18px; }
+  .st-b b { font-family: var(--display); text-transform: uppercase; font-size: 24px; line-height: 1.05; }
+  .st-b small { color: var(--muted); font-size: 14px; line-height: 1.45; }
+  .st-n { margin-top: 6px; font: 600 12.5px var(--mono); color: var(--accent); }
+  #products .grp { scroll-margin-top: 16px; }
   /* —— 产品总览 —— */
   .grp { padding: 30px 0 34px; border-top: 1px solid var(--line); }
   .grp-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 18px; }
@@ -263,6 +304,12 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
     .why-in { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 760px) { .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 760px) {
+    .strip { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .st { grid-template-rows: none; grid-template-columns: 150px minmax(0, 1fr); }
+    .st-pics { height: auto; min-height: 120px; padding: 10px 6px 0; }
+    .st-b { padding: 12px 14px; } .st-b b { font-size: 19px; } .st-b small { font-size: 13px; }
+  }
   @media (max-width: 560px) {
     .hblock { margin-top: 40px; }
     .apps, .tools { grid-template-columns: minmax(0, 1fr); }

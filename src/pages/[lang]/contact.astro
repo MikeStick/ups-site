@@ -1,0 +1,287 @@
+---
+// 联系我们（/contact/）：工厂当地时间 + 在线状态 → WhatsApp / 邮箱 / 语言 → 快速询盘（选身份、产品、数量，自动拼成一段话，用 WhatsApp 或邮件发出）
+// → 自己先选型的工具 → 常见问题 → 参观工厂（config.mjs 里填了地址才显示）。
+// 没有后台表单：和网站其他询价一样，消息直接发到 WhatsApp / 邮箱。链接带 ?p=online 这样的参数会预先勾选该类目。
+import Base from '../../layouts/Base.astro';
+import QRCode from 'qrcode';
+import { LANGS, SITE, CONTACT } from '../../config.mjs';
+import { CO } from '../../lib/contact-i18n.mjs';
+import { HM } from '../../lib/home-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = CO[lang], H = HM[lang];
+const waUrl = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '';
+const qr = waUrl ? await QRCode.toString(waUrl, { type: 'svg', margin: 0, color: { dark: '#0f1d1b', light: '#ffffff' } }) : '';
+const groups = catalog(lang).map((g) => ({ key: g.key, h: H.strip[g.key][0],
+  items: g.items.filter((x) => !x.tool).flatMap((x) => [{ key: x.key, label: x.label }, ...(x.sub ? [{ key: 'custom', label: x.sub.label }] : [])]) }));
+const addr = CONTACT.address && CONTACT.address[lang];
+const dayNames = { en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], es: ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'], ru: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'] }[lang];
+const d = CONTACT.days;
+const hoursText = `${dayNames[d[0] - 1]}–${dayNames[d[d.length - 1] - 1]} · ${String(CONTACT.from).padStart(2, '0')}:00–${CONTACT.to}:00 (UTC+8)`;
+const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, days: CONTACT.days, from: CONTACT.from, to: CONTACT.to, lang,
+  t: { online: T.online, offline: T.offline, hello: T.msgHello, mRole: T.mRole, mProducts: T.mProducts, mQty: T.mQty, mCountry: T.mCountry, mName: T.mName, mCompany: T.mCompany, subject: T.mailSubject, empty: T.emptyHint, copied: T.copied, copy: T.copy, copyMsg: T.copyMsg } };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="contact/">
+  <div class="ct" data-ct>
+    <script type="application/json" data-ct-cfg set:html={JSON.stringify(cfg)} />
+
+    <section class="ct-head">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.title}</h1>
+        <p>{T.lead}</p>
+      </div>
+      <div class="clock">
+        <span class="clock-l">{T.nowLabel}</span>
+        <b class="num" data-clock>--:--</b>
+        <span class="clock-s" data-status><i></i><span>&nbsp;</span></span>
+        <span class="clock-h">{T.hoursLabel}: <span class="num">{hoursText}</span></span>
+      </div>
+    </section>
+
+    <section class="chan">
+      {waUrl && (
+        <div class="ch ch-wa">
+          <div class="ch-t">
+            <h2>{T.waH}</h2>
+            <p>{T.waP}</p>
+            <span class="ch-v num">{SITE.whatsappDisplay}</span>
+            <a class="btn wa" href={waUrl} target="_blank" rel="noopener">{T.waBtn}</a>
+          </div>
+          <span class="qr" set:html={qr} aria-hidden="true" />
+        </div>
+      )}
+      {SITE.email && (
+        <div class="ch">
+          <h2>{T.mailH}</h2>
+          <p>{T.mailP}</p>
+          <span class="ch-v num">{SITE.email}</span>
+          <div class="ch-btns"><a class="btn dark" href={`mailto:${SITE.email}`}>{T.mailBtn}</a><button type="button" class="btn line" data-copy={SITE.email}>{T.copy}</button></div>
+        </div>
+      )}
+      {CONTACT.wechat ? (
+        <div class="ch">
+          <h2>{T.wcH}</h2>
+          <p>{T.wcP}</p>
+          <span class="ch-v num">{CONTACT.wechat}</span>
+          <div class="ch-btns"><button type="button" class="btn line" data-copy={CONTACT.wechat}>{T.copy}</button></div>
+        </div>
+      ) : (
+        <div class="ch">
+          <h2>{T.langH}</h2>
+          <p>{T.langP}</p>
+          <div class="langs">{CONTACT.languages.map((l) => <span>{l}</span>)}</div>
+        </div>
+      )}
+    </section>
+
+    <section class="inq" id="inquiry">
+      <div class="inq-h"><span class="eyebrow">{T.formEyebrow}</span><h2>{T.formH}</h2><p>{T.formP}</p></div>
+      <div class="inq-grid">
+        <form class="inq-f" data-form onsubmit="return false">
+          <fieldset>
+            <legend>{T.fRole}</legend>
+            <div class="chips">{T.roles.map((r) => <label class="chip"><input type="radio" name="role" value={r} /><span>{r}</span></label>)}</div>
+          </fieldset>
+          <fieldset>
+            <legend>{T.fProducts}</legend>
+            {groups.map((g) => (
+              <div class:list={['pg', `g-${g.key}`]} data-group={g.key}>
+                <span class="pg-h">{g.h}</span>
+                <div class="chips">{g.items.map((x) => <label class="chip"><input type="checkbox" name="p" value={x.label} data-key={x.key} /><span>{x.label}</span></label>)}</div>
+              </div>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>{T.fQty}</legend>
+            <div class="chips">{T.qtys.map((q) => <label class="chip"><input type="radio" name="qty" value={q} /><span>{q}</span></label>)}</div>
+          </fieldset>
+          <div class="row3">
+            <label class="fld"><span>{T.fCountry}</span><input name="country" autocomplete="country-name" /></label>
+            <label class="fld"><span>{T.fName}</span><input name="name" autocomplete="name" /></label>
+            <label class="fld"><span>{T.fCompany}</span><input name="company" autocomplete="organization" /></label>
+          </div>
+          <label class="fld"><span>{T.fMsg}</span><textarea name="msg" rows="4" placeholder={T.msgPh}></textarea></label>
+          <div class="tips" data-tips hidden>
+            <b>{T.tipsH}</b>
+            {Object.entries(T.tips).map(([k, v]) => <p data-tip={k} hidden>{v}</p>)}
+          </div>
+        </form>
+        <aside class="inq-p">
+          <span class="pv-l">{T.preview}</span>
+          <pre class="pv" data-preview></pre>
+          <div class="pv-btns">
+            {waUrl && <a class="btn wa" data-send-wa href={waUrl} target="_blank" rel="noopener">{T.send}</a>}
+            {SITE.email && <a class="btn dark" data-send-mail href={`mailto:${SITE.email}`}>{T.sendMail}</a>}
+            <button type="button" class="btn line" data-copy-msg>{T.copyMsg}</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="tools-r">
+      <h2>{T.toolsH}</h2>
+      <div class="tl">{H.tools.map(([h, , href]) => <a href={`/${lang}/${href}`}>{h} →</a>)}</div>
+    </section>
+
+    <section class="faq">
+      <h2>{T.faqH}</h2>
+      <div class="faq-l">{T.faq.map(([q, a]) => <details><summary>{q}</summary><p>{a}</p></details>)}</div>
+    </section>
+
+    {addr && (
+      <section class="visit">
+        <div><h2>{T.visitH}</h2><p>{T.visitP}</p><p class="addr">{addr}</p>{CONTACT.mapUrl && <a class="btn line" href={CONTACT.mapUrl} target="_blank" rel="noopener">{T.map}</a>}</div>
+      </section>
+    )}
+  </div>
+</Base>
+
+<script>
+  const root = document.querySelector('[data-ct]');
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-ct-cfg]').textContent);
+    // 工厂当地时间 + 是否在工作时间
+    const clock = root.querySelector('[data-clock]'), st = root.querySelector('[data-status]');
+    const tick = () => {
+      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: c.tz, hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false }).formatToParts(new Date()).map((p) => [p.type, p.value]));
+      const h = +parts.hour % 24, dow = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(parts.weekday) + 1;
+      clock.textContent = `${String(h).padStart(2, '0')}:${parts.minute}`;
+      const on = c.days.includes(dow) && h >= c.from && h < c.to;
+      st.classList.toggle('on', on);
+      st.querySelector('span').textContent = on ? c.t.online : c.t.offline;
+    };
+    tick(); setInterval(tick, 30000);
+
+    const copyText = async (txt, btn, label) => {
+      try { await navigator.clipboard.writeText(txt); } catch { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch {} ta.remove(); }
+      btn.textContent = c.t.copied; setTimeout(() => { btn.textContent = label; }, 1500);
+    };
+    root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copyText(b.dataset.copy, b, c.t.copy)));
+
+    // 快速询盘：表单 → 一段消息
+    const f = root.querySelector('[data-form]'), pv = root.querySelector('[data-preview]');
+    const wa = root.querySelector('[data-send-wa]'), mail = root.querySelector('[data-send-mail]');
+    const tips = root.querySelector('[data-tips]');
+    const pre = new URLSearchParams(location.search).get('p');
+    if (pre) pre.split(',').forEach((k) => { const el = f.querySelector(`input[data-key="${CSS.escape(k)}"]`); if (el) el.checked = true; });
+    let msg = '';
+    const build = () => {
+      const fd = new FormData(f), v = (k) => String(fd.get(k) || '').trim();
+      const prods = fd.getAll('p');
+      const lines = [];
+      if (v('role')) lines.push(`${c.t.mRole}: ${v('role')}`);
+      if (prods.length) lines.push(`${c.t.mProducts}: ${prods.join(', ')}`);
+      if (v('qty')) lines.push(`${c.t.mQty}: ${v('qty')}`);
+      if (v('msg')) lines.push('', v('msg'));
+      const who = [v('name') && `${c.t.mName}: ${v('name')}`, v('company') && `${c.t.mCompany}: ${v('company')}`, v('country') && `${c.t.mCountry}: ${v('country')}`].filter(Boolean);
+      if (who.length) lines.push('', ...who);
+      const has = lines.length > 0;
+      msg = [c.t.hello, '', ...lines].join('\n').trim();
+      pv.textContent = has ? msg : c.t.empty;
+      pv.classList.toggle('empty', !has);
+      if (wa) wa.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(msg)}`;
+      if (mail) mail.href = `mailto:${c.email}?subject=${encodeURIComponent(`${c.t.subject}${prods.length ? ' · ' + prods.slice(0, 3).join(', ') : ''}`)}&body=${encodeURIComponent(msg)}`;
+      // 按所选产品组显示"这样报价更快"的提示
+      const gs = new Set([...f.querySelectorAll('input[name="p"]:checked')].map((el) => el.closest('[data-group]').dataset.group));
+      tips.hidden = gs.size === 0;
+      tips.querySelectorAll('[data-tip]').forEach((p) => { p.hidden = !gs.has(p.dataset.tip); });
+    };
+    f.addEventListener('input', build); f.addEventListener('change', build); build();
+    const cm = root.querySelector('[data-copy-msg]');
+    cm.addEventListener('click', () => copyText(msg, cm, c.t.copyMsg));
+  }
+</script>
+
+<style>
+  .ct { padding-bottom: 10px; }
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .ct h2 { font-size: clamp(24px, 3vw, 32px); margin: 0 0 8px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 8px; font: 600 14.5px var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+  .btn.wa { background: #25d366; color: #06301a; } .btn.wa:hover { background: #1ebe5a; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.line:hover { border-color: var(--accent); }
+  /* 开头 + 时钟 */
+  .ct-head { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 28px; align-items: end; margin: 34px 0 26px; }
+  .ct-head h1 { font-size: clamp(36px, 5.6vw, 64px); margin: 8px 0 12px; }
+  .ct-head p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; max-width: 640px; }
+  .clock { display: grid; gap: 6px; padding: 20px 22px; border-radius: 16px; background: #0f1d1b; color: #e6efec; }
+  .clock-l { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: #9fb2ad; }
+  .clock b { font-family: var(--display); font-size: 52px; line-height: 1; color: #fff; }
+  .clock-s { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; color: #c9d6d2; }
+  .clock-s i { flex: none; width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; background: #f6a623; }
+  .clock-s.on i { background: #5ef0a0; box-shadow: 0 0 0 4px rgba(94,240,160,.18); } .clock-s.on { color: #5ef0a0; font-weight: 600; }
+  .clock-h { font-size: 12.5px; color: #9fb2ad; } .clock-h .num { font-family: var(--mono); }
+  /* 联系渠道 */
+  .chan { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+  .ch { display: grid; gap: 8px; align-content: start; padding: 22px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
+  .ch h2 { font-size: 22px; margin: 0; } .ch p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .ch-v { font: 600 17px var(--mono); margin: 4px 0 6px; word-break: break-all; }
+  .ch-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ch-wa { grid-template-columns: minmax(0, 1fr) 132px; gap: 18px; align-items: center; border-color: #b7ebcb; background: linear-gradient(135deg, #f1fbf5, var(--surface)); }
+  .ch-t { display: grid; gap: 8px; justify-items: start; }
+  .qr { width: 132px; height: 132px; padding: 8px; box-sizing: border-box; border-radius: 12px; background: #fff; border: 1px solid var(--line); display: block; }
+  .qr :global(svg) { width: 100%; height: 100%; display: block; }
+  .langs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .langs span { padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+  /* 询盘 */
+  .inq { margin-top: 44px; padding: 30px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); }
+  .inq-h { max-width: 720px; margin-bottom: 20px; } .inq-h h2 { margin-top: 6px; } .inq-h p { margin: 0; color: var(--muted); line-height: 1.55; }
+  .inq-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .inq-f { display: grid; gap: 18px; }
+  fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+  legend { font-weight: 700; font-size: 14.5px; margin-bottom: 8px; padding: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { position: relative; cursor: pointer; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span { display: inline-block; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13.5px; transition: background .12s, border-color .12s, color .12s; }
+  .chip:hover span { border-color: var(--accent); }
+  .chip input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pg { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px dashed var(--line); }
+  .pg-h { font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding-top: 9px; }
+  .g-solar .pg-h { color: #8a6400; } .g-batt .pg-h { color: #2b4f8f; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .fld { display: grid; gap: 5px; } .fld span { font-weight: 700; font-size: 14px; }
+  .fld input, .fld textarea { font: 15px var(--body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .fld input:focus, .fld textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .tips { padding: 12px 14px; border-radius: 10px; background: #fffbea; border: 1px solid #f2e2a6; }
+  .tips b { font-size: 13.5px; } .tips p { margin: 6px 0 0; font-size: 13.5px; color: #5c4a00; line-height: 1.45; }
+  .inq-p { position: sticky; top: 16px; display: grid; gap: 10px; padding: 18px; border-radius: 14px; background: #0f1d1b; }
+  .pv-l { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: #9fb2ad; }
+  .pv { margin: 0; min-height: 180px; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 14px/1.55 var(--body); color: #e6efec; padding: 14px; border-radius: 10px; background: rgba(255,255,255,.06); }
+  .pv.empty { color: #7f938e; font-style: italic; }
+  .pv-btns { display: grid; gap: 8px; }
+  .inq-p .btn.line { background: transparent; color: #e6efec; border-color: rgba(255,255,255,.2); }
+  /* 工具 + FAQ + 参观 */
+  .tools-r { margin-top: 40px; } .tools-r h2 { font-size: 22px; }
+  .tl { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tl a { padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 600; }
+  .tl a:hover { border-color: var(--accent); color: var(--accent); }
+  .faq { margin-top: 40px; }
+  .faq-l { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .faq details { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 15px; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: '+'; color: var(--accent); font-size: 20px; line-height: 1; }
+  .faq details[open] summary::after { content: '−'; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+  .visit { margin-top: 40px; padding: 26px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
+  .visit p { color: var(--muted); margin: 0 0 10px; } .visit .addr { color: var(--ink); font-weight: 600; }
+  @media (max-width: 980px) {
+    .ct-head, .inq-grid { grid-template-columns: minmax(0, 1fr); }
+    .chan { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .ch-wa { grid-column: 1 / -1; }
+    .inq-p { position: static; }
+  }
+  @media (max-width: 640px) {
+    .chan, .faq-l, .row3 { grid-template-columns: minmax(0, 1fr); }
+    .ch-wa { grid-template-columns: minmax(0, 1fr) 96px; } .qr { width: 96px; height: 96px; padding: 5px; }
+    .inq { padding: 18px; } .pg { grid-template-columns: minmax(0, 1fr); gap: 4px; } .pg-h { padding-top: 4px; }
+    .clock b { font-size: 42px; }
+  }
+</style>

@@ -2,6 +2,8 @@
 // 栏目清单本身在 src/lib/catalog.mjs；这里只放首页上每个栏目的一句话介绍和备用的规格范围（没有已发布产品时显示）。
 export const HM = {
   en: {
+    strip: { ups: ['UPS', 'From mini DC UPS to 1200 kVA modular systems'], solar: ['Solar & storage', 'Hybrid inverters, home and C&I energy storage'], batt: ['Lithium batteries', 'LiFePO4 for walls, racks, HV cabinets and 12 V'] },
+    stripCats: '{n} categories', stripGo: 'See all',
     metaTitle: 'UPS, solar inverters and energy storage — factory direct',
     metaDesc: 'SKE Power manufactures UPS systems from mini DC UPS to 1200 kVA modular UPS, solar inverters, home and C&I energy storage, and LiFePO4 batteries. Size your system online and get a factory quote.',
     prodEyebrow: 'Our products', prodH: 'Keep the power on — from 5 W to 1200 kVA',
@@ -48,6 +50,8 @@ export const HM = {
     stats: { years: 'Years in power', area: 'Factory', countries: 'Countries' },
   },
   es: {
+    strip: { ups: ['UPS', 'Desde mini UPS DC hasta sistemas modulares de 1200 kVA'], solar: ['Solar y almacenamiento', 'Inversores híbridos, almacenamiento residencial y C&I'], batt: ['Baterías de litio', 'LiFePO4 de pared, rack, gabinetes HV y 12 V'] },
+    stripCats: '{n} categorías', stripGo: 'Ver todo',
     metaTitle: 'UPS, inversores solares y almacenamiento de energía — directo de fábrica',
     metaDesc: 'SKE Power fabrica UPS desde mini UPS de CC hasta UPS modulares de 1200 kVA, inversores solares, almacenamiento doméstico y C&I, y baterías LiFePO4. Dimensione su sistema en línea y reciba una cotización de fábrica.',
     prodEyebrow: 'Nuestros productos', prodH: 'Mantenga la energía — de 5 W a 1200 kVA',
@@ -94,6 +98,8 @@ export const HM = {
     stats: { years: 'Años en energía', area: 'Fábrica', countries: 'Países' },
   },
   ru: {
+    strip: { ups: ['ИБП', 'От мини-ИБП DC до модульных систем 1200 кВА'], solar: ['Солнечная энергия и накопители', 'Гибридные инверторы, домашние и коммерческие СНЭ'], batt: ['Литиевые батареи', 'LiFePO4: настенные, стоечные, HV-шкафы и 12 В'] },
+    stripCats: '{n} категорий', stripGo: 'Смотреть',
     metaTitle: 'ИБП, солнечные инверторы и накопители энергии — напрямую с завода',
     metaDesc: 'SKE Power производит ИБП — от мини-ИБП постоянного тока до модульных ИБП на 1200 кВА, солнечные инверторы, домашние и коммерческие накопители энергии и аккумуляторы LiFePO4. Подберите систему онлайн и получите заводскую цену.',
     prodEyebrow: 'Наша продукция', prodH: 'Питание без перерывов — от 5 Вт до 1200 кВА',
