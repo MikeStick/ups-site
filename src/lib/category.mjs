@@ -60,6 +60,20 @@ export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
 export const WALL_BATT_TYPES = ['壁挂式锂电池', '壁挂式磷酸铁锂电池'];
 export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
+// 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
+export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
+export const isHvCab = (p) => has(p, HV_CAB_TYPES);
+// 电池柜参数：在 battModule 基础上，从型号名（R204.8V100AH）补电压 / 容量，从各字段里找"≤ 27U"这种两位数 U 高
+export function hvModule(p) {
+  const b = battModule(p);
+  const mm = String(p.model || '').match(/(\d+(?:\.\d+)?)\s*V\s*(\d+)\s*AH/i);
+  if (mm) { if (!b.v) b.v = +mm[1]; if (!b.ah) b.ah = +mm[2]; }
+  if (!b.kwh && b.v && b.ah) b.kwh = Math.round(b.v * b.ah / 10) / 100;
+  const ex = Array.isArray(p.extraSpecs) ? p.extraSpecs.map((x) => `${x.label || ''} ${x.value || ''}`).join(' ') : '';
+  const um = `${p.moduleDimensions || ''} ${p.dimensions || ''} ${p.cabinetSize || ''} ${ex}`.match(/(\d{1,2})\s*U\b/);
+  b.u = um ? +um[1] : 0;
+  return b;
+}
 export const FLOOR_BATT_TYPES = ['落地式锂电池', '落地式磷酸铁锂电池'];
 export const isFloorBattery = (p) => has(p, FLOOR_BATT_TYPES);
 const num1 = (v) => { const m = String(v || '').replace(',', '.').match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; };
