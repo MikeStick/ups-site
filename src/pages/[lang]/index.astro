@@ -20,6 +20,8 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = HM[lang], t = UI[lang], A = AT[lang];
+// 类目卡片图没上传时，先借用 About 页同类产品线图（fam_*）
+const FAM = { mini: 'fam_dc', offline: 'fam_backup', online: 'fam_hf', industrial: 'fam_if', modular: 'fam_modular', rack: 'fam_rack', inverter: 'fam_inverter' };
 const asset = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0] : null; };
 
 // 规格范围：按栏目的单位从已发布产品里算；没有产品时用 home-i18n 里的备用文字
@@ -37,7 +39,7 @@ const groups = catalog(lang).map((g) => ({
   ...g,
   items: g.items.map((it) => {
     const ps = it.f ? all.filter(it.f) : [];
-    const img = asset(`cat_${it.key}`) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
+    const img = asset(`cat_${it.key}`) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
     return { ...it, n: ps.length, range: it.tool ? '' : rangeOf(it, ps) || T.fallback[it.key] || '', img };
   }),
 }));
@@ -204,7 +206,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .cat:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,107,92,.1); }
   .cat:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .cimg { width: 76px; height: 76px; border-radius: 10px; background: #f1f4f3; display: grid; place-items: center; overflow: hidden; }
-  .cimg img { width: 100%; height: 100%; object-fit: contain; }
+  .cimg img { width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; mix-blend-mode: multiply; }
   .cimg svg { width: 40px; height: 40px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .g-solar .cimg svg { stroke: #b07f00; } .g-batt .cimg svg { stroke: #2b4f8f; }
   .cat.istool { border-style: dashed; }
