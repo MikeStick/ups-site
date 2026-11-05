@@ -3,7 +3,7 @@
 // 以后光伏系列产品齐全（光伏板、汇流箱等）再把选型结果直接对应到具体型号。
 export const SD = {
   en: {
-    nav: 'Solar system designer', title: 'Solar system designer', crumbs: 'Products', crumbSolar: 'Solar',
+    nav: 'Solar system designer', title: 'Solar system designer', crumbs: 'Products', crumbSolar: 'Solar & storage',
     metaDesc: 'Free online solar system designer: choose your appliances and region, and get the inverter size, battery storage and number of solar panels for backup, bill savings or off-grid. Factory direct inverters and LiFePO4 batteries from China.',
     eyebrow: 'Free online tool', h1a: 'Design your solar system ', h1b: 'in two minutes',
     lead: 'Pick what you want to power and where you are. We size the inverter, the battery and the solar panels — and show you how energy flows by day, at night and in a power cut.',
@@ -28,7 +28,7 @@ export const SD = {
     ctaH: 'Want us to check your design?', ctaP: 'Send us the result or just your appliance list — we reply on WhatsApp the same day.',
   },
   es: {
-    nav: 'Diseñador de sistema solar', title: 'Diseñador de sistema solar', crumbs: 'Productos', crumbSolar: 'Solar',
+    nav: 'Diseñador de sistema solar', title: 'Diseñador de sistema solar', crumbs: 'Productos', crumbSolar: 'Solar y almacenamiento',
     metaDesc: 'Diseñador de sistema solar en línea y gratuito: elija sus equipos y su región y obtenga el tamaño del inversor, la batería y la cantidad de paneles para respaldo, ahorro o sistemas off-grid. Inversores y baterías LiFePO4 directo de fábrica en China.',
     eyebrow: 'Herramienta gratuita en línea', h1a: 'Diseñe su sistema solar ', h1b: 'en dos minutos',
     lead: 'Elija qué quiere alimentar y dónde está. Dimensionamos el inversor, la batería y los paneles, y le mostramos cómo fluye la energía de día, de noche y en un corte de luz.',
@@ -53,7 +53,7 @@ export const SD = {
     ctaH: '¿Quiere que revisemos su diseño?', ctaP: 'Envíenos el resultado o solo su lista de equipos: respondemos por WhatsApp el mismo día.',
   },
   ru: {
-    nav: 'Подбор солнечной системы', title: 'Подбор солнечной системы', crumbs: 'Продукция', crumbSolar: 'Солнечная энергия',
+    nav: 'Подбор солнечной системы', title: 'Подбор солнечной системы', crumbs: 'Продукция', crumbSolar: 'Солнце и накопители',
     metaDesc: 'Бесплатный онлайн-подбор солнечной системы: выберите приборы и регион — получите мощность инвертора, ёмкость аккумуляторов и число солнечных панелей для резерва, экономии или автономного дома. Инверторы и аккумуляторы LiFePO4 напрямую с завода в Китае.',
     eyebrow: 'Бесплатный онлайн-инструмент', h1a: 'Соберите солнечную систему ', h1b: 'за две минуты',
     lead: 'Выберите, что нужно питать и где вы находитесь. Мы подберём инвертор, аккумулятор и солнечные панели и покажем, как идёт энергия днём, ночью и при отключении.',
@@ -79,9 +79,9 @@ export const SD = {
   },
 };
 
-// 菜单分组标题
+// 菜单分组标题（光伏栏从工商业储能柜上线起改名为"光伏与储能"）
 export const NAV_GROUPS = {
-  en: { ups: 'UPS', solar: 'Solar', batt: 'Batteries' },
-  es: { ups: 'UPS', solar: 'Solar', batt: 'Baterías' },
-  ru: { ups: 'ИБП', solar: 'Солнечная энергия', batt: 'Аккумуляторы' },
+  en: { ups: 'UPS', solar: 'Solar & storage', batt: 'Batteries' },
+  es: { ups: 'UPS', solar: 'Solar y almacenamiento', batt: 'Baterías' },
+  ru: { ups: 'ИБП', solar: 'Солнце и накопители', batt: 'Аккумуляторы' },
 };

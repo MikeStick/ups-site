@@ -2,7 +2,7 @@
 // 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机 / 高压堆叠式储能一体机 / 低压堆叠式储能一体机。用电器名称用光伏选型器的 SL[lang].c.ap。
 export const HE = {
   en: {
-    nav: 'Home ESS all-in-one', title: 'All-in-one home energy storage systems', crumbs: 'Products', crumbSolar: 'Solar',
+    nav: 'Home ESS all-in-one', title: 'All-in-one home energy storage systems', crumbs: 'Products', crumbSolar: 'Solar & storage',
     metaDesc: 'All-in-one home energy storage systems: LiFePO4 battery and hybrid inverter in one unit, 2.5–25 kWh and 3–10 kW, wall-mounted, floor-standing or stacked (high- and low-voltage), solar and mains input, UPS function. Plan your home backup online. Factory direct from China.',
     eyebrow: 'Battery + inverter in one', h1a: 'Solar storage and backup ', h1b: 'in one box',
     lead: 'The lithium battery and the hybrid inverter in a single unit. Connect solar panels and the grid, plug in your home circuits — and keep the lights, fridge and WiFi on when the power goes out.',
@@ -56,7 +56,7 @@ export const HE = {
     },
   },
   es: {
-    nav: 'ESS doméstico todo en uno', title: 'Sistemas de almacenamiento doméstico todo en uno', crumbs: 'Productos', crumbSolar: 'Solar',
+    nav: 'ESS doméstico todo en uno', title: 'Sistemas de almacenamiento doméstico todo en uno', crumbs: 'Productos', crumbSolar: 'Solar y almacenamiento',
     metaDesc: 'Sistemas de almacenamiento doméstico todo en uno: batería LiFePO4 e inversor híbrido en una sola unidad, 2,5–25 kWh y 3–10 kW, de pared, de piso o apilables (alta y baja tensión), entrada solar y de red, función UPS. Planifique el respaldo de su casa en línea. Directo de fábrica en China.',
     eyebrow: 'Batería + inversor en uno', h1a: 'Almacenamiento solar y respaldo ', h1b: 'en una sola caja',
     lead: 'La batería de litio y el inversor híbrido en una sola unidad. Conecte paneles solares y la red, enchufe los circuitos de su casa y mantenga encendidas las luces, la nevera y el WiFi cuando se corta la luz.',
@@ -110,7 +110,7 @@ export const HE = {
     },
   },
   ru: {
-    nav: 'Домашние ESS «всё в одном»', title: 'Домашние системы накопления «всё в одном»', crumbs: 'Продукция', crumbSolar: 'Солнечная энергия',
+    nav: 'Домашние ESS «всё в одном»', title: 'Домашние системы накопления «всё в одном»', crumbs: 'Продукция', crumbSolar: 'Солнце и накопители',
     metaDesc: 'Домашние системы накопления энергии «всё в одном»: аккумулятор LiFePO4 и гибридный инвертор в одном корпусе, 2,5–25 кВт·ч и 3–10 кВт, настенные, напольные или модульные стековые (высоко- и низковольтные), вход от солнца и сети, функция ИБП. Спланируйте резерв для дома онлайн. Напрямую с завода в Китае.',
     eyebrow: 'Аккумулятор + инвертор в одном', h1a: 'Солнечный накопитель и резерв ', h1b: 'в одном корпусе',
     lead: 'Литиевый аккумулятор и гибридный инвертор в одном устройстве. Подключите солнечные панели и сеть, подключите домашние линии — и свет, холодильник и WiFi будут работать при отключениях.',

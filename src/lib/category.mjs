@@ -89,6 +89,28 @@ export function essSpec(p) {
   const layers = mount === 'stack' && kwh ? Math.max(1, Math.round(kwh / 5.12)) : 0;
   return { mount, volt: essVolt(p), layers, kwh, kw, v, ah, kg: num1(p.netWeight || p.moduleWeight), dims: dims.length === 3 ? dims : [] };
 }
+// 工商业户外储能柜（电池 + PCS 一体，IP54）：风冷 / 液冷两个细分品类，栏目 /ci-ess/（菜单"光伏与储能"栏）
+export const CI_AIR_TYPES = ['风冷工商业储能柜'];
+export const CI_LIQ_TYPES = ['液冷工商业储能柜'];
+export const isCiEss = (p) => has(p, [...CI_AIR_TYPES, ...CI_LIQ_TYPES]);
+// 选配（光伏 DC-DC / STS）：参数里有对应条目且值不是"/"就算支持
+function ciOption(p, re) {
+  const ex = Array.isArray(p.extraSpecs) ? p.extraSpecs : [];
+  const hit = ex.filter((x) => re.test(`${x.label || ''}`));
+  if (hit.length) return hit.some((x) => { const v = String(x.value || '').trim(); return v && !/^[\/—–-]+$/.test(v) && !/不支持|not supported|n\/a/i.test(v); });
+  return re.test(String(p.sellingPoints || '')) && !/\(UP\)|L3\b/i.test(String(p.model || ''));
+}
+export function ciSpec(p) {
+  let kwh = num1(p.moduleMaxEnergy || p.batteryCapacity || p.ratedCapacity);
+  if (kwh > 5000) kwh /= 1000;
+  let kw = num1(p.ratedPower || p.outputPower || p.pcsPower);
+  if (kw > 5000) kw /= 1000;
+  let t = num1(p.netWeight || p.moduleWeight);
+  if (t > 100) t /= 1000; // 填的是 kg
+  const dims = (String(p.dimensions || p.moduleDimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 3);
+  return { cool: has(p, CI_LIQ_TYPES) ? 'liquid' : 'air', kwh, kw, v: num1(p.moduleVoltage || p.batteryVoltage),
+    pv: ciOption(p, /PV|MPPT|光伏/i), sts: ciOption(p, /STS|静态开关|离网切换/i), dims: dims.length === 3 ? dims : [], t: Math.round(t * 10) / 10 };
+}
 // 锂电替换铅酸电池（LiFePO4 drop-in，12.8 / 25.6 / 51.2 V，型号如 LFP-12V7AH）：栏目 /batteries/lead-acid-replacement/
 export const PBR_TYPES = ['锂电替换铅酸电池'];
 export const isPbReplace = (p) => has(p, PBR_TYPES);

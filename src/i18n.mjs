@@ -124,6 +124,8 @@ const TERMS = {
   '壁挂式磷酸铁锂电池': { es: 'Batería LiFePO4 de pared', en: 'Wall-mount LiFePO4 battery', ru: 'Настенный аккумулятор LiFePO4' },
   '壁挂式储能一体机': { es: 'ESS doméstico todo en uno de pared', en: 'Wall-mounted all-in-one home ESS', ru: 'Настенная домашняя ESS «всё в одном»' },
   '落地式储能一体机': { es: 'ESS doméstico todo en uno de piso', en: 'Floor-standing all-in-one home ESS', ru: 'Напольная домашняя ESS «всё в одном»' },
+  '风冷工商业储能柜': { es: 'Gabinete ESS C&I refrigerado por aire', en: 'Air-cooled C&I ESS cabinet', ru: 'Шкаф ESS для бизнеса с воздушным охлаждением' },
+  '液冷工商业储能柜': { es: 'Gabinete ESS C&I refrigerado por líquido', en: 'Liquid-cooled C&I ESS cabinet', ru: 'Шкаф ESS для бизнеса с жидкостным охлаждением' },
   '高压堆叠式储能一体机': { es: 'ESS doméstico apilable de alta tensión', en: 'High-voltage stacked all-in-one home ESS', ru: 'Высоковольтная стековая домашняя ESS' },
   '低压堆叠式储能一体机': { es: 'ESS doméstico apilable de baja tensión', en: 'Low-voltage stacked all-in-one home ESS', ru: 'Низковольтная стековая домашняя ESS' },
   '锂电替换铅酸电池': { es: 'Batería LiFePO4 de reemplazo de plomo-ácido', en: 'LiFePO4 lead-acid replacement battery', ru: 'Аккумулятор LiFePO4 на замену свинцовому' },
