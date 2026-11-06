@@ -24,7 +24,8 @@ export const isModular = (p) => has(p, MODULAR_TYPES);
 export const isRackModular = (p) => has(p, ['机架式模块化UPS']);
 // 光伏逆变器栏目：大类 = 光伏逆变器，或细分品类是混网 / 并网离网逆变器
 export const INVERTER_TYPES = ['太阳能混网逆变器', '并网/离网逆变器'];
-export const isInverter = (p) => p.category === '光伏逆变器' || has(p, INVERTER_TYPES);
+// CRM 里产品的大类存的是大类 id（ups / inverter / battery，自建大类是随机 id），旧数据可能是中文名，两种都认
+export const isInverter = (p) => p.category === 'inverter' || p.category === '光伏逆变器' || has(p, INVERTER_TYPES);
 // 类型：hybrid 混网（光伏 + 电池 + 电网）；并网/离网逆变器里有电池参数的算离网（off），没有的算并网（grid）
 export function invKind(p) {
   if (has(p, ['太阳能混网逆变器'])) return 'hybrid';
@@ -54,7 +55,8 @@ export function invBattV(p) {
 }
 // 储能电池：大类 = 储能电池。已有栏目：机架式磷酸铁锂电池（/batteries/rack-lithium/）、壁挂式锂电池（/batteries/wall-lithium/）、落地式锂电池（/batteries/floor-lithium/）；
 // 铅酸、家庭储能系统的栏目还没做：不进任何列表，产品页照常生成
-export const isBattery = (p) => p.category === '储能电池';
+export const isBattery = (p) => p.category === 'battery' || p.category === '储能电池';
+export const isUpsCat = (p) => p.category === 'ups' || p.category === 'UPS不间断电源';
 export const RACK_BATT_TYPES = ['机架式磷酸铁锂电池', '机架式锂电池'];
 export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
@@ -160,7 +162,7 @@ export function battModule(p) {
   return { v, ah, kwh, maxA, kg, u, par };
 }
 // 在线式高频 UPS 栏目（塔式，真双变换在线式，1–30 kVA；单相 / 三进单出 / 三进三出）
-export const ONLINE_TYPES = ['在线式高频UPS'];
+export const ONLINE_TYPES = ['在线式高频UPS', '高频塔式UPS', '在线式UPS'];
 export const isOnline = (p) => has(p, ONLINE_TYPES);
 // 一体式锂电 UPS（All-in-One Lithium UPS，内置锂电池、电池节数可选，例如 C1K-Pro）：栏目 /all-in-one-ups/
 export const AIO_TYPES = ['一体式锂电UPS', '锂电一体式UPS'];
@@ -181,10 +183,11 @@ export function phaseOf(p) {
   if (/38\d|40\d|41\d|3\s*ph|三相/i.test(vi)) return '31';
   return '11';
 }
-// Mini UPS 栏目：迷你UPS，以及不属于离线式 / 机架式 / 模块化 / 工频机 / 在线式高频 / 光伏逆变器 / 储能电池的其他已发布产品（以后加品类时在这里分流）
-export const isMini = (p) => has(p, ['迷你UPS']) || (!isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
+// Mini DC UPS 栏目：品类是「迷你UPS」，或者属于 UPS 大类但不在其他任何 UPS 栏目里。
+// 以前是「不属于任何栏目的产品都算 Mini」，CRM 里新加的品类（比如新的逆变器型号）会混进 Mini 页面，现在只兜底「UPS 大类、没填品类」的产品。
+// 不属于任何栏目的产品，构建时会在日志里列出来（见首页 index.astro）
+export const isMini = (p) => has(p, ['迷你UPS']) || (isUpsCat(p) && !p.type && !isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
   && !isHomeEss(p) && !isCiEss(p) && !isWallBattery(p) && !isFloorBattery(p) && !isRackBattery(p) && !isHvCab(p) && !isPbReplace(p));
-// ↑ 储能一体机 / 工商业储能柜 / 各类锂电池在 CRM 里大类不一定填"储能电池"，按细分品类也排除，免得混进 Mini UPS 列表
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');

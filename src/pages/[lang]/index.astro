@@ -45,6 +45,12 @@ const groups = catalog(lang).map((g) => ({
 }));
 // 开场动画下面的一排产品照片：每组三张类目图（中间大、两边小），点了跳到产品总览里对应的组
 const STRIP_PICK = { ups: ['online', 'modular', 'mini'], solar: ['inverter', 'homeess', 'ciess'], batt: ['wall', 'hvcab', 'pbr'] };
+// 不属于任何栏目的已发布产品：网站上不会出现，构建日志里提醒一下（CRM 里新加了品类、网站还没给它建栏目时会这样）
+if (lang === 'en') {
+  const fs = catalog(lang).flatMap((g) => g.items.map((x) => x.f).filter(Boolean));
+  const orphan = all.filter((p) => !fs.some((f) => f(p)));
+  if (orphan.length) console.warn(`[home] ${orphan.length} 个产品不在任何栏目里：` + orphan.map((p) => `${p.model}（大类 ${p.category || '-'} / 品类 ${p.type || '-'}）`).join('、'));
+}
 const byKey0 = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.key, x])));
 const strip = groups.map((g) => ({ key: g.key, n: g.items.filter((x) => !x.tool).length, pics: STRIP_PICK[g.key].map((k) => byKey0[k]).filter(Boolean),
   names: g.items.filter((x) => !x.tool).map((x) => x.label) }));
