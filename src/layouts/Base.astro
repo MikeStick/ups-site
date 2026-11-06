@@ -5,6 +5,7 @@ import { CO } from '../lib/contact-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
+import SiteFooter from '../components/SiteFooter.astro';
 import { RT } from '../lib/rack-i18n.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
 import { IT } from '../lib/industrial-i18n.mjs';
@@ -115,12 +116,9 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
     .lang-list a:hover { background: var(--bg); }
     .lang-list a[aria-current="true"] { background: var(--ok-soft); }
     .lang-list a[aria-current="true"]::after { content: "✓"; margin-left: auto; color: var(--accent); font-weight: 700; }
-    .contact { display: flex; flex-wrap: wrap; gap: 6px 20px; }
-    .contact a { color: var(--muted); }
-    footer { border-top: 1px solid var(--line); margin-top: 56px; padding-block: 24px; color: var(--muted); font-size: 13px; }
   </style>
 </head>
-<body>
+<body id="top">
   <header class="top">
     <div class="wrap">
       <a class="brand" href={`/${lang}/`}>{SITE.name}<small>{SITE.tagline[lang]}</small></a>
@@ -155,14 +153,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
   <main class:list={[{ wrap: !full }]}>
     <slot />
   </main>
-  <footer>
-    <div class="wrap contact">
-      <span>© {new Date().getFullYear()} {SITE.name}</span>
-      {SITE.whatsapp && <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
-      {SITE.email && <a href={`mailto:${SITE.email}`}>{SITE.email}</a>}
-      <a href={`/${lang}/contact/`}>{CO[lang].nav}</a>
-    </div>
-  </footer>
+  <SiteFooter lang={lang} altHref={altHref} />
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）
