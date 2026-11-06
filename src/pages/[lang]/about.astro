@@ -1,6 +1,7 @@
 ---
 // About Us（B 版）。文字在 src/lib/about-i18n.mjs；照片和近期动态在客户档案系统「网站管理」里维护（构建时拉到 src/data/site.json），没上传的照片位置自动隐藏或显示图标。
 import Base from '../../layouts/Base.astro';
+import { BJ } from '../../lib/beijing-i18n.mjs';
 import { LANGS, SITE } from '../../config.mjs';
 import { AT, STATS, FAMILIES, SERIES, NEWS } from '../../lib/about-i18n.mjs';
 import site from '../../data/site.json';
@@ -79,7 +80,7 @@ const WHY_ICONS = [
   </div>
 
   <nav class="toc wrap" aria-label="On this page">
-    {Object.entries(T.toc).map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
+    {Object.entries(T.toc).flatMap(([id, label]) => [[id, label], ...(id === 'service' ? [['beijing', BJ[lang].toc]] : [])]).map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
   </nav>
 
   <section class="block wrap" id="who">
@@ -193,6 +194,37 @@ const WHY_ICONS = [
     <div class="head"><span class="eyebrow">{T.svcEyebrow}</span><h2>{T.svcH}</h2></div>
     <div class="service">
       {T.svc.map(([h, d], i) => <div class="svc"><b class="num">0{i + 1}</b><h3>{h}</h3><p>{d}</p></div>)}
+    </div>
+  </section>
+
+  <section class="block wrap" id="beijing">
+    <div class="bj">
+      <figure class="bj-photo">
+        <img src="/img/beijing-office.jpg" alt={BJ[lang].name} loading="lazy" />
+        <a class="bj-360" href={`/${lang}/contact/?tour=office#factory`}><span>360°</span>{BJ[lang].tour}</a>
+      </figure>
+      <div class="bj-body">
+        <span class="eyebrow">{BJ[lang].eyebrow}</span>
+        <h2>{BJ[lang].h}</h2>
+        <p class="bj-name">{BJ[lang].name}</p>
+        <p>{BJ[lang].p}</p>
+        <div class="bj-certs">{BJ[lang].certs.map(([c, d]) => <div><b class="num">{c}</b><span>{d}</span></div>)}</div>
+      </div>
+    </div>
+    <div class="bj-row">
+      <div class="bj-card">
+        <h3>{BJ[lang].sectorsH}</h3>
+        <div class="bj-chips">{BJ[lang].sectors.map((x) => <span>{x}</span>)}</div>
+      </div>
+      <div class="bj-card">
+        <h3>{BJ[lang].clientsH}</h3>
+        <p>{BJ[lang].clientsP}</p>
+        <ul class="bj-clients">{BJ[lang].clients.map((x) => <li>{x}</li>)}</ul>
+      </div>
+    </div>
+    <div class="bj-links">
+      <a href={`/${lang}/contact/?tour=office#factory`}>{BJ[lang].tour} →</a>
+      <a href={`/${lang}/contact/`}>{BJ[lang].visit} →</a>
     </div>
   </section>
 
@@ -549,4 +581,29 @@ const WHY_ICONS = [
   @media (max-width: 520px) { .timeline li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
   .why { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   @media (max-width: 860px) { .why { grid-template-columns: minmax(0, 1fr); } }
+  /* —— 北京公司 —— */
+  .bj { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 30px; align-items: center; }
+  .bj-photo { position: relative; margin: 0; border-radius: 18px; overflow: hidden; aspect-ratio: 1568 / 1003; background: var(--line); }
+  .bj-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bj-360 { position: absolute; left: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 999px; background: #fff; color: var(--ink); font-weight: 700; font-size: 14px; text-decoration: none; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+  .bj-360 span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 11px var(--mono); }
+  .bj-360:hover { transform: translateY(-2px); }
+  .bj-body h2 { font-size: clamp(28px, 3.8vw, 40px); margin: 8px 0 10px; }
+  .bj-body p { color: var(--muted); line-height: 1.6; margin: 0 0 12px; }
+  .bj-body .bj-name { color: var(--ink); font-weight: 700; margin-bottom: 8px; }
+  .bj-certs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+  .bj-certs div { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 2px; }
+  .bj-certs b { font: 700 13px var(--mono); color: var(--accent); } .bj-certs span { font-size: 12.5px; color: var(--muted); }
+  .bj-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 22px; }
+  .bj-card { padding: 20px 22px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
+  .bj-card h3 { margin: 0 0 10px; font-size: 18px; } .bj-card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .bj-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bj-chips span { padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13.5px; }
+  .bj-clients { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+  .bj-clients li { position: relative; padding-left: 16px; font-size: 14px; font-weight: 600; line-height: 1.35; }
+  .bj-clients li::before { content: ''; position: absolute; left: 0; top: .45em; width: 7px; height: 7px; border-radius: 2px; background: var(--charge); }
+  .bj-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
+  .bj-links a { color: var(--accent); font-weight: 700; text-decoration: none; } .bj-links a:hover { text-decoration: underline; }
+  @media (max-width: 900px) { .bj, .bj-row { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 520px) { .bj-certs, .bj-clients { grid-template-columns: minmax(0, 1fr); } }
 </style>

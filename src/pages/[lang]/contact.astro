@@ -203,6 +203,8 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
         media.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== t.dataset.tab; });
         const fr = media.querySelector(`[data-pane="${t.dataset.tab}"] iframe[data-src]`); if (fr && !fr.src) fr.src = fr.dataset.src;
       }));
+      const want = new URLSearchParams(location.search).get('tour');
+      if (want) { const t = media.querySelector(`[data-tab="${CSS.escape(want)}"]`); if (t) t.click(); }
       media.querySelectorAll('[data-tour-go]').forEach((go) => go.addEventListener('click', () => {
         const fr = document.createElement('iframe');
         fr.src = go.dataset.src; fr.title = '360°'; fr.allow = 'fullscreen; accelerometer; gyroscope; xr-spatial-tracking'; fr.allowFullscreen = true;
