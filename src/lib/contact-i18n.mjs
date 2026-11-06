@@ -36,8 +36,9 @@ export const CO = {
       ['Can you design a new Mini UPS for my devices?', 'Yes — ODM. You choose outputs, voltages and battery; the sample development fee is US$2,000 and is refunded in your mass-production order.'],
       ['Do I need to buy solar panels from you?', 'No. Buy panels locally if that is cheaper — our inverters work with standard panels. We supply inverters, batteries and energy storage.'],
     ],
+    tourTab: '360° factory tour', mapTab: 'Satellite map', tourStart: 'Start the 360° tour', tourHint: 'Walk through our factory — drag to look around.', tourFull: 'Open full screen',
     duoH: 'WhatsApp · WeChat', duoP: 'One code for both apps: scan with your phone camera to chat on WhatsApp, or scan inside WeChat to add us.', duoNo: 'Same number on WhatsApp and WeChat', wcCopy: 'Copy WeChat ID',
-    visitH: 'Visit our factory', visitP: 'Our factory is in Dongguan, Guangdong. See it on the satellite map — you are welcome to visit, please book a few days ahead.', map: 'Open in Google Maps', dir: 'Get directions', zhAddr: 'Address in Chinese — show it to your driver', photo: 'Our factory', mapNote: 'Map not loading? Open it in Google Maps.',
+    visitH: 'Visit our factory', visitP: 'Our factory is in Dongguan, Guangdong. Take the 360° tour or see it on the satellite map — you are welcome to visit, please book a few days ahead.', map: 'Open in Google Maps', dir: 'Get directions', zhAddr: 'Address in Chinese — show it to your driver', photo: 'Our factory', mapNote: 'Map not loading? Open it in Google Maps.',
   },
   es: {
     nav: 'Contacto',
@@ -74,8 +75,9 @@ export const CO = {
       ['¿Pueden diseñar un Mini UPS nuevo para mis equipos?', 'Sí, ODM. Usted elige salidas, voltajes y batería; el desarrollo de la muestra cuesta US$2.000 y se descuenta en su pedido de producción.'],
       ['¿Debo comprarles los paneles solares?', 'No. Compre los paneles localmente si le sale más barato: nuestros inversores funcionan con paneles estándar. Nosotros suministramos inversores, baterías y almacenamiento.'],
     ],
+    tourTab: 'Recorrido 360° de la fábrica', mapTab: 'Mapa satelital', tourStart: 'Iniciar recorrido 360°', tourHint: 'Recorra nuestra fábrica: arrastre para mirar alrededor.', tourFull: 'Abrir en pantalla completa',
     duoH: 'WhatsApp · WeChat', duoP: 'Un solo código para las dos apps: escanéelo con la cámara del teléfono para chatear por WhatsApp, o dentro de WeChat para agregarnos.', duoNo: 'Mismo número en WhatsApp y WeChat', wcCopy: 'Copiar ID de WeChat',
-    visitH: 'Visite nuestra fábrica', visitP: 'Nuestra fábrica está en Dongguan, Guangdong. Véala en el mapa satelital; es bienvenido a visitarnos, reserve con unos días de anticipación.', map: 'Abrir en Google Maps', dir: 'Cómo llegar', zhAddr: 'Dirección en chino: muéstresela al conductor', photo: 'Nuestra fábrica', mapNote: '¿No carga el mapa? Ábralo en Google Maps.',
+    visitH: 'Visite nuestra fábrica', visitP: 'Nuestra fábrica está en Dongguan, Guangdong. Haga el recorrido 360° o véala en el mapa satelital; es bienvenido a visitarnos, reserve con unos días de anticipación.', map: 'Abrir en Google Maps', dir: 'Cómo llegar', zhAddr: 'Dirección en chino: muéstresela al conductor', photo: 'Nuestra fábrica', mapNote: '¿No carga el mapa? Ábralo en Google Maps.',
   },
   ru: {
     nav: 'Контакты',
@@ -112,7 +114,8 @@ export const CO = {
       ['Можете разработать новый Mini UPS под мои устройства?', 'Да, ODM. Вы выбираете выходы, напряжения и батарею; разработка образца — 2000 $, сумма засчитывается в серийный заказ.'],
       ['Нужно ли покупать солнечные панели у вас?', 'Нет. Покупайте панели на месте, если так дешевле, — наши инверторы работают со стандартными панелями. Мы поставляем инверторы, батареи и накопители.'],
     ],
+    tourTab: '360° тур по заводу', mapTab: 'Спутниковая карта', tourStart: 'Начать 360° тур', tourHint: 'Пройдитесь по заводу — тяните, чтобы осмотреться.', tourFull: 'Открыть на весь экран',
     duoH: 'WhatsApp · WeChat', duoP: 'Один код для двух приложений: отсканируйте камерой телефона, чтобы написать в WhatsApp, или внутри WeChat, чтобы добавить нас.', duoNo: 'Один номер в WhatsApp и WeChat', wcCopy: 'Копировать WeChat ID',
-    visitH: 'Посетите наш завод', visitP: 'Наш завод находится в Дунгуане (провинция Гуандун). Посмотрите его на спутниковой карте — будем рады визиту, договоритесь за несколько дней.', map: 'Открыть в Google Maps', dir: 'Маршрут', zhAddr: 'Адрес на китайском — покажите водителю', photo: 'Наш завод', mapNote: 'Карта не загружается? Откройте в Google Maps.',
+    visitH: 'Посетите наш завод', visitP: 'Наш завод находится в Дунгуане (провинция Гуандун). Пройдите 360° тур или посмотрите на спутниковой карте — будем рады визиту, договоритесь за несколько дней.', map: 'Открыть в Google Maps', dir: 'Маршрут', zhAddr: 'Адрес на китайском — покажите водителю', photo: 'Наш завод', mapNote: 'Карта не загружается? Откройте в Google Maps.',
   },
 };
