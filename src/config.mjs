@@ -23,6 +23,8 @@ export const CONTACT = {
   lat: 22.82724, lng: 114.17262,
   mapUrl: 'https://maps.app.goo.gl/P23PYMecKo8RuHvWA',
   // 工厂 360° 实景（阿里云临云境）。lang 参数会按页面语言替换：中文 zh，其他用 en
+  // 北京办公室 360° 实景（中国制造网 VR）
+  officeTourUrl: 'https://world-port.made-in-china.com/viewVR?comId=EFoaGZhwZuHY',
   tourUrl: 'https://preview-lyj.aliyuncs.com/preview/1ff59d80307a43d6a5ffe902d1a479c4?lang=en',
   languages: ['English', 'Español', 'Русский', '中文'],
 };

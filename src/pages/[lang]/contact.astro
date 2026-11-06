@@ -23,6 +23,7 @@ const addr = CONTACT.address && CONTACT.address[lang];
 const factoryPhoto = (site.assets && site.assets.hero && site.assets.hero[0]) || null;
 const mapEmbed = CONTACT.lat ? `https://maps.google.com/maps?q=${CONTACT.lat},${CONTACT.lng}&t=k&z=17&hl=${lang}&output=embed` : '';
 const tourUrl = CONTACT.tourUrl ? CONTACT.tourUrl.replace(/([?&]lang=)[^&]*/, `$1en`) : '';
+const officeUrl = CONTACT.officeTourUrl || '';
 const dirUrl = CONTACT.lat ? `https://www.google.com/maps/dir/?api=1&destination=${CONTACT.lat},${CONTACT.lng}` : '';
 const wcQr = (site.assets && site.assets.contact_wechat && site.assets.contact_wechat[0]) || null;
 const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
@@ -144,6 +145,7 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
           <div class="v-media" data-media>
             <div class="v-tabs" role="tablist">
               {tourUrl && <button type="button" role="tab" class="on" data-tab="tour" aria-selected="true">{T.tourTab}</button>}
+              {officeUrl && <button type="button" role="tab" data-tab="office" aria-selected="false">{T.officeTab}</button>}
               {mapEmbed && <button type="button" role="tab" class={tourUrl ? '' : 'on'} data-tab="map" aria-selected={tourUrl ? 'false' : 'true'}>{T.mapTab}</button>}
             </div>
             {tourUrl && (
@@ -153,6 +155,15 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
                   <small>{T.tourHint}</small>
                 </div>
                 <a class="v-note" href={tourUrl} target="_blank" rel="noopener">{T.tourFull} ↗</a>
+              </div>
+            )}
+            {officeUrl && (
+              <div class="v-pane v-tour" data-pane="office" hidden>
+                <div class="tour-poster office" data-tour-poster>
+                  <button type="button" class="tour-go" data-tour-go data-src={officeUrl}><span class="t360">360°</span>{T.officeTab}</button>
+                  <small>{T.officeHint}</small>
+                </div>
+                <a class="v-note" href={officeUrl} target="_blank" rel="noopener">{T.tourFull} ↗</a>
               </div>
             )}
             {mapEmbed && (
@@ -192,12 +203,11 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
         media.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== t.dataset.tab; });
         const fr = media.querySelector(`[data-pane="${t.dataset.tab}"] iframe[data-src]`); if (fr && !fr.src) fr.src = fr.dataset.src;
       }));
-      const go = media.querySelector('[data-tour-go]');
-      if (go) go.addEventListener('click', () => {
+      media.querySelectorAll('[data-tour-go]').forEach((go) => go.addEventListener('click', () => {
         const fr = document.createElement('iframe');
         fr.src = go.dataset.src; fr.title = '360°'; fr.allow = 'fullscreen; accelerometer; gyroscope; xr-spatial-tracking'; fr.allowFullscreen = true;
-        media.querySelector('[data-tour-poster]').replaceWith(fr);
-      });
+        go.closest('[data-tour-poster]').replaceWith(fr);
+      }));
     }
     root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copyText(b.dataset.copy, b, c.t.copy)));
 
@@ -345,6 +355,8 @@ const cfg = { wa: SITE.whatsapp, email: SITE.email, tz: CONTACT.tz, lang,
   .tour-go:hover { transform: scale(1.04); }
   .t360 { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 15px var(--mono); }
   .tour-poster small { color: #e6efec; font-size: 14px; }
+  .tour-poster.office { background: radial-gradient(circle at 30% 20%, #2a4a52, #0f1d1b 70%); }
+  .v-tabs { flex-wrap: wrap; }
   .v-note { position: absolute; right: 10px; bottom: 10px; padding: 5px 10px; border-radius: 6px; background: rgba(255,255,255,.92); color: var(--ink); font-size: 12px; text-decoration: none; }
   @media (max-width: 980px) {
     .ct-head, .inq-grid { grid-template-columns: minmax(0, 1fr); }
