@@ -2,6 +2,7 @@
 import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
 import { UI } from '../i18n.mjs';
 import { CO } from '../lib/contact-i18n.mjs';
+import { CS } from '../lib/cases-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
@@ -135,6 +136,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
             ))}
           </div>
         </details>
+        <a href={`/${lang}/cases/`} aria-current={path === 'cases/' ? 'page' : undefined}>{CS[lang].nav}</a>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
       </nav>
       <a class="nav-custom" href={`/${lang}/contact/`} aria-current={path === 'contact/' ? 'page' : undefined}>{CO[lang].nav}</a>

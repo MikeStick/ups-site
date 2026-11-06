@@ -1,0 +1,381 @@
+---
+// 案例页（/cases/）：开头 + 数字 → 两行反向滚动的项目照片带 → 重点项目轮播（每个项目的照片自动淡入切换）
+// → 十年时间轴 → 按行业筛选的全部项目卡片（点开是大图相册 + 项目说明 / 设备清单 + 相关产品）→ 服务行业、全球代理 → 询价。
+// 案例数据和文字在 src/lib/cases-i18n.mjs；图片清单在 src/data/cases-images.json。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { CASES, CS } from '../../lib/cases-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+import IMG from '../../data/cases-images.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = CS[lang];
+const pageLabel = Object.fromEntries(catalog(lang).flatMap((g) => g.items.map((x) => [x.page, x.label])));
+const src = (f, small) => `/img/cases/${f}${small ? '-s' : ''}.jpg`;
+const cases = CASES.map((c) => ({ ...c, ...c[lang], imgs: IMG[c.slug] || [] }));
+const featured = cases.filter((c) => c.feature);
+const years = [...new Set(cases.map((c) => c.year))].sort((a, b) => a - b);
+const tagsUsed = Object.keys(T.filters).filter((k) => cases.some((c) => c.tags.includes(k)));
+const marquee = cases.flatMap((c) => c.imgs.map((im) => ({ ...im, slug: c.slug, t: c.t })));
+const rowA = marquee.filter((_, i) => i % 2 === 0), rowB = marquee.filter((_, i) => i % 2 === 1);
+const partners = IMG.partners || [];
+// 给弹窗用的数据（只放需要的字段）
+const modalData = Object.fromEntries(cases.map((c) => [c.slug, { t: c.t, place: c.place, when: c.when, kpi: c.kpi, s: c.s, d: c.d || [], eq: c.eq || [], tags: c.tags.map((k) => T.filters[k]),
+  imgs: c.imgs.map((i) => src(i.f)), links: c.links.filter((p) => pageLabel[p]).map((p) => [`/${lang}/${p}`, pageLabel[p]]) }]));
+const ui = { eqH: T.eqH, scopeH: T.scopeH, products: T.products };
+const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(T.ctaH)}` : '';
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="cases/">
+  <div class="cs" data-cs>
+    <script type="application/json" data-cs-data set:html={JSON.stringify({ cases: modalData, ui })} />
+
+    <section class="cs-head">
+      <span class="eyebrow">{T.eyebrow}</span>
+      <h1>{T.h1}</h1>
+      <p>{T.lead}</p>
+      <div class="cs-stats">{T.stats.map(([n, l]) => <div><b class="num">{n}</b><span>{l}</span></div>)}</div>
+    </section>
+  </div>
+
+  <!-- 两行反向滚动的照片带（铺满屏幕宽度；鼠标放上去暂停） -->
+  <div class="mq" aria-hidden="true">
+    {[rowA, rowB].map((row, ri) => (
+      <div class:list={['mq-row', { rev: ri === 1 }]}>
+        <div class="mq-track">
+          {[...row, ...row].map((im) => <button type="button" tabindex="-1" data-open={im.slug}><img src={src(im.f, true)} alt="" loading="lazy" style={`aspect-ratio:${im.w}/${im.h}`} /></button>)}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div class="cs" data-cs-body>
+    <section class="spot" aria-label={T.spot} data-spot>
+      <div class="sec-h"><h2>{T.spot}</h2><div class="spot-nav"><button type="button" data-spot-prev aria-label={T.prev}>←</button><button type="button" data-spot-next aria-label={T.next}>→</button></div></div>
+      <div class="spot-stage">
+        {featured.map((c, i) => (
+          <article class:list={['slide', { on: i === 0 }]} data-slide>
+            <div class="sl-pics" data-fader>
+              {c.imgs.map((im, j) => <img class:list={{ on: j === 0 }} src={src(im.f)} alt={c.t} loading={i === 0 && j === 0 ? 'eager' : 'lazy'} />)}
+              <span class="sl-count num">{c.imgs.length} {T.photos}</span>
+            </div>
+            <div class="sl-body">
+              <div class="sl-tags">{c.tags.map((k) => <span>{T.filters[k]}</span>)}</div>
+              <b class="sl-kpi num">{c.kpi}</b>
+              <h3>{c.t}</h3>
+              <p class="sl-meta">{c.place} · {c.when}</p>
+              <p>{c.s}</p>
+              <button type="button" class="btn dark" data-open={c.slug}>{T.more} →</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div class="spot-dots">{featured.map((c, i) => <button type="button" class:list={{ on: i === 0 }} data-dot={i} aria-label={c.t}></button>)}</div>
+    </section>
+
+    <section class="tl-sec">
+      <h2>{T.timeline}</h2>
+      <ol class="tl">
+        {years.map((y) => (
+          <li>
+            <span class="tl-y num">{y}</span>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <ul>{cases.filter((c) => c.year === y).map((c) => <li><button type="button" data-open={c.slug}>{c.t}</button></li>)}</ul>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="grid-sec" id="all">
+      <div class="sec-h">
+        <h2>{T.gridH}</h2>
+        <div class="flt" role="group" data-filters>
+          <button type="button" class="on" data-f="">{T.all} <i class="num">{cases.length}</i></button>
+          {tagsUsed.map((k) => <button type="button" data-f={k}>{T.filters[k]} <i class="num">{cases.filter((c) => c.tags.includes(k)).length}</i></button>)}
+        </div>
+      </div>
+      <ul class="cards">
+        {cases.map((c) => (
+          <li data-tags={c.tags.join(' ')} class:list={{ wide: c.slug === 'indonesia-2' || c.slug === 'sco-2025' }}>
+            <button type="button" class="card" data-open={c.slug}>
+              <span class="cd-img">
+                {c.imgs[0] && <img src={src(c.imgs[0].f, true)} alt={c.t} loading="lazy" />}
+                {c.imgs[1] && <img class="alt" src={src(c.imgs[1].f, true)} alt="" loading="lazy" />}
+                <span class="cd-year num">{c.year}</span>
+                {c.imgs.length > 1 && <span class="cd-n num">{c.imgs.length} {T.photos}</span>}
+              </span>
+              <span class="cd-b">
+                <small>{c.place}</small>
+                <b>{c.t}</b>
+                <span class="cd-kpi num">{c.kpi}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="band">
+      <div class="band-sec">
+        <h2>{T.sectorsH}</h2>
+        <div class="chips">{T.sectors.map((x) => <span>{x}</span>)}</div>
+      </div>
+      <div class="band-glob">
+        <div class="bg-text">
+          <h2>{T.globalH}</h2>
+          <p>{T.globalP}</p>
+          <div class="bg-stats">{T.globalStats.map(([n, l]) => <div><b class="num">{n}</b><span>{l}</span></div>)}</div>
+        </div>
+        <div class="bg-pics">{partners.map((im) => <img src={src(im.f, true)} alt="" loading="lazy" />)}</div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="cta-b">
+        <a class="btn primary" href={`/${lang}/contact/#inquiry`}>{T.ctaBtn}</a>
+        {wa && <a class="btn line" href={wa} target="_blank" rel="noopener">{T.ctaWa}</a>}
+      </div>
+    </section>
+  </div>
+
+  <dialog class="md" data-modal aria-label={T.title}>
+    <div class="md-in">
+      <button type="button" class="md-x" data-close aria-label={T.close}>×</button>
+      <div class="md-gal">
+        <div class="md-main"><img data-m-img alt="" /><button type="button" class="md-p" data-m-prev aria-label={T.prev}>‹</button><button type="button" class="md-n" data-m-next aria-label={T.next}>›</button><span class="md-c num" data-m-count></span></div>
+        <div class="md-th" data-m-thumbs></div>
+      </div>
+      <div class="md-txt" data-m-txt></div>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  const data = JSON.parse(document.querySelector('[data-cs-data]').textContent);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+  // 重点项目轮播：每 8 秒换一个项目；每个项目里的照片每 3 秒淡入切换；鼠标在上面时暂停
+  const spot = document.querySelector('[data-spot]');
+  if (spot) {
+    const slides = [...spot.querySelectorAll('[data-slide]')], dots = [...spot.querySelectorAll('[data-dot]')];
+    let cur = 0, hover = false;
+    const go = (i) => { cur = (i + slides.length) % slides.length; slides.forEach((s, k) => s.classList.toggle('on', k === cur)); dots.forEach((d, k) => d.classList.toggle('on', k === cur)); };
+    spot.querySelector('[data-spot-prev]').addEventListener('click', () => go(cur - 1));
+    spot.querySelector('[data-spot-next]').addEventListener('click', () => go(cur + 1));
+    dots.forEach((d) => d.addEventListener('click', () => go(+d.dataset.dot)));
+    spot.addEventListener('mouseenter', () => { hover = true; }); spot.addEventListener('mouseleave', () => { hover = false; });
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) {
+      setInterval(() => { if (!hover && !document.hidden) go(cur + 1); }, 8000);
+      setInterval(() => {
+        if (document.hidden) return;
+        const f = slides[cur].querySelector('[data-fader]'), ims = [...f.querySelectorAll('img')];
+        if (ims.length < 2) return;
+        const k = ims.findIndex((x) => x.classList.contains('on'));
+        ims[k].classList.remove('on'); ims[(k + 1) % ims.length].classList.add('on');
+      }, 3000);
+    }
+    let x0 = null; // 手机左右滑动切换
+    spot.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    spot.addEventListener('touchend', (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1)); x0 = null; });
+  }
+
+  // 筛选
+  const fl = document.querySelector('[data-filters]');
+  if (fl) fl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-f]'); if (!b) return;
+    fl.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.cards > li').forEach((li) => { li.hidden = !!b.dataset.f && !li.dataset.tags.split(' ').includes(b.dataset.f); });
+  });
+
+  // 项目弹窗：大图相册 + 说明
+  const md = document.querySelector('[data-modal]');
+  const mImg = md.querySelector('[data-m-img]'), mTh = md.querySelector('[data-m-thumbs]'), mTxt = md.querySelector('[data-m-txt]'), mCount = md.querySelector('[data-m-count]');
+  let cs = null, idx = 0;
+  const show = (i) => {
+    idx = (i + cs.imgs.length) % cs.imgs.length; mImg.src = cs.imgs[idx]; mImg.alt = cs.t;
+    mCount.textContent = cs.imgs.length > 1 ? `${idx + 1} / ${cs.imgs.length}` : '';
+    mTh.querySelectorAll('button').forEach((b, k) => b.classList.toggle('on', k === idx));
+  };
+  const open = (slug) => {
+    cs = data.cases[slug]; if (!cs) return;
+    const u = data.ui;
+    md.classList.toggle('single', cs.imgs.length < 2);
+    mTh.innerHTML = cs.imgs.length > 1 ? cs.imgs.map((s, k) => `<button type="button" data-k="${k}"><img src="${s.replace('.jpg', '-s.jpg')}" alt=""></button>`).join('') : '';
+    mTxt.innerHTML = `<div class="sl-tags">${cs.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
+      <b class="sl-kpi num">${esc(cs.kpi)}</b><h3>${esc(cs.t)}</h3><p class="sl-meta">${esc(cs.place)} · ${esc(cs.when)}</p><p>${esc(cs.s)}</p>
+      ${cs.d.length ? `<h4>${esc(u.scopeH)}</h4><ul class="md-d">${cs.d.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${cs.eq.length ? `<h4>${esc(u.eqH)}</h4><table class="md-eq"><tbody>${cs.eq.map(([a, n]) => `<tr><td>${esc(a)}</td><td class="num">× ${n}</td></tr>`).join('')}</tbody></table>` : ''}
+      ${cs.links.length ? `<h4>${esc(u.products)}</h4><div class="md-l">${cs.links.map(([h, l]) => `<a href="${h}">${esc(l)} →</a>`).join('')}</div>` : ''}`;
+    show(0);
+    if (!md.open) md.showModal();
+    history.replaceState(null, '', `#${slug}`);
+  };
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-open]'); if (b) { e.preventDefault(); open(b.dataset.open); } });
+  mTh.addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (b) show(+b.dataset.k); });
+  md.querySelector('[data-m-prev]').addEventListener('click', () => show(idx - 1));
+  md.querySelector('[data-m-next]').addEventListener('click', () => show(idx + 1));
+  md.querySelector('[data-close]').addEventListener('click', () => md.close());
+  md.addEventListener('click', (e) => { if (e.target === md) md.close(); });
+  md.addEventListener('close', () => history.replaceState(null, '', location.pathname + location.search));
+  md.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') show(idx - 1); if (e.key === 'ArrowRight') show(idx + 1); });
+  let tx = null;
+  mImg.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; }, { passive: true });
+  mImg.addEventListener('touchend', (e) => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 40) show(idx + (dx < 0 ? 1 : -1)); tx = null; });
+  // 链接带 #slug 时直接打开该项目
+  const h = decodeURIComponent(location.hash.slice(1)); if (h && data.cases[h]) open(h);
+</script>
+
+<style>
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .cs h2 { font-size: clamp(26px, 3.4vw, 38px); margin: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border-radius: 8px; font: 600 15px var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+  .btn.primary { background: var(--charge); color: var(--ink); } .btn.dark { background: var(--accent); color: #fff; } .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .num { font-family: var(--mono); }
+  /* 开头 */
+  .cs-head { margin: 38px 0 26px; max-width: 980px; }
+  .cs-head h1 { font-size: clamp(38px, 6vw, 70px); margin: 8px 0 14px; line-height: .98; }
+  .cs-head > p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; max-width: 760px; }
+  .cs-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+  .cs-stats div { padding: 14px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); display: grid; gap: 4px; }
+  .cs-stats b { font-family: var(--display); font-size: clamp(26px, 3vw, 36px); line-height: 1; color: var(--accent); }
+  .cs-stats span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+  /* 滚动照片带 */
+  .mq { width: 100vw; margin-left: calc(50% - 50vw); display: grid; gap: 10px; overflow: hidden; padding: 6px 0 4px; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .mq-row { overflow: hidden; }
+  .mq-track { display: flex; gap: 10px; width: max-content; animation: mq 120s linear infinite; }
+  .mq-row.rev .mq-track { animation-direction: reverse; animation-duration: 140s; }
+  .mq:hover .mq-track { animation-play-state: paused; }
+  .mq button { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 10px; overflow: hidden; flex: none; }
+  .mq img { height: 150px; width: auto; display: block; object-fit: cover; transition: transform .3s, filter .3s; filter: saturate(.9); }
+  .mq button:hover img { transform: scale(1.05); filter: none; }
+  @keyframes mq { to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .mq-track { animation: none; } .mq { overflow-x: auto; } }
+  /* 重点项目轮播 */
+  .sec-h { display: flex; align-items: end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+  .spot { margin-top: 48px; }
+  .spot-nav { display: flex; gap: 8px; }
+  .spot-nav button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; cursor: pointer; color: var(--ink); }
+  .spot-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .spot-stage { position: relative; display: grid; border-radius: 20px; overflow: hidden; background: #0f1d1b; }
+  .slide { grid-area: 1 / 1; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); opacity: 0; visibility: hidden; transition: opacity .6s, visibility .6s; }
+  .slide.on { opacity: 1; visibility: visible; }
+  .sl-pics { position: relative; min-height: 460px; background: #1c2b2f; overflow: hidden; }
+  .sl-pics img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.04); transition: opacity 1.2s, transform 6s ease-out; }
+  .sl-pics img.on { opacity: 1; transform: scale(1); }
+  .sl-count { position: absolute; left: 14px; bottom: 14px; padding: 4px 10px; border-radius: 6px; background: rgba(15,29,27,.75); color: #fff; font-size: 12px; }
+  .sl-body { padding: 30px 30px 28px; color: #c9d6d2; display: grid; gap: 10px; align-content: center; }
+  .sl-body h3 { margin: 0; color: #fff; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.15; }
+  .sl-body p { margin: 0; line-height: 1.55; font-size: 15px; }
+  .sl-body .btn { justify-self: start; margin-top: 8px; }
+  .sl-kpi { font-family: var(--display); font-size: clamp(32px, 4vw, 48px); line-height: 1; color: #5ef0a0; }
+  .sl-meta { color: #9fb2ad; font-size: 14px !important; }
+  .sl-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sl-tags span { padding: 3px 10px; border-radius: 999px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; background: rgba(224,168,0,.16); color: var(--charge); }
+  .spot-dots { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .spot-dots button { width: 28px; height: 6px; border-radius: 3px; border: 0; background: var(--line); cursor: pointer; padding: 0; transition: background .2s, width .2s; }
+  .spot-dots button.on { background: var(--accent); width: 44px; }
+  /* 时间轴 */
+  .tl-sec { margin-top: 54px; }
+  .tl-sec h2 { margin-bottom: 18px; }
+  .tl { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); position: relative; }
+  .tl::before { content: ''; position: absolute; left: 0; right: 0; top: 47px; height: 2px; background: linear-gradient(90deg, var(--line), var(--accent), var(--charge)); }
+  .tl > li { position: relative; padding-right: 14px; }
+  .tl-y { display: block; font-family: var(--display); font-size: 32px; line-height: 1; color: var(--ink); height: 38px; }
+  .tl-dot { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); margin: 1px 0 14px; position: relative; z-index: 1; }
+  .tl ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .tl ul button { text-align: left; border: 0; background: none; padding: 0; font: 600 14px/1.35 var(--body); color: var(--ink); cursor: pointer; }
+  .tl ul button:hover { color: var(--accent); text-decoration: underline; }
+  /* 全部项目 */
+  .grid-sec { margin-top: 54px; scroll-margin-top: 16px; }
+  .flt { display: flex; flex-wrap: wrap; gap: 6px; }
+  .flt button { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font: 600 13.5px var(--body); color: var(--ink); cursor: pointer; }
+  .flt button i { font-style: normal; margin-left: 4px; color: var(--muted); font-size: 12px; }
+  .flt button.on { background: var(--accent); border-color: var(--accent); color: #fff; } .flt button.on i { color: #cfe7e1; }
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: dense; gap: 16px; }
+  .cards > li.wide { grid-column: span 2; }
+  .cards > li[hidden] { display: none; }
+  .card { width: 100%; height: 100%; padding: 0; text-align: left; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); color: var(--ink); cursor: pointer; display: flex; flex-direction: column; font: inherit; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 14px 30px rgba(15,107,92,.12); }
+  .cd-img { position: relative; height: 270px; background: #1c2b2f; overflow: hidden; }
+  .cd-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .5s, transform .5s; }
+  .cd-img img.alt { opacity: 0; }
+  .card:hover .cd-img img.alt { opacity: 1; } .card:hover .cd-img img { transform: scale(1.04); }
+  .cd-year { position: absolute; left: 12px; top: 12px; padding: 3px 9px; border-radius: 6px; background: var(--charge); color: var(--ink); font-weight: 700; font-size: 12.5px; z-index: 1; }
+  .cd-n { position: absolute; right: 12px; bottom: 12px; padding: 3px 9px; border-radius: 6px; background: rgba(15,29,27,.75); color: #fff; font-size: 12px; z-index: 1; }
+  .cd-b { display: grid; gap: 5px; padding: 14px 16px 16px; flex: 1; align-content: start; }
+  .cd-b small { color: var(--muted); font-size: 12.5px; }
+  .cd-b b { font-size: 16.5px; line-height: 1.3; }
+  .cd-kpi { justify-self: start; margin-top: 4px; padding: 3px 9px; border-radius: 6px; background: var(--bg); font-size: 12.5px; font-weight: 600; color: var(--accent); }
+  /* 行业 + 全球 */
+  .band { margin-top: 54px; display: grid; gap: 14px; }
+  .band-sec { padding: 24px 26px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+  .band-sec h2 { font-size: 24px !important; margin-bottom: 12px !important; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips span { padding: 8px 14px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+  .band-glob { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 0; border-radius: 18px; overflow: hidden; background: #0f1d1b; color: #c9d6d2; }
+  .bg-text { padding: 26px; display: grid; gap: 10px; align-content: center; }
+  .bg-text h2 { color: #fff; font-size: 26px !important; } .bg-text p { margin: 0; line-height: 1.55; }
+  .bg-stats { display: flex; gap: 26px; margin-top: 8px; }
+  .bg-stats b { display: block; font-family: var(--display); font-size: 34px; line-height: 1; color: #5ef0a0; } .bg-stats span { font-size: 13px; color: #9fb2ad; }
+  .bg-pics { display: grid; grid-template-columns: 1.4fr 1fr .6fr; gap: 4px; min-height: 240px; }
+  .bg-pics img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* 询价 */
+  .cta { margin: 40px 0 10px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; padding: 28px 30px; border-radius: 18px; background: var(--charge-soft, #fbefc6); }
+  .cta h2 { font-size: 28px !important; margin-bottom: 6px !important; } .cta p { margin: 0; color: #5c4a00; max-width: 640px; line-height: 1.5; }
+  .cta-b { display: flex; gap: 10px; flex-wrap: wrap; }
+  /* 弹窗 */
+  .md { width: min(1180px, 96vw); max-height: 92vh; padding: 0; border: 0; border-radius: 18px; background: var(--surface); color: var(--ink); overflow: hidden; }
+  .md::backdrop { background: rgba(8,16,15,.78); backdrop-filter: blur(3px); }
+  .md-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); max-height: 92vh; }
+  .md.single .md-p, .md.single .md-n { display: none; }
+  .md-x { position: absolute; right: 10px; top: 10px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(15,29,27,.8); color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+  .md-gal { background: #0f1d1b; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  .md-main { position: relative; min-height: 0; display: grid; place-items: center; }
+  .md-main img { max-width: 100%; max-height: calc(92vh - 96px); object-fit: contain; display: block; }
+  .md.single .md-main img { max-height: 92vh; }
+  .md-p, .md-n { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.88); color: var(--ink); font-size: 26px; cursor: pointer; }
+  .md-p { left: 10px; } .md-n { right: 10px; }
+  .md-c { position: absolute; left: 12px; bottom: 10px; color: #fff; font-size: 12px; background: rgba(15,29,27,.7); padding: 3px 8px; border-radius: 6px; }
+  .md-c:empty { display: none; }
+  .md-th { display: flex; gap: 6px; padding: 8px; overflow-x: auto; }
+  .md-th:empty { display: none; }
+  .md-th :global(button) { flex: none; width: 76px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; background: none; opacity: .6; }
+  .md-th :global(button.on) { border-color: var(--charge); opacity: 1; }
+  .md-th :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .md-txt { padding: 26px 24px; overflow-y: auto; display: grid; gap: 10px; align-content: start; }
+  .md-txt :global(h3) { margin: 0; font-size: 24px; line-height: 1.2; }
+  .md-txt :global(h4) { margin: 10px 0 0; font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .md-txt :global(p) { margin: 0; line-height: 1.55; color: var(--muted); font-size: 15px; }
+  .md-txt :global(.sl-kpi) { color: var(--accent); font-family: var(--display); font-size: 36px; line-height: 1; }
+  .md-txt :global(.sl-meta) { color: var(--ink) !important; font-weight: 600; font-size: 14px; }
+  .md-txt :global(.sl-tags) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .md-txt :global(.sl-tags span) { padding: 3px 10px; border-radius: 999px; font: 600 11px var(--mono); text-transform: uppercase; background: var(--charge-soft, #fbefc6); color: #7a5a00; }
+  .md-txt :global(.md-d) { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14.5px; }
+  .md-txt :global(.md-eq) { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .md-txt :global(.md-eq td) { padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .md-txt :global(.md-eq td.num) { text-align: right; font-weight: 700; color: var(--accent); white-space: nowrap; padding-left: 12px; }
+  .md-txt :global(.md-l) { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .md-txt :global(.md-l a) { color: var(--accent); font-weight: 700; text-decoration: none; font-size: 14.5px; }
+  @media (max-width: 980px) {
+    .slide { grid-template-columns: minmax(0, 1fr); } .sl-pics { min-height: 300px; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cd-img { height: 230px; }
+    .band-glob { grid-template-columns: minmax(0, 1fr); }
+    .md-in { grid-template-columns: minmax(0, 1fr); overflow-y: auto; } .md-main img { max-height: 58vh; } .md-txt { overflow: visible; }
+  }
+  @media (max-width: 640px) {
+    .cs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mq img { height: 110px; }
+    .sl-pics { min-height: 240px; } .sl-body { padding: 20px; }
+    .tl { grid-template-columns: minmax(0, 1fr); padding-left: 8px; }
+    .tl::before { left: 15px; right: auto; top: 6px; bottom: 6px; width: 2px; height: auto; background: linear-gradient(var(--line), var(--accent), var(--charge)); }
+    .tl > li { display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: 14px; padding: 0 0 18px; }
+    .tl-y { grid-column: 2; height: auto; font-size: 26px; } .tl-dot { grid-row: 1; grid-column: 1; margin: 5px 0 0; } .tl ul { grid-column: 2; margin-top: 6px; }
+    .cards { grid-template-columns: minmax(0, 1fr); } .cards > li.wide { grid-column: auto; } .cd-img { height: 220px; }
+    .bg-pics { min-height: 180px; }
+    .cta { padding: 22px; }
+  }
+</style>

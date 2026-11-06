@@ -7,6 +7,7 @@ import { UI } from '../i18n.mjs';
 import { FT } from '../lib/footer-i18n.mjs';
 import { HM } from '../lib/home-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
+import { CS } from '../lib/cases-i18n.mjs';
 interface Props { lang: string; altHref: (l: string) => string }
 const { lang, altHref } = Astro.props;
 const T = FT[lang], H = HM[lang];
@@ -16,7 +17,7 @@ const items = (k) => (g(k) ? g(k).items.filter((x) => !x.tool) : []);
 const waUrl = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '';
 const qr = waUrl ? await QRCode.toString(CONTACT.scanUrl || waUrl, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0f1d1b', light: '#ffffff' } }) : '';
 const L = T.links;
-const company = [['about/', L.about], ['about/#factory', L.factory], ['about/#honors', L.certs], ['about/#beijing', L.beijing], ['contact/#factory', L.tour], ['about/#news', L.news], ['contact/', L.contact]];
+const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory', L.factory], ['about/#honors', L.certs], ['about/#beijing', L.beijing], ['contact/#factory', L.tour], ['about/#news', L.news], ['contact/', L.contact]];
 ---
 <footer class="sf">
   <div class="wrap sf-main">
