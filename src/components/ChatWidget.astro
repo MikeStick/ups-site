@@ -1,0 +1,199 @@
+---
+// 在线客服窗口（右下角）：以 SKE Sales 团队的名义接待，AI 先回复，Mike 可以随时在后台加入。
+// 对话通过 CRM 服务器（config.mjs 的 CHAT.api）收发；服务器关闭或连不上时，窗口里只显示 WhatsApp / 邮箱。
+// 会话保存在浏览器 localStorage，换页面不会断；关闭窗口后有新回复会显示红点。
+import { SITE, CHAT } from '../config.mjs';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = {
+  en: { open: 'Chat with us', title: 'SKE Sales', sub: 'Usually replies within a minute', subHuman: 'Sales Manager', ph: 'Type your message…', send: 'Send', note: 'AI-assisted · our sales team can join anytime', connecting: 'Connecting…', offline: 'Chat is not available right now. Please contact us on WhatsApp or by email:', teaser: 'Need help choosing a model? Ask us here.', min: 'Minimize', wa: 'WhatsApp', err: 'Message not sent — please try again.' },
+  es: { open: 'Chatee con nosotros', title: 'SKE Sales', sub: 'Normalmente responde en un minuto', subHuman: 'Gerente de ventas', ph: 'Escriba su mensaje…', send: 'Enviar', note: 'Asistido por IA · nuestro equipo de ventas puede unirse en cualquier momento', connecting: 'Conectando…', offline: 'El chat no está disponible ahora. Contáctenos por WhatsApp o correo:', teaser: '¿Necesita ayuda para elegir un modelo? Pregúntenos aquí.', min: 'Minimizar', wa: 'WhatsApp', err: 'No se envió el mensaje; inténtelo de nuevo.' },
+  ru: { open: 'Написать нам', title: 'SKE Sales', sub: 'Обычно отвечаем в течение минуты', subHuman: 'Менеджер по продажам', ph: 'Введите сообщение…', send: 'Отправить', note: 'С помощью ИИ · наш отдел продаж может подключиться в любой момент', connecting: 'Подключение…', offline: 'Чат сейчас недоступен. Свяжитесь с нами в WhatsApp или по e-mail:', teaser: 'Нужна помощь с выбором модели? Спросите здесь.', min: 'Свернуть', wa: 'WhatsApp', err: 'Сообщение не отправлено — попробуйте ещё раз.' },
+}[lang] || {};
+const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '', email: SITE.email };
+---
+{CHAT.api && (
+<div class="cw" data-cw>
+  <script type="application/json" data-cw-cfg set:html={JSON.stringify(cfg)} />
+  <div class="cw-teaser" data-teaser hidden><button type="button" class="cw-tx" data-teaser-x aria-label="×">×</button><span>{T.teaser}</span></div>
+  <button type="button" class="cw-btn" data-open aria-haspopup="dialog">
+    <span class="cw-ava" aria-hidden="true">SKE<i></i></span><span class="cw-btn-l">{T.open}</span><b class="cw-badge" data-badge hidden></b>
+  </button>
+  <section class="cw-panel" data-panel role="dialog" aria-label={T.title} hidden>
+    <header class="cw-head">
+      <span class="cw-ava lg" aria-hidden="true" data-ava>SKE<i></i></span>
+      <div class="cw-who"><b data-who>{T.title}</b><small data-sub>{T.sub}</small></div>
+      {cfg.wa && <a class="cw-ic" href={cfg.wa} target="_blank" rel="noopener" aria-label={T.wa} title={T.wa}><svg viewBox="0 0 24 24"><path d="M12 3.5a8.4 8.4 0 0 0-7.2 12.8L3.7 20.5l4.3-1.1A8.4 8.4 0 1 0 12 3.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8.6c.2-.5.5-.5.8-.5h.5c.2 0 .4.1.5.4l.6 1.5c.1.2 0 .4-.1.6l-.5.6c.6 1.1 1.5 2 2.6 2.6l.6-.5c.2-.1.4-.2.6-.1l1.5.6c.3.1.4.3.4.5v.5c0 .3 0 .6-.5.8-.7.4-1.7.5-2.9 0a8 8 0 0 1-4.5-4.5c-.5-1.2-.4-2.2 0-2.9z" fill="currentColor"/></svg></a>}
+      <button type="button" class="cw-ic" data-min aria-label={T.min} title={T.min}><svg viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </header>
+    <div class="cw-body" data-body aria-live="polite">
+      <div class="cw-state" data-state>{T.connecting}</div>
+    </div>
+    <div class="cw-typing" data-typing hidden><span></span><span></span><span></span></div>
+    <form class="cw-form" data-form>
+      <textarea data-input rows="1" maxlength="1500" placeholder={T.ph} aria-label={T.ph}></textarea>
+      <button type="submit" class="cw-send" aria-label={T.send}><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></svg></button>
+    </form>
+    <p class="cw-note">{T.note}</p>
+  </section>
+</div>
+)}
+
+<script>
+  const root = document.querySelector('[data-cw]');
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-cw-cfg]').textContent), t = c.t;
+    const $ = (s) => root.querySelector(s);
+    const panel = $('[data-panel]'), body = $('[data-body]'), input = $('[data-input]'), badge = $('[data-badge]'), typing = $('[data-typing]');
+    const KEY = 'ske-chat', store = { get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } }, set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch {} } };
+    let sess = store.get(); // { sid, token, last, seen }
+    if (sess && Date.now() - (sess.at || 0) > 7 * 86400e3) sess = null; // 一周没聊就开新对话
+    let open = false, polling = false, rendered = 0, unread = 0, offline = false, starting = null;
+    const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const linkify = (s) => esc(s).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
+    const api = (p, opt) => fetch(c.api + p, opt).then((r) => { if (!r.ok) { const e = new Error(r.status); e.status = r.status; throw e; } return r.json(); });
+    const post = (p, d) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+
+    function showOffline() {
+      offline = true;
+      body.innerHTML = `<div class="cw-state off">${esc(t.offline)}<div class="cw-off">${c.wa ? `<a href="${c.wa}" target="_blank" rel="noopener">WhatsApp</a>` : ''}${c.email ? `<a href="mailto:${c.email}">${esc(c.email)}</a>` : ''}</div></div>`;
+      $('[data-form]').hidden = true;
+    }
+    function addMsg(m) {
+      if (m.id <= rendered) return;
+      rendered = m.id;
+      const st = body.querySelector('[data-state]'); if (st) st.remove();
+      const el = document.createElement('div');
+      el.className = `cw-m ${m.from}`;
+      el.innerHTML = m.from === 'sys' ? `<span>${esc(m.text)}</span>` : `${m.from === 'agent' && m.name && m.name !== t.title ? `<small>${esc(m.name)}</small>` : ''}<p>${linkify(m.text)}</p>`;
+      body.appendChild(el);
+      body.scrollTop = body.scrollHeight;
+      if (m.from !== 'user' && !open) { unread++; badge.textContent = String(unread); badge.hidden = false; }
+    }
+    function setAgent(name) {
+      const human = name && name !== t.title;
+      $('[data-who]').textContent = human ? name : t.title;
+      $('[data-sub]').textContent = human ? t.subHuman : t.sub;
+      $('[data-ava]').textContent = human ? name.slice(0, 1) : 'SKE';
+      $('[data-ava]').classList.toggle('human', !!human);
+    }
+    async function poll() {
+      if (polling || !sess) return;
+      polling = true;
+      try {
+        while (sess && !offline) {
+          if (document.hidden && !open) { await new Promise((r) => setTimeout(r, 4000)); continue; }
+          let j;
+          try { j = await api(`/api/chat/poll?sid=${encodeURIComponent(sess.sid)}&token=${encodeURIComponent(sess.token)}&after=${rendered}`); }
+          catch (e) { if (e.status === 404) { sess = null; store.set(null); rendered = 0; body.innerHTML = ''; if (open) start(); break; } await new Promise((r) => setTimeout(r, 5000)); continue; }
+          (j.msgs || []).forEach(addMsg);
+          typing.hidden = !j.typing;
+          if (j.typing) body.scrollTop = body.scrollHeight;
+          setAgent(j.agent);
+          sess.at = Date.now(); store.set(sess);
+        }
+      } finally { polling = false; }
+    }
+    async function start() {
+      if (starting) return starting;
+      starting = (async () => {
+        try {
+          const conf = await api('/api/chat/config');
+          if (!conf.enabled) return showOffline();
+          const j = await post('/api/chat/start', { lang: c.lang, page: location.href, title: document.title });
+          sess = { sid: j.sid, token: j.token, at: Date.now() }; store.set(sess);
+          poll();
+        } catch (e) { showOffline(); }
+        finally { starting = null; }
+      })();
+      return starting;
+    }
+    function openPanel() {
+      open = true; panel.hidden = false; root.classList.add('is-open');
+      unread = 0; badge.hidden = true; $('[data-teaser]').hidden = true;
+      if (!sess) start(); else poll();
+      setTimeout(() => input.focus(), 50);
+      body.scrollTop = body.scrollHeight;
+    }
+    function closePanel() { open = false; panel.hidden = true; root.classList.remove('is-open'); }
+    $('[data-open]').addEventListener('click', () => (open ? closePanel() : openPanel()));
+    $('[data-min]').addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) closePanel(); });
+    // 其他按钮可以打开聊天窗：<a data-chat-open>
+    document.addEventListener('click', (e) => { const a = e.target.closest('[data-chat-open]'); if (a) { e.preventDefault(); openPanel(); } });
+
+    async function send(text) {
+      if (!sess) await start();
+      if (!sess || offline) return;
+      const tmp = document.createElement('div'); tmp.className = 'cw-m user pending'; tmp.innerHTML = `<p>${linkify(text)}</p>`; body.appendChild(tmp); body.scrollTop = body.scrollHeight;
+      try {
+        const j = await post('/api/chat/send', { sid: sess.sid, token: sess.token, text, page: location.href });
+        tmp.remove(); if (j.id > rendered) addMsg({ id: j.id, from: 'user', text });
+        poll();
+      } catch (e) { tmp.classList.add('err'); tmp.insertAdjacentHTML('beforeend', `<em>${esc(t.err)}</em>`); input.value = text; }
+    }
+    $('[data-form]').addEventListener('submit', (e) => { e.preventDefault(); const v = input.value.trim(); if (!v) return; input.value = ''; input.style.height = ''; send(v); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('[data-form]').requestSubmit(); } });
+    input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+
+    // 已有对话：恢复消息（不打开窗口，有新回复显示红点）
+    if (sess) { rendered = 0; poll(); }
+    // 小提示：停留 25 秒后出现一次（每天最多一次，聊过天的不出现）
+    try {
+      const k = 'ske-chat-teaser', d = new Date().toISOString().slice(0, 10);
+      if (!sess && localStorage.getItem(k) !== d) setTimeout(() => { if (!open && !sess) { $('[data-teaser]').hidden = false; localStorage.setItem(k, d); } }, 25000);
+    } catch {}
+    $('[data-teaser-x]').addEventListener('click', (e) => { e.stopPropagation(); $('[data-teaser]').hidden = true; });
+    $('[data-teaser]').addEventListener('click', openPanel);
+  }
+</script>
+
+<style is:global>
+  .cw { position: fixed; right: 18px; bottom: 18px; z-index: 90; font-family: var(--body); }
+  .cw-btn { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px 18px 6px 6px; border: 0; border-radius: 999px; background: #0f1d1b; color: #fff; font: 600 15px var(--body); cursor: pointer; box-shadow: 0 12px 30px rgba(0,0,0,.25); transition: transform .15s; }
+  .cw-btn:hover { transform: translateY(-2px); }
+  .cw.is-open .cw-btn-l { display: none; } .cw.is-open .cw-btn { padding-right: 6px; }
+  .cw-ava { position: relative; flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--charge); color: var(--ink); font: 700 11px var(--mono); letter-spacing: .02em; }
+  .cw-ava i { position: absolute; right: 0; bottom: 0; width: 11px; height: 11px; border-radius: 50%; background: #3ddc84; border: 2px solid #0f1d1b; }
+  .cw-ava.lg { width: 42px; height: 42px; } .cw-ava.human { background: #5ef0a0; font: 700 18px var(--body); }
+  .cw-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #e5484d; color: #fff; font: 700 12px/20px var(--body); text-align: center; }
+  .cw-teaser { position: absolute; right: 0; bottom: 64px; width: 240px; padding: 12px 28px 12px 14px; border-radius: 14px 14px 4px 14px; background: #fff; color: var(--ink); font-size: 14px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0,0,0,.18); cursor: pointer; animation: cwIn .3s ease-out; }
+  .cw-tx { position: absolute; right: 4px; top: 2px; border: 0; background: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+  .cw-panel { position: absolute; right: 0; bottom: 64px; width: 370px; height: min(600px, calc(100vh - 110px)); display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; background: #f6f8f7; box-shadow: 0 24px 60px rgba(0,0,0,.28); animation: cwIn .2s ease-out; }
+  .cw-panel[hidden] { display: none; }
+  @keyframes cwIn { from { opacity: 0; transform: translateY(10px); } }
+  .cw-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; background: #0f1d1b; color: #fff; }
+  .cw-who { flex: 1; min-width: 0; display: grid; } .cw-who b { font-size: 15.5px; } .cw-who small { font-size: 12px; color: #9fb2ad; }
+  .cw-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; color: #c9d6d2; cursor: pointer; }
+  .cw-ic:hover { background: rgba(255,255,255,.08); color: #fff; } .cw-ic svg { width: 20px; height: 20px; }
+  .cw-body { flex: 1; overflow-y: auto; padding: 14px 12px 6px; display: flex; flex-direction: column; gap: 8px; overscroll-behavior: contain; }
+  .cw-state { margin: auto; color: var(--muted); font-size: 14px; text-align: center; padding: 20px; line-height: 1.5; }
+  .cw-off { display: grid; gap: 8px; margin-top: 12px; } .cw-off a { padding: 10px; border-radius: 10px; background: #fff; border: 1px solid var(--line); color: var(--accent); font-weight: 700; text-decoration: none; }
+  .cw-m { max-width: 84%; display: grid; gap: 3px; }
+  .cw-m p { margin: 0; padding: 9px 12px; border-radius: 14px; font-size: 14.5px; line-height: 1.45; word-wrap: break-word; overflow-wrap: anywhere; }
+  .cw-m.agent { align-self: flex-start; } .cw-m.agent p { background: #fff; color: var(--ink); border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .cw-m.agent small { font-size: 11.5px; color: var(--accent); font-weight: 700; padding-left: 4px; }
+  .cw-m.user { align-self: flex-end; } .cw-m.user p { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .cw-m.user.pending p { opacity: .65; } .cw-m.user.err p { background: #b54848; } .cw-m em { font-size: 11.5px; color: #b54848; font-style: normal; text-align: right; }
+  .cw-m a { color: inherit; text-decoration: underline; } .cw-m.agent a { color: var(--accent); }
+  .cw-m.sys { align-self: center; max-width: 100%; } .cw-m.sys span { display: inline-block; padding: 4px 12px; border-radius: 999px; background: #e3ece9; color: var(--accent); font-size: 12px; font-weight: 600; }
+  .cw-typing { align-self: flex-start; display: flex; gap: 4px; margin: 0 12px 6px; padding: 11px 14px; border-radius: 14px; border-bottom-left-radius: 4px; background: #fff; width: max-content; }
+  .cw-typing[hidden] { display: none; }
+  .cw-typing span { width: 7px; height: 7px; border-radius: 50%; background: #9fb2ad; animation: cwDot 1.2s infinite; } .cw-typing span:nth-child(2) { animation-delay: .15s; } .cw-typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes cwDot { 0%, 60%, 100% { transform: none; opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+  .cw-form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 10px 6px; background: #fff; border-top: 1px solid var(--line); }
+  .cw-form[hidden] { display: none; }
+  .cw-form textarea { flex: 1; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font: 15px/1.4 var(--body); color: var(--ink); background: #f6f8f7; max-height: 120px; }
+  .cw-form textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: #fff; }
+  .cw-send { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; display: grid; place-items: center; } .cw-send svg { width: 18px; height: 18px; }
+  .cw-note { margin: 0; padding: 0 12px 8px; background: #fff; font-size: 11px; color: #8a9a96; text-align: center; }
+  @media (max-width: 560px) {
+    .cw { right: 12px; bottom: 12px; }
+    .cw-btn-l { display: none; } .cw-btn { padding: 6px; }
+    .cw.is-open { inset: 0; right: 0; bottom: 0; }
+    .cw.is-open .cw-btn { display: none; }
+    .cw-panel { position: fixed; inset: 0; width: auto; height: 100%; height: 100dvh; border-radius: 0; bottom: 0; }
+    .cw-teaser { bottom: 60px; }
+  }
+  @media print { .cw { display: none; } }
+</style>

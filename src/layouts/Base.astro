@@ -7,6 +7,7 @@ import { AT } from '../lib/about-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
 import SiteFooter from '../components/SiteFooter.astro';
+import ChatWidget from '../components/ChatWidget.astro';
 import { RT } from '../lib/rack-i18n.mjs';
 import { MT } from '../lib/modular-i18n.mjs';
 import { IT } from '../lib/industrial-i18n.mjs';
@@ -156,6 +157,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
     <slot />
   </main>
   <SiteFooter lang={lang} altHref={altHref} />
+  <ChatWidget lang={lang} />
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）

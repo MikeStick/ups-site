@@ -8,6 +8,9 @@ export const SITE = {
   email: 'sales@ups-china.com',
 };
 
+// 在线客服：网站右下角的聊天窗口连到 CRM 服务器。改成空字符串 '' 就整站隐藏聊天窗口
+export const CHAT = { api: 'https://b2b.google-helper.com' };
+
 // 联系我们页面（/contact/）用的补充信息；留空的项不显示
 export const CONTACT = {
   tz: 'Asia/Shanghai',
