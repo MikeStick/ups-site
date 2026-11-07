@@ -67,6 +67,7 @@ const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SI
       el.className = `cw-m ${m.from}`;
       const tm = new Date(m.at || Date.now()), hm = `${String(tm.getHours()).padStart(2, '0')}:${String(tm.getMinutes()).padStart(2, '0')}`;
       el.innerHTML = m.from === 'sys' ? `<span>${esc(m.text)}</span>` : `<p>${m.from === 'agent' && m.name && m.name !== t.title ? `<small>${esc(m.name)}</small>` : ''}${linkify(m.text)}<span class="cw-t">${hm}${m.from === 'user' ? '<i class="cw-tick">✓✓</i>' : ''}</span></p>`;
+      if (m.wa && m.wa.url) el.insertAdjacentHTML('beforeend', `<a class="cw-wa" href="${esc(m.wa.url)}" target="_blank" rel="noopener" data-wa-click><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.4 8.4 0 0 0-7.2 12.8L3.7 20.5l4.3-1.1A8.4 8.4 0 1 0 12 3.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>${esc(m.wa.label || 'WhatsApp')}</a>`);
       const before = body.lastElementChild;
       if (before && before.classList.contains(m.from) && m.from !== 'sys') el.classList.add('cont'); // 同一个人连续发：不再画气泡尖角
       body.appendChild(el);
@@ -104,7 +105,7 @@ const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SI
           const conf = await api('/api/chat/config');
           if (!conf.enabled) return showOffline();
           const j = await post('/api/chat/start', { lang: c.lang, page: location.href, title: document.title });
-          sess = { sid: j.sid, token: j.token, at: Date.now() }; store.set(sess);
+          sess = { sid: j.sid, token: j.token, cc: j.cc || '', at: Date.now() }; store.set(sess);
           poll();
         } catch (e) { showOffline(); }
         finally { starting = null; }
@@ -124,13 +125,31 @@ const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SI
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) closePanel(); });
     // 其他按钮可以打开聊天窗：<a data-chat-open>
     document.addEventListener('click', (e) => { const a = e.target.closest('[data-chat-open]'); if (a) { e.preventDefault(); openPanel(); } });
+    body.addEventListener('click', (e) => { if (e.target.closest('[data-wa-click]') && sess) post('/api/chat/event', { sid: sess.sid, token: sess.token, type: 'wa_click' }).catch(() => {}); });
 
+    // 号码检查：消息里像电话 / WhatsApp 的数字才检查（用 Google 开源号码库，按需加载，不影响页面速度）
+    const PHONE_RE = /(?:\+|\b00)?\d[\d\s().-]{5,18}\d/g;
+    const PHONE_WORD = /whats\s?app|\bwa\b|phone|tel|mobile|cell|n[uú]mero|tel[eé]fono|celular|телефон|номер|ватсап|вотсап|мобильн/i;
+    async function phoneChecks(text) {
+      const cands = (text.match(PHONE_RE) || []).map((x) => x.trim()).filter((x) => { const d = x.replace(/\D/g, ''); return d.length >= 7 && d.length <= 16 && (/^(\+|00)/.test(x) || PHONE_WORD.test(text) || (d.length >= 9 && x.startsWith('0'))); });
+      if (!cands.length) return [];
+      try {
+        const { parsePhoneNumberFromString } = await import('libphonenumber-js/min');
+        return cands.slice(0, 3).map((raw) => {
+          const norm = raw.replace(/^00/, '+');
+          const p = parsePhoneNumberFromString(norm, norm.startsWith('+') ? undefined : (sess && sess.cc) || undefined);
+          if (!p) return { type: 'phone', raw, ok: false, reason: norm.startsWith('+') ? 'unknown country code' : 'no country code' };
+          return { type: 'phone', raw, e164: p.number, country: p.country || '', ok: p.isValid(), possible: p.isPossible(), reason: p.isValid() ? '' : (p.isPossible() ? 'not a valid number for this country' : 'wrong length for this country') };
+        });
+      } catch (e) { return []; }
+    }
     async function send(text) {
       if (!sess) await start();
       if (!sess || offline) return;
       const tmp = document.createElement('div'); tmp.className = 'cw-m user pending'; tmp.innerHTML = `<p>${linkify(text)}<span class="cw-t"><i class="cw-tick">🕓</i></span></p>`; body.appendChild(tmp); body.scrollTop = body.scrollHeight;
       try {
-        const j = await post('/api/chat/send', { sid: sess.sid, token: sess.token, text, page: location.href });
+        const checks = await phoneChecks(text);
+        const j = await post('/api/chat/send', { sid: sess.sid, token: sess.token, text, page: location.href, checks });
         tmp.remove(); if (j.id > rendered) addMsg({ id: j.id, from: 'user', text });
         poll();
       } catch (e) { tmp.classList.add('err'); tmp.insertAdjacentHTML('beforeend', `<em>${esc(t.err)}</em>`); input.value = text; }
@@ -196,6 +215,8 @@ const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SI
   .cw-m.user:not(.cont) p::before { right: -8px; background: var(--wa-out); clip-path: polygon(0 0, 100% 0, 0 100%); }
   .cw-m.user.err p { background: #ffd9d9; } .cw-m em { font-size: 11.5px; color: #c0392b; font-style: normal; text-align: right; margin-top: 2px; }
   .cw-m a { color: #027eb5; text-decoration: none; } .cw-m a:hover { text-decoration: underline; }
+  .cw-m a.cw-wa { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; padding: 10px 16px; border-radius: 22px; background: #25d366; color: #fff; font: 700 14.5px var(--body); text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+  .cw-m a.cw-wa:hover { background: #1fbd59; text-decoration: none; } .cw-m a.cw-wa svg { width: 20px; height: 20px; }
   .cw-m.sys { align-self: center; max-width: 92%; margin: 10px 0 4px; } .cw-m.sys span { display: inline-block; padding: 5px 12px; border-radius: 8px; background: #fff; color: var(--wa-sub); font-size: 12.5px; text-align: center; box-shadow: 0 1px .5px rgba(11,20,26,.13); }
   .cw-typing { align-self: flex-start; display: flex; gap: 4px; margin: 4px 14px 8px; padding: 12px 14px; border-radius: 0 8px 8px 8px; background: #fff; width: max-content; box-shadow: 0 1px .5px rgba(11,20,26,.13); position: relative; }
   .cw-typing::before { content: ''; position: absolute; left: -8px; top: 0; width: 8px; height: 13px; background: #fff; clip-path: polygon(0 0, 100% 0, 100% 100%); }
