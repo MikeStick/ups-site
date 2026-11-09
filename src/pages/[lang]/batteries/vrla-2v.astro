@@ -1,0 +1,361 @@
+---
+// 2V 单体铅酸电池栏目页（/batteries/vrla-2v/）：首屏 → 电池组计算器（系统电压 + 负载 + 后备时间 → 型号 × 节数 × 串数）→ 型号大卡片 → 规格对照表
+// → 设计特点 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
+// 产品来自客户档案系统：铅酸类品类里型号为 SK…-2v（或额定电压 2 V）的产品。参数在 vrla-engine.mjs（vrlaModule / SK_SPECS / cellBank）。
+import Base from '../../../layouts/Base.astro';
+import { LANGS, SITE } from '../../../config.mjs';
+import { V2 } from '../../../lib/vrla2-i18n.mjs';
+import { vrlaModule, VR2_GENERIC, CELL_SYS } from '../../../lib/vrla-engine.mjs';
+import { isVrla2 } from '../../../lib/category.mjs';
+import all from '../../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = V2[lang];
+const list = all.filter(isVrla2).map((p) => ({ p, b: vrlaModule(p) })).filter((x) => x.b.ah > 0).sort((a, b) => a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
+const ahs = list.map((x) => x.b.ah);
+const ahTxt = ahs.length ? `${Math.min(...ahs)}–${Math.max(...ahs)} Ah` : '100–3000 Ah';
+const terms = [...new Set(list.map((x) => (x.b.terminal || '').split(' ')[0]).filter(Boolean))].join(' / ') || 'B5 / B6';
+const models = list.length ? list.map(({ p, b }) => ({ ...b, model: p.model, slug: p.slug })) : VR2_GENERIC;
+const cfg = { lang, wa: SITE.whatsapp, models, t: T, sys: CELL_SYS };
+const HOURS = [0.5, 1, 2, 3, 5, 8, 10];
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const dec = (x: number | string) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
+const WHY_ICONS = [
+  '<circle cx="15" cy="15" r="11"/><path d="M15 8v7l5 3"/>',
+  '<path d="M5 25V9l10-5 10 5v16M5 13h20M5 19h20M11 8v17M19 8v17"/>',
+  '<path d="M17 3L7 17h7l-2 10 10-14h-7z"/>',
+  '<rect x="3" y="9" width="5" height="14" rx="1"/><rect x="10" y="9" width="5" height="14" rx="1"/><rect x="17" y="9" width="5" height="14" rx="1"/><path d="M24 16h4M5 7V5M12 7V5M19 7V5"/>',
+];
+const APP_ICONS = [
+  '<path d="M15 26V12M9 26h12M7 9a11 11 0 0 1 16 0M10 12a6 6 0 0 1 10 0"/>',
+  '<path d="M4 26h22M8 26V10l7-6 7 6v16M12 14h6M12 19h6"/><path d="M15 4v-1"/>',
+  '<rect x="6" y="3" width="18" height="24" rx="2"/><path d="M10 8h10M10 13h10M10 18h10M10 23h3"/>',
+  '<path d="M15 3c4 5 7 8 7 13a7 7 0 0 1-14 0c0-3 2-5 3-7 1 3 2 4 4 4-1-4-1-7 0-10z"/>',
+  '<path d="M6 26l4-22h10l4 22M9 16h12M8 21h14M12 4l-1 6M18 4l1 6"/>',
+  '<circle cx="22" cy="8" r="4"/><path d="M3 26l5-12h12l5 12zM10 14l-2 12M18 14l2 12"/>',
+];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: T.crumbs, item: `${site}/${lang}/` },
+  { '@type': 'ListItem', position: 2, name: T.title, item: `${site}/${lang}/batteries/vrla-2v/` },
+] };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="batteries/vrla-2v/">
+<div class="off rbp v2p">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.crumbBatt} / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#calc">{T.ctaCalc}</a>
+          {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
+        </div>
+      </div>
+      <div class="hero-vis" aria-hidden="true">
+        <div class="cells">
+          {[[38, 62], [46, 82], [62, 100]].map(([w, h]) => <div class="cell" style={`--w:${w}%;--h:${h}%`}><i></i><i></i><span>2V</span></div>)}
+        </div>
+        <div class="hero-facts">
+          <div><b class="num">2 V</b><span>{T.facts.v}</span></div>
+          <div><b class="num">{ahTxt}</b><span>{T.facts.ah}</span></div>
+          <div><b class="num">{T.lifeVal}</b><span>{T.facts.life}</span></div>
+          <div><b class="num">{terms}</b><span>{T.facts.term}</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="calc" data-v2c>
+    <script type="application/json" data-v2c-cfg set:html={JSON.stringify(cfg)} />
+    <div class="head"><span class="eyebrow">{T.calcEyebrow}</span><h2>{T.calcH}</h2><p>{T.calcP}</p></div>
+    <div class="stage">
+      <div class="ctl">
+        <div class="grp">
+          <div class="gh"><span class="n">1</span><b>{T.sys}</b></div>
+          <div class="chips">{CELL_SYS.map((s) => <button type="button" class:list={['chip', { on: s.k === '220' }]} data-sys={s.k}>{T.sysName[s.k]}</button>)}</div>
+          <small class="hint" data-cells></small>
+        </div>
+        <div class="grp">
+          <div class="gh"><span class="n">2</span><b>{T.load}</b></div>
+          <label class="numin"><input type="number" min="0.1" step="0.1" value="10" inputmode="decimal" data-kw /><span>{T.loadU}</span></label>
+        </div>
+        <div class="grp">
+          <div class="gh"><span class="n">3</span><b>{T.time}</b></div>
+          <div class="chips">{HOURS.map((h) => <button type="button" class:list={['chip', { on: h === 2 }]} data-h={h}>{h < 1 ? `${h * 60} ${T.minU}` : `${h} ${T.hU}`}</button>)}</div>
+        </div>
+      </div>
+      <div class="out">
+        <div class="bank" data-bank></div>
+        <div class="rows" data-rows></div>
+        <div class="alts" data-alts></div>
+        <p class="note" data-note hidden>{T.est}</p>
+        {SITE.whatsapp && <a class="btn primary" data-qbank href="#" target="_blank" rel="noopener">{T.quoteBank}</a>}
+      </div>
+    </div>
+  </section>
+
+  {list.length > 0 && (
+    <section class="block" id="models">
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2><p>{T.modelsP}</p></div>
+      <div class="grid">
+        {list.map(({ p, b }) => {
+          const img = p.images && p.images[0];
+          return (
+            <article class="pcard">
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <span class="nob"><i></i><i></i></span>}
+                <span class="tags"><span class="tag pb">VRLA</span><span class="tag u">2V</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                <span class="va">2 V · {b.ah} Ah</span>
+                <ul>
+                  {b.dims.length > 0 && <li>{T.dimsS} <b>{b.dims.slice(0, 3).join(' × ')} mm</b></li>}
+                  {b.kg > 0 && <li>{T.kgS} <b>{dec(b.kg)} kg</b></li>}
+                  {b.terminal && <li>{T.termS} <b>{b.terminal}</b></li>}
+                </ul>
+                <div class="pact">
+                  <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.detailsBtn}</a>
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(T.qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <h3 class="th3">{T.tableH}</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>{T.th.model}</th><th>{T.th.ah}</th><th>{T.th.dims}</th><th>{T.th.kg}</th><th>{T.th.term}</th><th>{T.th.res}</th><th>{T.th.imax}</th></tr></thead>
+          <tbody>
+            {list.map(({ p, b }) => (
+              <tr>
+                <th><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></th>
+                <td class="num">{b.ah} Ah</td>
+                <td class="num">{b.dims.length ? `${b.dims.slice(0, 3).join(' × ')}${b.dims[3] ? ` / ${b.dims[3]}` : ''}` : '—'}</td>
+                <td class="num">{b.kg ? `${dec(b.kg)} kg` : '—'}</td>
+                <td>{b.terminal || '—'}</td>
+                <td class="num">{b.res ? `≤ ${dec(b.res.toFixed(2))} m${lang === 'ru' ? 'Ом' : 'Ω'}` : '—'}</td>
+                <td class="num">{b.imax ? `${b.imax} A` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
+    <div class="feats">
+      {T.why.map(([h, d], i) => <div class="card feat"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={WHY_ICONS[i]} /><h3>{h}</h3><p>{d}</p></div>)}
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} /><span>{a}</span></div>)}</div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(crumbLd)} />
+</div>
+</Base>
+
+<script>
+  // 计算器：系统（决定每串节数）+ 负载 kW + 后备时间 → cellBank 选型；右侧按串画出电池（每节一个小方块，最多画 4 串）
+  import { cellBank } from '../../../lib/vrla-engine.mjs';
+  const root = document.querySelector('[data-v2c]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-v2c-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const dec = (x: number) => (c.lang === 'en' ? String(x) : String(x).replace('.', ','));
+    const st: any = { sys: '220', h: 2 };
+    const link = (m: any) => (m.slug ? `<a href="/${c.lang}/p/${m.slug}/">${m.model}</a>` : m.model);
+    const tm = (min: number) => (min >= 90 ? `${dec(Math.round(min / 6) / 10)} ${T.hU}` : `${Math.round(min)} ${T.minU}`);
+    const row = (a: string, b: string) => `<div><span>${a}</span><b>${b}</b></div>`;
+    const draw = (n: number, s: number) => {
+      const per = n <= 24 ? 12 : n <= 60 ? 26 : 30, rowsPer = Math.ceil(n / per), show = Math.min(s, 4);
+      const W = 13, H = 20, gx = 3, gy = 6, sg = 16, w = per * (W + gx);
+      let y = 4, svg = '';
+      for (let k = 0; k < show; k++) {
+        for (let i = 0; i < n; i++) {
+          const x = (i % per) * (W + gx), yy = y + Math.floor(i / per) * (H + gy);
+          svg += `<g class="cl" style="--d:${(k * n + i) * 6}ms"><rect x="${x}" y="${yy + 3}" width="${W}" height="${H - 3}" rx="1.5"/><rect class="tp" x="${x + 2}" y="${yy}" width="3" height="3"/><rect class="tn" x="${x + W - 5}" y="${yy}" width="3" height="3"/></g>`;
+        }
+        y += rowsPer * (H + gy) + sg;
+      }
+      return `<svg viewBox="0 0 ${w} ${y}" role="img">${svg}</svg>`;
+    };
+    const run = () => {
+      const sys = c.sys.find((x: any) => x.k === st.sys);
+      $('[data-cells]').textContent = fmt(T.cellsStr, { n: sys.cells });
+      const kw = Math.max(0, parseFloat(String(($('[data-kw]') as HTMLInputElement).value).replace(',', '.')) || 0);
+      const r = cellBank({ loadW: kw * 1000, minutes: st.h * 60, cells: sys.cells, models: c.models, eff: sys.eff });
+      const q = $('[data-qbank]') as HTMLAnchorElement | null;
+      if (!r || r.none) {
+        $('[data-bank]').innerHTML = `<p class="none">${r ? T.none : ''}</p>`; $('[data-rows]').innerHTML = ''; $('[data-alts]').innerHTML = '';
+        ($('[data-note]') as HTMLElement).hidden = true;
+        if (q) q.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qBank, { sys: T.sysName[st.sys], kw, t: tm(st.h * 60), s: '-', n: sys.cells, m: '?' }))}`;
+        return;
+      }
+      const b = r.best;
+      $('[data-bank]').innerHTML = `<div class="tag">${T.res}: ${link(b.mod)} · ${fmt(T.strings, { s: b.strings, n: b.cells })}</div>${draw(b.cells, b.strings)}`;
+      $('[data-rows]').innerHTML = row(T.total, `${b.total} × ${b.mod.model}`) + row(T.runtime, tm(b.runtime)) + row(T.energy, `${dec(b.kwh)} kWh`) + (b.kg ? row(T.weight, `≈ ${b.kg.toLocaleString(c.lang === 'en' ? 'en-US' : c.lang)} kg`) : '') + row(T.perCell, `${dec(b.perCell)} W`);
+      $('[data-alts]').innerHTML = r.alts.length ? `<span>${T.alt}</span>` + r.alts.map((o: any) => `<em>${link(o.mod)} · ${tm(o.runtime)}</em>`).join('') : '';
+      ($('[data-note]') as HTMLElement).hidden = !b.est;
+      if (q) q.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qBank, { sys: T.sysName[st.sys], kw, t: tm(st.h * 60), s: b.strings, n: b.cells, m: b.mod.model }))}`;
+    };
+    root.querySelectorAll('[data-sys]').forEach((x: any) => x.addEventListener('click', () => { st.sys = x.dataset.sys; root.querySelectorAll('[data-sys]').forEach((y: any) => y.classList.toggle('on', y === x)); run(); }));
+    root.querySelectorAll('[data-h]').forEach((x: any) => x.addEventListener('click', () => { st.h = +x.dataset.h; root.querySelectorAll('[data-h]').forEach((y: any) => y.classList.toggle('on', y === x)); run(); }));
+    $('[data-kw]').addEventListener('input', run);
+    run();
+  }
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px), repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px); pointer-events: none; }
+  .hero::before { content: ""; position: absolute; right: -80px; top: -80px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(245,184,61,.2), transparent); pointer-events: none; }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 28px; padding: 44px 40px; align-items: center; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(36px, 5.6vw, 62px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #f5b83d; }
+  .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 580px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-vis { display: grid; gap: 16px; }
+  .cells { height: 150px; display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+  .cell { position: relative; width: calc(var(--w) * .9); max-width: 96px; height: var(--h); border-radius: 7px; background: linear-gradient(180deg, #3a3733 0 14%, #24221f 14%); box-shadow: 0 18px 36px rgba(0,0,0,.5), inset 0 0 0 1px #4a4640; display: grid; place-items: center; }
+  .cell i { position: absolute; top: -8px; width: 20%; height: 9px; border-radius: 3px 3px 0 0; background: #555; left: 16%; }
+  .cell i + i { left: auto; right: 16%; background: #d23a2a; }
+  .cell span { font: 700 20px var(--display); color: #f5b83d; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 21px/1.1 var(--display); color: #f5b83d; }
+  .hero-facts span { font-size: 13px; color: #a9b8b4; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; padding: 22px; border-radius: 16px; color: #efeae0; background: radial-gradient(120% 90% at 75% 40%, #2b2414 0%, #14110b 55%, #0c0a07 100%); }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+  .ctl { display: grid; gap: 18px; align-content: start; }
+  .grp { display: grid; gap: 10px; }
+  .gh { display: flex; gap: 10px; align-items: center; } .gh b { font-size: 15px; }
+  .n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #f5b83d; color: #1b1406; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 0 12px; min-height: 36px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #ddd5c4; font: 600 13px var(--body); cursor: pointer; }
+  .chip.on { background: #f5b83d; color: #1b1406; border-color: #f5b83d; }
+  .hint { font: 12.5px var(--mono); color: #b3a88f; }
+  .numin { display: flex; align-items: center; gap: 8px; } .numin span { font: 600 14px var(--mono); color: #b3a88f; }
+  .numin input { width: 140px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: #100e0a; color: #fff; }
+  .out { display: grid; gap: 12px; align-content: start; }
+  .bank { padding: 16px; border-radius: 14px; background: linear-gradient(180deg, #ebe6dc, #d9d3c6); box-shadow: inset 0 0 0 1px #c6bfae, 0 24px 50px rgba(0,0,0,.45); color: #2c2618; display: grid; gap: 10px; justify-items: center; min-height: 140px; align-content: center; }
+  .bank :global(.tag) { font: 700 12.5px var(--mono); padding: 5px 12px; border-radius: 99px; background: #17140e; color: #f5b83d; text-align: center; }
+  .bank :global(.tag a) { color: #fff; }
+  .bank :global(svg) { width: 100%; max-height: 300px; }
+  .bank :global(.cl rect) { fill: #24221f; animation: pop .35s both; animation-delay: var(--d); }
+  .bank :global(.cl .tp) { fill: #d23a2a; } .bank :global(.cl .tn) { fill: #6b6b6b; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .bank :global(.none) { margin: 0; text-align: center; font-weight: 600; }
+  .rows :global(div) { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.12); font-size: 14px; }
+  .rows :global(span) { color: #b3a88f; } .rows :global(b) { font: 700 15px var(--mono); text-align: right; }
+  .rows :global(a), .alts :global(a) { color: #f5b83d; }
+  .alts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: #b3a88f; }
+  .alts :global(em) { font-style: normal; font-family: var(--mono); color: #ddd5c4; }
+  .note { margin: 0; font-size: 12px; color: #fde68a; }
+  .out .btn { justify-self: start; }
+
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg .nob { position: relative; width: 36%; aspect-ratio: .7; border-radius: 8px; background: linear-gradient(180deg, #3a3733 0 14%, #24221f 14%); }
+  .pimg .nob i { position: absolute; top: -9px; width: 20%; height: 10px; border-radius: 3px 3px 0 0; background: #555; left: 16%; }
+  .pimg .nob i + i { left: auto; right: 16%; background: #d23a2a; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; }
+  .tag.pb { background: #ece7df; color: #5b4636; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .th3 { font-size: 24px; margin: 34px 0 12px; }
+  .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  .tbl-wrap a { color: var(--ink); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat svg { width: 34px; height: 34px; fill: none; stroke: #b07a12; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { font-size: 22px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .apps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>

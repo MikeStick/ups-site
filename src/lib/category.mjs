@@ -132,6 +132,10 @@ export function pbModule(p) {
 export const VRLA_TYPES = ['铅酸电池', '阀控式铅酸电池', '胶体电池'];
 // CRM 里也可能新建了更具体的细分品类名（如"AGM阀控密封式免维护铅酸蓄电池"）：名字里带 铅酸 / 蓄电池 / VRLA / AGM / 胶体 / 阀控 的都算，锂电替换铅酸除外
 export const isVrla = (p) => has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t));
+// 2V 单体（SK100-2v … SK3000-2v，或额定电压 2 V）单独一个栏目 /batteries/vrla-2v/；12V 栏目只放 12V 的
+export const isCell2v = (p) => /^SK\d{2,4}-2v?$/i.test(String(p.model || '').trim()) || /^2(?:\.0+)?\s*V?$/i.test(String(p.moduleVoltage || p.batteryVoltage || '').trim());
+export const isVrla12 = (p) => isVrla(p) && !isCell2v(p);
+export const isVrla2 = (p) => isVrla(p) && isCell2v(p);
 // 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
 export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
 export const isHvCab = (p) => has(p, HV_CAB_TYPES);

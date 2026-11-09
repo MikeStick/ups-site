@@ -33,6 +33,7 @@ function rangeOf(it, ps) {
   if (it.unit === 'va') return span(ps.map((p) => capacityOf(p).va), fmtVa);
   if (it.unit === 'kw') return span(ps.map((p) => invKw(p)), (x) => `${x} kW`);
   if (it.unit === 'kwh') return span(ps.map((p) => kwhOf(it.key, p)), (x) => `${+(+x).toFixed(1)} kWh`);
+  if (it.unit === 'ah2') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `2 V · ${r}` : ''; }
   if (it.unit === 'ah') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `12 V · ${r}` : ''; }
   if (it.unit === 'v') { const v = [...new Set(ps.map((p) => pbModule(p).v).filter(Boolean))].sort((a, b) => a - b); return v.length ? `${v.join(' / ')} V` : ''; }
   return '';
@@ -79,6 +80,7 @@ const ICONS = {
   rackbatt: '<rect x="6" y="12" width="36" height="10" rx="1.5"/><rect x="6" y="26" width="36" height="10" rx="1.5"/><path d="M11 17h14M11 31h14M33 17h4M33 31h4"/>',
   hvcab: '<rect x="12" y="4" width="24" height="40" rx="2"/><rect x="16" y="8" width="16" height="6" rx="1"/><path d="M16 19h16M16 24h16M16 29h16M16 34h16M16 39h16"/>',
   pbr: '<rect x="6" y="14" width="36" height="24" rx="3"/><path d="M12 14v-4h6v4M30 14v-4h6v4M14 26h6M31 23v6M28 26h6"/>',
+  vrla2: '<rect x="12" y="10" width="24" height="32" rx="2"/><path d="M12 16h24M17 10V6h5v4M26 10V6h5v4M19 28h10"/>',
   vrla: '<rect x="5" y="15" width="38" height="25" rx="2"/><path d="M5 21h38M11 15v-4h6v4M31 15v-4h6v4M15 30h18"/>',
 };
 const APP_ICONS = {

@@ -189,6 +189,7 @@ export const VR_LABELS = [
 ];
 // 值里常见的中文词（"月" "年" "以上"）换掉；还有中文就不显示
 const VZH = [[/（/g, { en: ' (', es: ' (', ru: ' (' }], [/）/g, { en: ')', es: ')', ru: ')' }], [/，/g, { en: ', ', es: ', ', ru: ', ' }], [/充电\s*/g, { en: 'charge ', es: 'carga ', ru: 'заряд ' }], [/放电\s*/g, { en: 'discharge ', es: 'descarga ', ru: 'разряд ' }], [/储存\s*/g, { en: 'storage ', es: 'almacén ', ru: 'хранение ' }], [/满荷电/g, { en: 'fully charged', es: 'carga completa', ru: 'полный заряд' }], [/[；;]\s*/g, { en: '; ', es: '; ', ru: '; ' }], [/年以上|年\s*以上/g, { en: '+ years', es: '+ años', ru: '+ лет' }], [/每月|\/月/g, { en: '/month', es: '/mes', ru: '/мес.' }], [/年/g, { en: ' years', es: ' años', ru: ' лет' }], [/毫欧|mΩ/g, { en: ' mΩ', es: ' mΩ', ru: ' мОм' }]];
+const VR2X = { en: { res: 'Internal resistance', imax: 'Max charge current' }, es: { res: 'Resistencia interna', imax: 'Corriente máx. de carga' }, ru: { res: 'Внутреннее сопротивление', imax: 'Макс. ток заряда' } };
 export function vrlaSpecRows(p, m, lang) {
   const L = VR_P[lang], T = VR[lang];
   const rows = [[T.th.model, p.model], [L.tech, L.techV], [L.volt, `${m.v} V`], [L.cap, `${m.ah} Ah (${m.rate}HR)`], [L.series, T.seriesName[m.series]]];
@@ -207,6 +208,13 @@ export function vrlaSpecRows(p, m, lang) {
     if (!label || !v || /[一-鿿]/.test(v) || seen.has(label)) continue;
     seen.add(label); rows.push([label, v.replace(/\*/g, ' × ')]);
   }
+  // 规格书表（SK_SPECS）里有、CRM 没填的：端子、内阻、最大充电电流、设计寿命
+  const add = (lb, v) => { if (v && !seen.has(lb)) { seen.add(lb); rows.push([lb, v]); } };
+  const life = String(m.life || '').match(/\d+/);
+  add(T.th.term, m.terminal);
+  if (m.res) add(VR2X[lang].res, `≤ ${(+m.res).toFixed(2)} m${lang === 'ru' ? 'Ом' : 'Ω'}`);
+  if (m.imax) add(VR2X[lang].imax, `${m.imax} A`);
+  if (life && ![...seen].some((x) => x.startsWith(T.th.life))) add(T.th.life, T.lifeVal.replace(/\d+/, life[0]));
   return rows;
 }
 // 放电表：每种（恒功率 / 恒流）一张，行 = 终止电压，列 = 时间（所有行的时间并集）

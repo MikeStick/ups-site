@@ -18,9 +18,10 @@ import { HE } from './ess-i18n.mjs';
 import { CI } from './cie-i18n.mjs';
 import { CT } from './custom-i18n.mjs';
 import { VR } from './vrla-i18n.mjs';
+import { V2 } from './vrla2-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -48,7 +49,8 @@ export function catalog(lang) {
       { key: 'rackbatt', page: 'batteries/rack-lithium/', label: RB[lang].nav, f: isRackBattery, unit: 'kwh' },
       { key: 'hvcab', page: 'batteries/hv-cabinet/', label: HV[lang].nav, f: isHvCab, unit: 'kwh' },
       { key: 'pbr', page: 'batteries/lead-acid-replacement/', label: PB[lang].nav, f: isPbReplace, unit: 'v' },
-      { key: 'vrla', page: 'batteries/vrla/', label: VR[lang].nav, f: isVrla, unit: 'ah' },
+      { key: 'vrla', page: 'batteries/vrla/', label: VR[lang].nav, f: isVrla12, unit: 'ah' },
+      { key: 'vrla2', page: 'batteries/vrla-2v/', label: V2[lang].nav, f: isVrla2, unit: 'ah2' },
     ] },
   ];
 }

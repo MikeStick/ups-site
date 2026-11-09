@@ -7,7 +7,7 @@ import VrlaVisual from '../../../components/VrlaVisual.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { VR } from '../../../lib/vrla-i18n.mjs';
 import { vrlaModule } from '../../../lib/vrla-engine.mjs';
-import { isVrla } from '../../../lib/category.mjs';
+import { isVrla12 } from '../../../lib/category.mjs';
 import all from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -16,7 +16,7 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const T = VR[lang];
 const SER = ['agm', 'hr', 'deep', 'gel', 'front'];
-const list = all.filter(isVrla).map((p) => ({ p, b: vrlaModule(p) })).sort((a, b) => a.b.rate - b.b.rate || a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
+const list = all.filter(isVrla12).map((p) => ({ p, b: vrlaModule(p) })).sort((a, b) => a.b.rate - b.b.rate || a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
 const RATES = [10, 20].filter((r) => list.some((x) => x.b.rate === r));
 const SERS = SER.filter((s) => list.some((x) => x.b.series === s));
 const ahs = list.map((x) => x.b.ah).filter(Boolean);

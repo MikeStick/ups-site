@@ -30,7 +30,8 @@ import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import { VR, VR_P, vrlaSpecRows, vrlaTables } from '../../../lib/vrla-i18n.mjs';
 import { vrlaModule } from '../../../lib/vrla-engine.mjs';
-import { isVrla } from '../../../lib/category.mjs';
+import { isVrla, isCell2v } from '../../../lib/category.mjs';
+import { V2 } from '../../../lib/vrla2-i18n.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -77,6 +78,8 @@ const hvcab = isHvCab(P0);
 const pbr = isPbReplace(P0);
 // 12V 铅酸（VRLA）：自己的参数表（中文 extraSpecs 标签在 vrla-i18n 里翻译）+ 放电数据表，面包屑和横幅指向 /batteries/vrla/
 const vrla = isVrla(P0);
+const cell2 = vrla && isCell2v(P0); // 2V 单体：面包屑和横幅指向 /batteries/vrla-2v/
+const vrlaPage = cell2 ? 'batteries/vrla-2v/' : 'batteries/vrla/';
 const vm = vrla ? vrlaModule(p) : null;
 const vTables = vm ? vrlaTables(vm, lang) : [];
 const VR_P_DIS = VR_P[lang].dis, VR_P_END = VR_P[lang].endV;
@@ -151,7 +154,7 @@ function tableSeries() {
 const tSeries = tableSeries();
 // 铅酸：同系列 = 同容量率（10HR / 20HR）、同系列（AGM / HR …）的型号，按 Ah 排
 const series = vrla
-  ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
+  ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.v === vm.v && o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
   : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const rows = vrla
@@ -241,7 +244,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{vrla ? <a href={`/${lang}/batteries/vrla/`}>{VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -271,8 +274,8 @@ const jsonLd = {
       )}
 
       {vrla ? (
-        <a class="custom-banner" href={`/${lang}/batteries/vrla/#calc`}>
-          <span>{VR[lang].banner}</span><b>{VR[lang].bannerCta} →</b>
+        <a class="custom-banner" href={`/${lang}/${vrlaPage}#calc`}>
+          <span>{cell2 ? V2[lang].banner : VR[lang].banner}</span><b>{cell2 ? V2[lang].bannerCta : VR[lang].bannerCta} →</b>
         </a>
       ) : rbatt ? (
         <a class="custom-banner" href={`/${lang}/${battPage}#builder`}>

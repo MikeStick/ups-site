@@ -7,12 +7,12 @@
 import { SITE } from '../config.mjs';
 import { VR } from '../lib/vrla-i18n.mjs';
 import { vrlaModule, VR_GENERIC, UPS_DC } from '../lib/vrla-engine.mjs';
-import { isVrla } from '../lib/category.mjs';
+import { isVrla12 } from '../lib/category.mjs';
 import all from '../data/products.json';
 interface Props { lang: string }
 const { lang } = Astro.props;
 const T = VR[lang], C = T.c;
-const pub = all.filter(isVrla).map(vrlaModule).filter((m) => m.v === 12 && m.ah > 0);
+const pub = all.filter(isVrla12).map(vrlaModule).filter((m) => m.v === 12 && m.ah > 0);
 const models = pub.length ? pub : VR_GENERIC;
 const rates = [...new Set(models.map((m) => m.rate))].sort((a, b) => a - b);
 const DC = UPS_DC.filter((v) => v >= 24);

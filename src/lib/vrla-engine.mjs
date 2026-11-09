@@ -73,22 +73,39 @@ const SK_SPECS = {
   'SK150-12V': { dims: [483, 171, 240, 245], kg: 39.6, terminal: 'Φ18×M8', life: 8 },
   'SK200-12V': { dims: [522, 239, 216, 221], kg: 54.3, terminal: 'Φ20×M8', life: 8 },
   'SK250-12V': { dims: [520, 267.5, 220, 225], kg: 68.5, terminal: 'Φ20×M8', life: 8 },
+  // 2V 单体（型号 SK100-2v … SK3000-2v，都是 10HR；这里的 v 是"伏"，不表示 20HR）
+  'SK100-2V': { dims: [170, 72, 210, 223], kg: 5.7, terminal: 'B5 (M8)', life: 15, res: 2.0, imax: 25 },
+  'SK200-2V': { dims: [171, 111, 335, 365], kg: 12.5, terminal: 'B6 (M10)', life: 15, res: 0.7, imax: 50 },
+  'SK300-2V': { dims: [170, 150, 336, 365], kg: 17.5, terminal: 'B6 (M10)', life: 15, res: 0.47, imax: 75 },
+  'SK400-2V': { dims: [211, 172, 338, 367], kg: 22.5, terminal: 'B6 (M10)', life: 15, res: 0.45, imax: 100 },
+  'SK500-2V': { dims: [240, 172, 338, 367], kg: 28, terminal: 'B6 (M10)', life: 15, res: 0.42, imax: 125 },
+  'SK600-2V': { dims: [301, 172, 338, 367], kg: 32.5, terminal: 'B6 (M10)', life: 15, res: 0.4, imax: 150 },
+  'SK800-2V': { dims: [410, 172, 339, 368], kg: 46, terminal: 'B6 (M10)', life: 15, res: 0.35, imax: 200 },
+  'SK1000-2V': { dims: [473, 172, 338, 367], kg: 55, terminal: 'B6 (M10)', life: 15, res: 0.32, imax: 250 },
+  'SK1200-2V': { dims: [473, 172, 338, 367], kg: 62.5, terminal: 'B6 (M10)', life: 15, res: 0.32, imax: 300 },
+  'SK1500-2V': { dims: [400, 350, 351, 380], kg: 85.5, terminal: 'B6 (M10)', life: 15, res: 0.26, imax: 375 },
+  'SK2000-2V': { dims: [490, 350, 342, 381], kg: 123, terminal: 'B6 (M10)', life: 15, res: 0.22, imax: 500 },
+  'SK2500-2V': { dims: [490, 350, 342, 381], kg: 135, terminal: 'B6 (M10)', life: 15, res: 0.2, imax: 625 },
+  'SK3000-2V': { dims: [712, 353, 341, 382], kg: 180, terminal: 'B6 (M10)', life: 15, res: 0.15, imax: 750 },
 };
+// 2V 单体电池（型号 SK…-2 / SK…-2v，或额定电压 2 V）
+export const is2vModel = (p) => /^SK\d{2,4}-2v?$/i.test(String(p.model || '').trim()) || num(p.moduleVoltage || p.batteryVoltage) === 2;
 // 一节电池的参数
 export function vrlaModule(p) {
-  const mm = String(p.model || '').match(/(\d{2,3})\s*-\s*(\d{1,2})\b/); // SK250-12 → 250 Ah, 12 V
-  const v = num(p.moduleVoltage || p.batteryVoltage || spec(p, /额定电压|nominal\s*voltage/i)) || (mm ? +mm[2] : 12);
+  const mm = String(p.model || '').match(/(\d{2,4})\s*-\s*(\d{1,2})(?:v\b|\b)/i); // SK250-12 → 250 Ah, 12 V；SK1000-2v → 1000 Ah, 2 V
   // SK 系列命名：SK100-12 = 10HR、SK100-12v = 20HR，型号里的数字就是该容量率下的额定 Ah（规格书同时列了 20HR / 10HR 等多个容量，导入时容易填错）
-  const sk = String(p.model || '').trim().match(/^SK(\d{2,3})-12(v?)$/i);
+  // 2V 单体 SK100-2v … SK3000-2v 全是 10HR
+  const sk = String(p.model || '').trim().match(/^SK(\d{2,4})-(12|2)(v?)$/i);
+  const v = sk ? +sk[2] : num(p.moduleVoltage || p.batteryVoltage || spec(p, /额定电压|nominal\s*voltage/i)) || (mm ? +mm[2] : 12);
   const ah = sk ? +sk[1] : num(p.moduleCapacity || spec(p, /额定容量|rated\s*capacity/i)) || (mm ? +mm[1] : 0);
   const rateTxt = spec(p, /容量率|小时率|rate/i) + ' ' + p.model;
-  const rate = sk ? (sk[2] ? 20 : 10) : /20\s*h/i.test(rateTxt) ? 20 : /10\s*h/i.test(rateTxt) ? 10 : /v$/i.test(String(p.model || '').trim()) ? 20 : 10;
+  const rate = sk ? (sk[2] === '12' && sk[3] ? 20 : 10) : /20\s*h/i.test(rateTxt) ? 20 : /10\s*h/i.test(rateTxt) ? 10 : /\d{2}v$/i.test(String(p.model || '').trim()) && v === 12 ? 20 : 10;
   // 尺寸 / 重量一般在模块字段里；没有的话从 extraSpecs 的"尺寸(长*宽*高*总高)""参考重量"取
   const dims = (String(p.moduleDimensions || p.dimensions || spec(p, /尺寸|dimension/i)).match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 4);
   const kg = num(p.moduleWeight || p.netWeight || spec(p, /重量|weight/i));
   const cells = Math.max(1, Math.round(v / 2));
   const fix = SK_SPECS[String(p.model || '').trim().toUpperCase()];
-  if (fix) return { ...vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }), dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: `${fix.life}年以上` };
+  if (fix) return { ...vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }), dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: `${fix.life}年以上`, ...(fix.res ? { res: fix.res, imax: fix.imax } : {}) };
   return vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells });
 }
 function vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }) {
@@ -201,3 +218,37 @@ export const VR_GENERIC = [17, 24, 38, 40, 55, 65, 75, 80, 100, 120, 150, 200, 2
 }));
 // 估算一节电池重量（规格书 250Ah ≈ 69 kg，小电池单位重量略高）——只在没有重量时用于电池组总重
 export const estKg = (ah) => Math.round(ah * 0.29 + 1);
+
+// ④ 2V 单体电池组：直流系统（通信 48 V、电力 110 / 220 V）或 UPS 母线，每串节数 cells 由系统定（如 220 V 直流屏 = 104 节）
+// loadW 负载（W，直流侧），minutes 后备时间，eff 逆变效率（直流负载 = 1）。返回最少并联串数的方案，节数相同时取 Ah 最小的；最多 3 个备选
+export const CELL_SYS = [
+  { k: '48', v: 48, cells: 24, eff: 1 },
+  { k: '110', v: 110, cells: 52, eff: 1 },
+  { k: '220', v: 220, cells: 104, eff: 1 },
+  { k: '240', v: 240, cells: 120, eff: VR_ASSUME.invEff },
+  { k: '384', v: 384, cells: 192, eff: VR_ASSUME.invEff },
+];
+export function cellBank({ loadW, minutes, cells, models, eff = 1, endV = VR_ASSUME.endVCell, maxStrings = 4 }) {
+  loadW = +loadW || 0; minutes = +minutes || 0; cells = +cells || 0;
+  if (loadW <= 0 || minutes <= 0 || cells <= 0 || !models || !models.length) return null;
+  const opts = [];
+  for (const m of models.filter((x) => x.v === 2 && x.ah > 0)) {
+    const c = curveFor(m, endV);
+    for (let s = 1; s <= maxStrings; s++) {
+      const perCell = loadW / eff / cells / s;
+      const t = runtimeAt(c.pts, perCell);
+      if (t >= minutes) {
+        opts.push({ mod: m, cells, strings: s, total: cells * s, perCell: Math.round(perCell * 10) / 10, runtime: Math.round(t), est: c.est, ah: m.ah * s,
+          kwh: Math.round((2 * m.ah * cells * s) / 100) / 10, kg: m.kg ? Math.round(m.kg * cells * s) : 0 });
+        break;
+      }
+    }
+  }
+  opts.sort((a, b) => a.strings - b.strings || a.ah - b.ah);
+  const best = opts[0] || null;
+  const alts = opts.filter((o) => o !== best && o.ah > (best ? best.ah : 0)).filter((o, i, a) => a.findIndex((x) => x.mod.ah === o.mod.ah && x.strings === o.strings) === i).slice(0, 2);
+  return { best, alts, none: !best };
+}
+export const VR2_GENERIC = [100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000, 2500, 3000].map((ah) => ({
+  model: `2V ${ah}Ah`, slug: '', v: 2, ah, rate: 10, dims: [], kg: 0, cells: 1, series: 'agm', life: '', terminal: '', tables: { cp: {}, cc: {} },
+}));
