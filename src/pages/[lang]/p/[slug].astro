@@ -40,6 +40,13 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const { p } = Astro.props;
 const t = UI[lang];
+// 多语言原版彩页（CRM 产品档案里上传的）：按页面语言取，没有这种语言就用英文版
+const BRT = {
+  en: { h: 'Datasheet', open: 'Open full size / print', dl: 'Download' },
+  es: { h: 'Ficha técnica', open: 'Abrir a tamaño completo / imprimir', dl: 'Descargar' },
+  ru: { h: 'Технический паспорт', open: 'Открыть полностью / печать', dl: 'Скачать' },
+};
+const brochure = p.brochures && (p.brochures[lang] || p.brochures.en);
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
 // 机架式 UPS 也走询价面板（选输出电压，不选插座）+ 机架式专用参数表
 const P0 = primary(p); // 产品页按主品类决定参数表和询价面板（同时属于的其他品类只影响出现在哪些栏目）
@@ -344,6 +351,18 @@ const jsonLd = {
       </section>
     )}
     <PackingList p={p} lang={lang} />
+    {brochure && brochure.src && (
+      <section class="card brochure">
+        <div class="br-head">
+          <h2>{(BRT[lang] || BRT.en).h}</h2>
+          <div class="br-btns">
+            <a class="btn sm line" href={brochure.src} target="_blank" rel="noopener">{(BRT[lang] || BRT.en).open}</a>
+            <a class="btn sm line" href={brochure.src} download={`${p.model}-${(BRT[lang] || BRT.en).h}.${brochure.type || 'html'}`}>{(BRT[lang] || BRT.en).dl}</a>
+          </div>
+        </div>
+        <iframe class="br-frame" title={`${p.model} ${(BRT[lang] || BRT.en).h}`} src={brochure.src} loading="lazy" sandbox="allow-scripts allow-popups allow-modals"></iframe>
+      </section>
+    )}
     {detailAll.length > 0 && (
       <section class="card detail-imgs">
         <h2>{t.details}</h2>
@@ -442,4 +461,8 @@ const jsonLd = {
   .vdis th, .vdis td { padding: 7px 10px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
   .vdis thead th { border-top: 0; background: var(--bg); color: var(--muted); font-weight: 600; }
   .vdis tbody th { text-align: left; font-weight: 600; }
+  .br-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .br-head h2 { margin: 0; }
+  .br-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .br-frame { display: block; width: 100%; height: min(80vh, 1100px); margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: #8a8a8a; }
 </style>

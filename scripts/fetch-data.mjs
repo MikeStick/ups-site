@@ -198,6 +198,25 @@ async function main() {
       }
       p.templateDetail = seq;
     }
+    // 多语言原版彩页（HTML / PDF）：原样下载到 /media/<slug>/，产品页按页面语言嵌入显示
+    if (p.brochures && typeof p.brochures === 'object') {
+      const br = {};
+      for (const [lang, url] of Object.entries(p.brochures)) {
+        if (!/^[a-z]{2}$/.test(lang) || typeof url !== 'string') continue;
+        try {
+          const r = await fetch(url, { headers: { 'x-site-key': KEY } });
+          if (!r.ok) { console.warn(`[fetch-data] 彩页下载失败 ${url} → HTTP ${r.status}`); continue; }
+          const buf = Buffer.from(await r.arrayBuffer());
+          const ext = /\.pdf(\?|$)/i.test(decodeURIComponent(url)) ? 'pdf' : 'html';
+          const dir = path.join(MEDIA_DIR, p.slug);
+          await fs.mkdir(dir, { recursive: true });
+          const name = `brochure-${lang}-${hashOf(buf)}.${ext}`;
+          await fs.writeFile(path.join(dir, name), buf);
+          br[lang] = { src: `/media/${p.slug}/${name}`, type: ext };
+        } catch (e) { console.warn(`[fetch-data] 彩页处理失败 ${url}：${e.message}`); }
+      }
+      if (Object.keys(br).length) p.brochures = br; else delete p.brochures;
+    }
   }
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
   await fetchSite();
