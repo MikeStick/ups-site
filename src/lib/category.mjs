@@ -130,7 +130,8 @@ export function pbModule(p) {
 }
 // 12V 阀控式铅酸电池（VRLA，型号如 SK250-12 / SK250-12v）：栏目 /batteries/vrla/。参数解析在 vrla-engine.mjs（vrlaModule）
 export const VRLA_TYPES = ['铅酸电池', '阀控式铅酸电池', '胶体电池'];
-export const isVrla = (p) => has(p, VRLA_TYPES);
+// CRM 里也可能新建了更具体的细分品类名（如"AGM阀控密封式免维护铅酸蓄电池"）：名字里带 铅酸 / 蓄电池 / VRLA / AGM / 胶体 / 阀控 的都算，锂电替换铅酸除外
+export const isVrla = (p) => has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t));
 // 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
 export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
 export const isHvCab = (p) => has(p, HV_CAB_TYPES);

@@ -169,6 +169,11 @@ export const VR_P = {
   ru: { volt: 'Номинальное напряжение', cap: 'Номинальная ёмкость', series: 'Серия', dims: 'Размеры Д × Ш × В / ПВ', kg: 'Вес', cells: 'Элементов', dis: 'Разрядные характеристики при 25 °C', cp: 'Постоянная мощность (Вт на батарею)', cc: 'Постоянный ток (А)', endV: 'Конечное напряжение', perCell: 'эл.', tech: 'Технология', techV: 'Герметичная VRLA (AGM), необслуживаемая' },
 };
 export const VR_LABELS = [
+  [/温度对容量/, { en: 'Capacity vs. temperature', es: 'Capacidad según temperatura', ru: 'Ёмкость при температуре' }],
+  [/浮充.*温度补偿/, { en: 'Float temp. compensation', es: 'Compensación de temperatura (flotación)', ru: 'Термокомпенсация (буфер)' }],
+  [/循环.*温度补偿/, { en: 'Cycle temp. compensation', es: 'Compensación de temperatura (cíclica)', ru: 'Термокомпенсация (цикл)' }],
+  [/月自放电/, { en: 'Self-discharge per month', es: 'Autodescarga mensual', ru: 'Саморазряд в месяц' }],
+  [/持续放电电流/, { en: 'Max continuous discharge current', es: 'Corriente máx. de descarga continua', ru: 'Макс. длительный ток разряда' }],
   [/设计寿命|浮充寿命/, { en: 'Design life (float, 25 °C)', es: 'Vida de diseño (flotación, 25 °C)', ru: 'Срок службы (буфер, 25 °C)' }],
   [/端子/, { en: 'Terminal', es: 'Terminal', ru: 'Клеммы' }],
   [/浮充电压/, { en: 'Float charge voltage', es: 'Tensión de flotación', ru: 'Напряжение буферного заряда' }],
@@ -178,19 +183,23 @@ export const VR_LABELS = [
   [/自放电/, { en: 'Self-discharge', es: 'Autodescarga', ru: 'Саморазряд' }],
   [/外壳|壳体/, { en: 'Case material', es: 'Material de la caja', ru: 'Материал корпуса' }],
   [/最大放电电流|放电电流/, { en: 'Max discharge current', es: 'Corriente máx. de descarga', ru: 'Макс. ток разряда' }],
-  [/工作温度|使用温度/, { en: 'Operating temperature', es: 'Temperatura de trabajo', ru: 'Рабочая температура' }],
+  [/工作温度|使用温度|运行温度/, { en: 'Operating temperature', es: 'Temperatura de trabajo', ru: 'Рабочая температура' }],
+  [/参考重量|重量/, { en: 'Weight', es: 'Peso', ru: 'Вес' }],
+  [/尺寸/, { en: 'Dimensions', es: 'Dimensiones', ru: 'Размеры' }],
 ];
 // 值里常见的中文词（"月" "年" "以上"）换掉；还有中文就不显示
-const VZH = [[/年以上|年\s*以上/g, { en: '+ years', es: '+ años', ru: '+ лет' }], [/每月|\/月/g, { en: '/month', es: '/mes', ru: '/мес.' }], [/年/g, { en: ' years', es: ' años', ru: ' лет' }], [/毫欧|mΩ/g, { en: ' mΩ', es: ' mΩ', ru: ' мОм' }]];
+const VZH = [[/（/g, { en: ' (', es: ' (', ru: ' (' }], [/）/g, { en: ')', es: ')', ru: ')' }], [/，/g, { en: ', ', es: ', ', ru: ', ' }], [/充电\s*/g, { en: 'charge ', es: 'carga ', ru: 'заряд ' }], [/放电\s*/g, { en: 'discharge ', es: 'descarga ', ru: 'разряд ' }], [/储存\s*/g, { en: 'storage ', es: 'almacén ', ru: 'хранение ' }], [/满荷电/g, { en: 'fully charged', es: 'carga completa', ru: 'полный заряд' }], [/[；;]\s*/g, { en: '; ', es: '; ', ru: '; ' }], [/年以上|年\s*以上/g, { en: '+ years', es: '+ años', ru: '+ лет' }], [/每月|\/月/g, { en: '/month', es: '/mes', ru: '/мес.' }], [/年/g, { en: ' years', es: ' años', ru: ' лет' }], [/毫欧|mΩ/g, { en: ' mΩ', es: ' mΩ', ru: ' мОм' }]];
 export function vrlaSpecRows(p, m, lang) {
   const L = VR_P[lang], T = VR[lang];
   const rows = [[T.th.model, p.model], [L.tech, L.techV], [L.volt, `${m.v} V`], [L.cap, `${m.ah} Ah (${m.rate}HR)`], [L.series, T.seriesName[m.series]]];
   if (m.dims.length) rows.push([L.dims, `${m.dims.slice(0, 3).join(' × ')}${m.dims[3] ? ` / ${m.dims[3]}` : ''} mm`]);
-  if (m.kg) rows.push([L.kg, `${m.kg} kg`]);
+  // 重量后面的公差（如 7.3（1±3%））一起显示
+  const tol = (String(p.moduleWeight || '').match(/[（(][^）)]*±[^）)]*[）)]/) || [''])[0].replace('（', '(').replace('）', ')');
+  if (m.kg) rows.push([L.kg, `${m.kg} kg${tol ? ' ' + tol : ''}`]);
   const seen = new Set();
   for (const x of Array.isArray(p.extraSpecs) ? p.extraSpecs : []) {
     const lb = String(x.label || '');
-    if (/恒功率|恒流|constant|容量率|电池系列|series/i.test(lb)) continue;
+    if (/恒功率|恒流|constant|容量率|电池系列|series|尺寸|重量|额定电压|额定容量/i.test(lb)) continue;
     const hit = VR_LABELS.find(([re]) => re.test(lb));
     const label = hit ? hit[1][lang] : /[一-鿿]/.test(lb) ? '' : lb;
     let v = String(x.value || '').trim();

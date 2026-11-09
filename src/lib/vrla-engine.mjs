@@ -53,12 +53,13 @@ export function seriesOf(p) {
 // 一节电池的参数
 export function vrlaModule(p) {
   const mm = String(p.model || '').match(/(\d{2,3})\s*-\s*(\d{1,2})\b/); // SK250-12 → 250 Ah, 12 V
-  const v = num(p.moduleVoltage || p.batteryVoltage) || (mm ? +mm[2] : 12);
-  const ah = num(p.moduleCapacity) || (mm ? +mm[1] : 0);
+  const v = num(p.moduleVoltage || p.batteryVoltage || spec(p, /额定电压|nominal\s*voltage/i)) || (mm ? +mm[2] : 12);
+  const ah = num(p.moduleCapacity || spec(p, /额定容量|rated\s*capacity/i)) || (mm ? +mm[1] : 0);
   const rateTxt = spec(p, /容量率|小时率|rate/i) + ' ' + p.model;
   const rate = /20\s*h/i.test(rateTxt) ? 20 : /10\s*h/i.test(rateTxt) ? 10 : /v$/i.test(String(p.model || '').trim()) ? 20 : 10;
-  const dims = (String(p.moduleDimensions || p.dimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 4);
-  const kg = num(p.moduleWeight || p.netWeight);
+  // 尺寸 / 重量一般在模块字段里；没有的话从 extraSpecs 的"尺寸(长*宽*高*总高)""参考重量"取
+  const dims = (String(p.moduleDimensions || p.dimensions || spec(p, /尺寸|dimension/i)).match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 4);
+  const kg = num(p.moduleWeight || p.netWeight || spec(p, /重量|weight/i));
   const cells = Math.max(1, Math.round(v / 2));
   return { model: p.model, slug: p.slug, v, ah, rate, dims, kg, cells, series: seriesOf(p),
     life: spec(p, /设计寿命|design\s*life|寿命/i), terminal: spec(p, /端子|terminal/i), tables: dischargeTables(p, cells) };
