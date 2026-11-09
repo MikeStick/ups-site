@@ -1,0 +1,310 @@
+---
+// 12V 铅酸（VRLA）电池选型工具：三个页签
+// ① UPS 后备时间：负载 + 后备分钟 + UPS 电池电压 → 推荐型号 × 节数（几组并联）；右侧画电池串，下面是不同负载下的后备时间条形图
+// ② 光伏电池组：每天用电 × 自主天数 + 系统电压 → 需要多少 Ah、几串几并；右侧画接线
+// ③ 按 Ah 找：输入现在用的电池 Ah → 我们的同容量 / 小一档 / 大一档型号，右侧按比例画外形尺寸
+// 计算在 src/lib/vrla-engine.mjs（测试：node scripts/test-vrla-engine.mjs）。没有发布产品时用 VR_GENERIC 常见规格估算。
+import { SITE } from '../config.mjs';
+import { VR } from '../lib/vrla-i18n.mjs';
+import { vrlaModule, VR_GENERIC, UPS_DC } from '../lib/vrla-engine.mjs';
+import { isVrla } from '../lib/category.mjs';
+import all from '../data/products.json';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const T = VR[lang], C = T.c;
+const pub = all.filter(isVrla).map(vrlaModule).filter((m) => m.v === 12 && m.ah > 0);
+const models = pub.length ? pub : VR_GENERIC;
+const rates = [...new Set(models.map((m) => m.rate))].sort((a, b) => a - b);
+const DC = UPS_DC.filter((v) => v >= 24);
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, models, t: C, sn: T.seriesName };
+const LOADS = [1000, 3000, 6000, 10000, 20000, 40000];
+const MINS = [5, 10, 15, 30, 60, 120];
+---
+<section class="block vrv" id="calc" data-vrv data-tab="ups">
+  <script type="application/json" data-vrv-cfg set:html={JSON.stringify(cfg)} />
+  <div class="head"><span class="eyebrow">{C.eyebrow}</span><h2>{C.h}</h2><p>{C.p}</p></div>
+  <div class="vr-tabs" role="tablist">{(['ups', 'solar', 'find'] as const).map((k, i) => <button type="button" role="tab" aria-selected={i === 0 ? 'true' : 'false'} class:list={{ on: i === 0 }} data-tabbtn={k}>{C.tabs[k]}</button>)}</div>
+  <div class="vr-stage">
+    <div class="vr-ctl">
+      <div class="pane p-ups">
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">1</span><b>{C.load}</b></div>
+          <label class="vr-num"><input type="number" inputmode="decimal" min="0" step="any" value="6000" data-load /><b>{C.loadU}</b></label>
+          <div class="vr-chips">{LOADS.map((w) => <button type="button" class:list={['vr-chip', { on: w === 6000 }]} data-loadp={w}>{w >= 1000 ? `${w / 1000} k` : w}W</button>)}</div>
+        </div>
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">2</span><b>{C.mins}</b></div>
+          <label class="vr-num"><input type="number" inputmode="decimal" min="0" step="any" value="15" data-mins /><b>{C.minU}</b></label>
+          <div class="vr-chips">{MINS.map((m) => <button type="button" class:list={['vr-chip', { on: m === 15 }]} data-minp={m}>{m} {C.minU}</button>)}</div>
+        </div>
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">3</span><b>{C.dc}</b><small data-dchint></small></div>
+          <div class="vr-chips">{DC.map((v) => <button type="button" class:list={['vr-chip', { on: v === 192 }]} data-dc={v}>{v} V</button>)}</div>
+        </div>
+      </div>
+      <div class="pane p-solar">
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">1</span><b>{C.daily}</b></div>
+          <label class="vr-num"><input type="number" inputmode="decimal" min="0" step="any" value="5" data-daily /><b>{C.dailyU}</b></label>
+          <div class="vr-chips">{[1, 2, 5, 10, 20].map((k) => <button type="button" class:list={['vr-chip', { on: k === 5 }]} data-dailyp={k}>{k} {C.dailyU}</button>)}</div>
+        </div>
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">2</span><b>{C.days}</b></div>
+          <div class="vr-chips">{[1, 2, 3].map((d) => <button type="button" class:list={['vr-chip', { on: d === 1 }]} data-days={d}>{d} {C.dayU}</button>)}</div>
+        </div>
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">3</span><b>{C.sys}</b></div>
+          <div class="vr-chips">{[12, 24, 48].map((v) => <button type="button" class:list={['vr-chip', { on: v === 48 }]} data-sys={v}>{v} V</button>)}</div>
+        </div>
+      </div>
+      <div class="pane p-find">
+        <div class="vr-grp">
+          <div class="vr-gh"><span class="vr-n">1</span><b>{C.ah}</b><small>12 V</small></div>
+          <label class="vr-num"><input type="number" inputmode="decimal" min="0" step="any" value="100" data-ah /><b>{C.ahU}</b></label>
+          <div class="vr-chips">{[17, 24, 38, 65, 100, 150, 200, 250].map((a) => <button type="button" class:list={['vr-chip', { on: a === 100 }]} data-ahp={a}>{a} Ah</button>)}</div>
+        </div>
+        {rates.length > 1 && (
+          <div class="vr-grp">
+            <div class="vr-gh"><span class="vr-n">2</span><b>{C.rate}</b></div>
+            <div class="vr-chips"><button type="button" class="vr-chip on" data-rate="0">{C.rateAny}</button>{rates.map((r) => <button type="button" class="vr-chip" data-rate={r}>{r}HR</button>)}</div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div class="vr-view">
+      <div class="vr-rack" data-rack></div>
+      <div class="vr-opts" data-opts></div>
+      <div class="vr-read"><dl class="vr-rows" data-rows></dl><p class="vr-note" data-note></p></div>
+      <div class="vr-bars" data-bars></div>
+    </div>
+
+    <div class="vr-final">
+      <div class="vr-sum" data-sum></div>
+      {SITE.whatsapp && <a class="vr-go" data-go href="#" target="_blank" rel="noopener">{C.send}</a>}
+    </div>
+    <details class="vr-assume">
+      <summary>{C.assumeH}</summary>
+      <ul>{C.assume.map((a) => <li>{a}</li>)}</ul>
+    </details>
+  </div>
+</section>
+
+<script>
+  import { upsBackup, solarBank, findAh, runtimeTable, estKg } from '../lib/vrla-engine.mjs';
+  const root = document.querySelector('[data-vrv]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-vrv-cfg]')!.textContent || '{}'), T = c.t, O = T.out;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const num = (el: HTMLInputElement) => Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0);
+    const link = (m: any) => (m.slug ? `<a href="/${c.lang}/p/${m.slug}/">${m.model}</a>` : m.model);
+    const tm = (min: number) => (min >= 120 ? `${Math.round(min / 6) / 10} ${c.lang === 'ru' ? 'ч' : 'h'}` : `${Math.round(min)} ${T.minU}`);
+    const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    const st: any = { tab: 'ups', load: 6000, mins: 15, dc: 192, daily: 5, days: 1, sys: 48, ah: 100, rate: 0, opt: 0 };
+    let msg = '';
+
+    // 一节黑色铅酸电池（正极红、负极黑）
+    const batt = (x: number, y: number, w: number, h: number, d: number) => `<g class="bt" style="--d:${d}ms"><rect x="${x}" y="${y + 3}" width="${w}" height="${h - 3}" rx="2.5" class="case"/><rect x="${x}" y="${y + 3}" width="${w}" height="${Math.max(4, h * 0.16)}" rx="2.5" class="lid"/><rect x="${x + w * 0.16}" y="${y}" width="${w * 0.18}" height="4" class="tn"/><rect x="${x + w * 0.66}" y="${y}" width="${w * 0.18}" height="4" class="tp"/><rect x="${x + w * 0.2}" y="${y + h * 0.48}" width="${w * 0.6}" height="${Math.max(3, h * 0.12)}" rx="1" class="lb"/></g>`;
+    // n 节串联 × s 组并联；每行最多 per 节
+    function rack(n: number, s: number, tag: string, sub: string) {
+      const cap = root!.clientWidth < 560 ? 8 : 16; // 手机上每行最多 8 节，免得电池太小
+      const per = n > cap ? Math.ceil(n / Math.ceil(n / cap)) : n, lines = Math.ceil(n / per);
+      const W = n > 8 ? 30 : 46, H = Math.round(W * 0.82), gx = n > 8 ? 6 : 12, gy = 10, sg = 22, show = Math.min(s, 4);
+      const w = 40 + per * W + (per - 1) * gx, gh = lines * H + (lines - 1) * gy;
+      const hgt = 18 + show * gh + (show - 1) * sg + 12;
+      let g = `<svg viewBox="0 0 ${w} ${hgt}" role="img" aria-label="${n} × ${s}">`;
+      let d = 0;
+      for (let k = 0; k < show; k++) {
+        const y0 = 18 + k * (gh + sg);
+        for (let i = 0; i < n; i++) {
+          const li = Math.floor(i / per), ci = li % 2 ? per - 1 - (i % per) : i % per; // 蛇形排列
+          const x = 20 + ci * (W + gx), y = y0 + li * (H + gy);
+          g += batt(x, y, W, H, d); d += 25;
+          if (i < n - 1 && (i + 1) % per) { const x2 = li % 2 ? x - gx : x + W; g += `<path d="M${x2} ${y + H * 0.6} h${gx}" class="sr"/>`; }
+          else if (i < n - 1) { const xe = li % 2 ? x : x + W; g += `<path d="M${xe} ${y + H * 0.6} h${li % 2 ? -8 : 8} v${H + gy} h${li % 2 ? 8 : -8}" class="sr"/>`; }
+        }
+        if (show > 1) g += `<text x="6" y="${y0 + gh / 2 + 4}" class="sl">${k + 1}</text>`;
+      }
+      if (s > show) g += `<text x="${w / 2}" y="${hgt - 2}" class="more">+${s - show}</text>`;
+      g += '</svg>';
+      $('[data-rack]').innerHTML = `<div class="tag">${tag}</div>${g}<p>${sub}</p>`;
+    }
+    const clear = (t: string) => { $('[data-opts]').innerHTML = ''; $('[data-rows]').innerHTML = `<div class="enter">${t}</div>`; $('[data-note]').textContent = ''; $('[data-rack]').innerHTML = ''; $('[data-bars]').innerHTML = ''; $('[data-sum]').innerHTML = ''; msg = ''; go(); };
+    function go() {
+      const a = root!.querySelector('[data-go]') as HTMLAnchorElement | null;
+      if (!a) return;
+      a.classList.toggle('off', !msg);
+      a.href = msg ? `https://wa.me/${c.wa}?text=${encodeURIComponent(msg)}` : '#';
+    }
+    function opts(list: any[], label: (o: any) => string, sub: (o: any) => string, redo: () => void) {
+      $('[data-opts]').innerHTML = list.length > 1 ? list.map((o, i) => `<button type="button" class="vr-opt${i === st.opt ? ' on' : ''}" data-opt="${i}"><small>${i ? O.alt : O.best}</small><b>${label(o)}</b><em>${sub(o)}</em></button>`).join('') : '';
+      $$('[data-opt]').forEach((b) => b.addEventListener('click', () => { st.opt = +b.dataset.opt!; redo(); }));
+    }
+
+    function ups() {
+      $('[data-dchint]').textContent = fmt(T.dcHint, { n: st.dc / 12 });
+      const r = upsBackup({ loadW: st.load, minutes: st.mins, dcV: st.dc, models: c.models });
+      if (!r) return clear(O.enter);
+      if (r.none) return clear(fmt(O.none, { n: st.dc / 12 }));
+      const list = [r.best, ...r.alts];
+      if (st.opt >= list.length) st.opt = 0;
+      opts(list, (o) => `${o.total} × ${o.mod.model}`, (o) => `${tm(o.runtime)}${o.strings > 1 ? ' · ' + fmt(O.strings, { s: o.strings }) : ''}`, ups);
+      const o = list[st.opt], m = o.mod;
+      const kg = (m.kg || estKg(m.ah)) * o.total;
+      $('[data-rows]').innerHTML = row(O.best, `${link(m)} × ${o.total}`) + row(O.runtime, `<b class="big">≈ ${tm(o.runtime)}</b>`) + row(O.perBatt, `${o.perBatt} W`) +
+        row(O.total, `${o.n} × ${o.strings} · ${st.dc} V · ${m.ah * o.strings} Ah`) + row(O.weight, `${m.kg ? '' : '≈ '}${Math.round(kg)} kg`) + (m.dims.length ? row(O.dims, `${m.dims.slice(0, 3).join(' × ')} mm`) : '');
+      $('[data-note]').textContent = o.est ? `* ${O.est}` : '';
+      rack(o.n, o.strings, `${o.n} × ${m.model}${o.strings > 1 ? ` × ${o.strings}` : ''} · ${st.dc} V`, o.strings > 1 ? fmt(O.strings, { s: o.strings }) : O.string1);
+      // 不同负载下的后备时间
+      const loads = [0.5, 0.75, 1, 1.25, 1.5].map((f) => Math.round(st.load * f));
+      const rt = runtimeTable({ mod: m, n: o.n, strings: o.strings, loads });
+      const mx = Math.max(...rt.map((x: any) => x.min), 1);
+      const kw = (w: number) => (w >= 1000 ? `${Math.round(w / 100) / 10} kW` : `${w} W`);
+      $('[data-bars]').innerHTML = `<p>${O.table}</p>` + rt.map((x: any, i: number) => `<div class="bar${i === 2 ? ' cur' : ''}${x.min < st.mins ? ' low' : ''}"><span>${kw(x.w)}</span><i style="--w:${Math.max(2, Math.round((x.min / mx) * 100))}%"></i><b>${x.min ? tm(x.min) : '—'}</b></div>`).join('');
+      $('[data-sum]').innerHTML = `<span>${C_LABEL()}</span><b>${o.total} × ${m.model} → ${tm(o.runtime)} @ ${kw(st.load)}</b>`;
+      msg = fmt(T.msgUps, { w: st.load, min: st.mins, dc: st.dc, cfg: `${o.total} × ${m.model}${o.strings > 1 ? ` (${o.n}S${o.strings}P)` : ''}`, rt: o.runtime });
+      go();
+    }
+    function solar() {
+      const r = solarBank({ dailyWh: st.daily * 1000, days: st.days, sysV: st.sys, models: c.models });
+      if (!r) return clear(O.enter);
+      if (r.none) return clear(fmt(O.none, { n: st.sys / 12 }));
+      if (st.opt >= r.opts.length) st.opt = 0;
+      opts(r.opts, (o) => `${o.total} × ${o.mod.model}`, (o) => `${o.s}S${o.p}P · ${o.kwh} kWh`, solar);
+      const o = r.opts[st.opt], m = o.mod;
+      const kg = o.kg || estKg(m.ah) * o.total;
+      $('[data-rows]').innerHTML = row(O.need, `${r.needAh} Ah @ ${st.sys} V`) + row(O.best, `${link(m)} × ${o.total}`) + row(O.cfgL, `${o.s}S${o.p}P`) +
+        row(O.energy, `<b class="big">${o.kwh} kWh</b>`) + row(O.usable, `${o.usableKwh} kWh`) + row(O.weight, `${o.kg ? '' : '≈ '}${Math.round(kg)} kg`);
+      $('[data-note]').textContent = '';
+      rack(o.s, o.p, `${o.s}S${o.p}P · ${o.total} × ${m.model} · ${st.sys} V`, fmt(O.bankCfg, { s: o.s, p: o.p }));
+      $('[data-bars]').innerHTML = '';
+      $('[data-sum]').innerHTML = `<span>${C_LABEL()}</span><b>${o.total} × ${m.model} · ${o.s}S${o.p}P · ${o.kwh} kWh</b>`;
+      msg = fmt(T.msgSolar, { daily: st.daily, days: st.days, v: st.sys, cfg: `${o.total} × ${m.model} (${o.s}S${o.p}P)` });
+      go();
+    }
+    function find() {
+      const r = findAh({ ah: st.ah, rate: st.rate, models: c.models });
+      $('[data-opts]').innerHTML = '';
+      if (!r) return clear(O.enter);
+      if (r.none) return clear(O.enter);
+      if (r.tooBig) { clear(fmt(O.tooBig, { ah: r.maxAh })); return; }
+      const card = (k: string, m: any, hi = false) => m ? `<div class="vr-card${hi ? ' hi' : ''}"><span>${k} · ${m.rate}HR</span><b>${link(m)}</b><em>${m.ah} Ah${m.dims.length ? ` · ${m.dims.slice(0, 3).join(' × ')} mm` : ''}${m.kg ? ` · ${m.kg} kg` : ''}</em></div>` : '';
+      const twins = (r.sameAll || []).filter((m: any) => m !== r.same);
+      $('[data-rows]').innerHTML = card(O.same, r.same, true).replace('</b>', twins.map((m: any) => ` <small>/ ${link(m)} (${m.rate}HR)</small>`).join('') + '</b>') + card(O.smaller, r.prev) + card(O.larger, r.next) + `<a class="vr-li" href="/${c.lang}/batteries/lead-acid-replacement/#builder">${O.li}</a>`;
+      $('[data-note]').textContent = '';
+      // 按比例画正面外形（长 × 高）
+      const ms = [r.prev, r.same, r.next].filter(Boolean);
+      const hasD = ms.every((m: any) => m.dims.length >= 3);
+      const Lmax = Math.max(...ms.map((m: any) => (hasD ? m.dims[0] : 150 + m.ah * 1.5)));
+      const Hmax = Math.max(...ms.map((m: any) => (hasD ? m.dims[3] || m.dims[2] : 100 + m.ah * 0.5)));
+      const sc = 120 / Math.max(Lmax, Hmax * 1.1);
+      let x = 14, svg = '';
+      const base = 30 + Hmax * sc;
+      for (const m of ms) {
+        const L = (hasD ? m.dims[0] : 150 + m.ah * 1.5) * sc, H = (hasD ? m.dims[3] || m.dims[2] : 100 + m.ah * 0.5) * sc;
+        svg += `<g class="${m === r.same ? 'hi' : ''}">${batt(x, base - H, L, H, 0)}<text x="${x + L / 2}" y="${base + 16}" class="ml">${m.model}</text><text x="${x + L / 2}" y="${base + 30}" class="ms">${m.ah} Ah${hasD ? ` · ${m.dims[0]}×${m.dims[1]}` : ''}</text></g>`;
+        x += L + 22;
+      }
+      $('[data-rack]').innerHTML = `<div class="tag">12 V · ${st.ah} Ah</div><svg viewBox="0 0 ${x} ${base + 40}" role="img">${svg}</svg>`;
+      $('[data-bars]').innerHTML = '';
+      $('[data-sum]').innerHTML = `<span>${C_LABEL()}</span><b>12 V ${st.ah} Ah → ${r.same.model}</b>`;
+      msg = fmt(T.msgFind, { ah: st.ah, m: r.same.model });
+      go();
+    }
+    const C_LABEL = () => T.tabs[st.tab];
+    const update = () => (st.tab === 'ups' ? ups() : st.tab === 'solar' ? solar() : find());
+    const sync = (attr: string, v: any) => $$(`[${attr}]`).forEach((x) => x.classList.toggle('on', String(x.getAttribute(attr)) === String(v)));
+    const bindNum = (sel: string, key: string, chips: string) => $(sel)?.addEventListener('input', (e: any) => { st[key] = num(e.target); sync(chips, st[key]); st.opt = 0; update(); });
+    const bindChips = (attr: string, key: string, input?: string) => $$(`[${attr}]`).forEach((b) => b.addEventListener('click', () => { st[key] = +b.getAttribute(attr)!; if (input) ($(input) as HTMLInputElement).value = String(st[key]); sync(attr, st[key]); st.opt = 0; update(); }));
+    $$('[data-tabbtn]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tabbtn; st.opt = 0; root.dataset.tab = st.tab; $$('[data-tabbtn]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', String(x === b)); }); update(); }));
+    bindNum('[data-load]', 'load', 'data-loadp'); bindChips('data-loadp', 'load', '[data-load]');
+    bindNum('[data-mins]', 'mins', 'data-minp'); bindChips('data-minp', 'mins', '[data-mins]');
+    bindChips('data-dc', 'dc');
+    bindNum('[data-daily]', 'daily', 'data-dailyp'); bindChips('data-dailyp', 'daily', '[data-daily]');
+    bindChips('data-days', 'days'); bindChips('data-sys', 'sys');
+    bindNum('[data-ah]', 'ah', 'data-ahp'); bindChips('data-ahp', 'ah', '[data-ah]'); bindChips('data-rate', 'rate');
+    // 外部链接 #calc-solar / #calc-find 直接打开对应页签
+    const h = location.hash.match(/^#calc-(ups|solar|find)$/);
+    if (h) (root.querySelector(`[data-tabbtn="${h[1]}"]`) as HTMLElement | null)?.click(); else update();
+  }
+</script>
+
+<style>
+  .vrv { --am: #f5b83d; }
+  .vr-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin: 0 0 14px; border-radius: 999px; background: var(--surface, #fff); border: 1px solid var(--line); }
+  .vr-tabs button { padding: 9px 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font: 600 14px var(--body); cursor: pointer; }
+  .vr-tabs button.on { background: #17140e; color: #fff; }
+  .vrv[data-tab="ups"] .pane:not(.p-ups), .vrv[data-tab="solar"] .pane:not(.p-solar), .vrv[data-tab="find"] .pane:not(.p-find) { display: none; }
+  .vr-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "ctl view" "fin fin" "as as"; gap: 22px; padding: 26px; border-radius: 18px; color: #efeae0;
+    background: radial-gradient(120% 90% at 75% 40%, #2b2414 0%, #14110b 55%, #0c0a07 100%); }
+  @media (max-width: 900px) { .vr-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "ctl" "view" "fin" "as"; padding: 16px; } }
+  .vr-ctl { grid-area: ctl; display: grid; gap: 12px; align-content: start; }
+  .pane { display: grid; gap: 12px; }
+  .vr-view { grid-area: view; display: grid; gap: 14px; align-content: start; }
+  .vr-grp { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+  .vr-gh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .vr-gh b { font-size: 15px; } .vr-gh small { color: #b3a88f; font: 12px var(--mono); }
+  .vr-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: var(--am); color: #1b1406; flex: none; align-self: center; }
+  .vr-num { display: inline-flex; align-items: center; gap: 8px; }
+  .vr-num input { width: 130px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: #100e0a; color: #fff; }
+  .vr-num input:focus { outline: 2px solid var(--am); outline-offset: 1px; }
+  .vr-num b { font: 600 15px var(--mono); color: #b3a88f; }
+  .vr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vr-chip { padding: 0 12px; min-height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #ddd5c4; font: 600 13px var(--mono); cursor: pointer; }
+  .vr-chip.on { background: var(--am); border-color: var(--am); color: #1b1406; }
+  .vr-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .vr-opts:empty { display: none; }
+  .vr-opts :global(.vr-opt) { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); color: #efeae0; cursor: pointer; font-family: var(--body); }
+  .vr-opts :global(.vr-opt.on) { border-color: var(--am); background: rgba(245,184,61,.12); }
+  .vr-opts :global(.vr-opt small) { font: 600 10.5px var(--mono); color: #b3a88f; text-transform: uppercase; letter-spacing: .06em; }
+  .vr-opts :global(.vr-opt b) { font-size: 15px; } .vr-opts :global(.vr-opt em) { font-style: normal; font: 12px var(--mono); color: #ddd5c4; }
+  .vr-read { padding: 14px 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(245,184,61,.14), rgba(245,184,61,.02)); border: 1px solid rgba(245,184,61,.3); }
+  .vr-rows { margin: 0; display: grid; font-size: 13.5px; }
+  .vr-rows :global(> div) { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.1); }
+  .vr-rows :global(> div:first-child) { border-top: 0; }
+  .vr-rows :global(dt) { color: #b3a88f; } .vr-rows :global(dd) { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; }
+  .vr-rows :global(a) { color: var(--am); font-weight: 700; }
+  .vr-rows :global(.big) { font: 700 26px/1 var(--display); color: var(--am); }
+  .vr-rows :global(.enter) { color: #ddd5c4; display: block; }
+  .vr-rows :global(.vr-card) { display: grid; gap: 3px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); margin-bottom: 8px; }
+  .vr-rows :global(.vr-card.hi) { border-color: var(--am); background: rgba(245,184,61,.1); }
+  .vr-rows :global(.vr-card span) { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #b3a88f; }
+  .vr-rows :global(.vr-card b) { font-size: 22px; } .vr-rows :global(.vr-card em) { font-style: normal; font: 12.5px var(--mono); color: #ddd5c4; }
+  .vr-rows :global(.vr-li) { display: inline-block; margin-top: 4px; font: 600 13px var(--body); color: #5ef0a0; }
+  .vr-note { margin: 6px 0 0; font-size: 12px; color: #fde68a; }
+  .vr-note:empty { display: none; }
+  .vr-rack { padding: 18px 16px 12px; border-radius: 14px; background: linear-gradient(180deg, #ebe6dc, #d9d3c6); box-shadow: inset 0 0 0 1px #c6bfae, 0 24px 50px rgba(0,0,0,.45); color: #2c2618; display: grid; gap: 8px; justify-items: center; min-height: 160px; align-content: center; }
+  .vr-rack:empty { display: none; }
+  .vr-rack :global(.tag) { font: 700 12px var(--mono); padding: 4px 10px; border-radius: 99px; background: #17140e; color: var(--am); }
+  .vr-rack :global(svg) { width: 100%; max-height: 300px; }
+  .vr-rack :global(p) { margin: 0; font: 600 12px var(--mono); color: #6b604a; }
+  .vr-rack :global(.bt) { opacity: 0; animation: vrin .35s ease forwards; animation-delay: var(--d); }
+  @keyframes vrin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .vr-rack :global(.bt) { animation: none; opacity: 1; } }
+  .vr-rack :global(.case) { fill: #24221f; } .vr-rack :global(.lid) { fill: #3a3733; }
+  .vr-rack :global(.tn) { fill: #555; } .vr-rack :global(.tp) { fill: #d23a2a; } .vr-rack :global(.lb) { fill: var(--am); opacity: .85; }
+  .vr-rack :global(.hi .case) { fill: #17140e; stroke: var(--am); stroke-width: 2; }
+  .vr-rack :global(.sr) { fill: none; stroke: #b2462f; stroke-width: 1.6; }
+  .vr-rack :global(.sl) { font: 700 11px var(--mono); fill: #8a7d61; }
+  .vr-rack :global(.more) { font: 700 12px var(--mono); fill: #6b604a; text-anchor: middle; }
+  .vr-rack :global(.ml) { font: 700 11px var(--mono); fill: #2c2618; text-anchor: middle; } .vr-rack :global(.ms) { font: 10px var(--mono); fill: #6b604a; text-anchor: middle; }
+  .vr-bars { display: grid; gap: 7px; }
+  .vr-bars:empty { display: none; }
+  .vr-bars :global(p) { margin: 0 0 2px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #b3a88f; }
+  .vr-bars :global(.bar) { display: grid; grid-template-columns: 64px minmax(0, 1fr) 70px; gap: 10px; align-items: center; font: 12.5px var(--mono); color: #ddd5c4; }
+  .vr-bars :global(.bar i) { height: 12px; border-radius: 6px; background: rgba(255,255,255,.08); position: relative; overflow: hidden; }
+  .vr-bars :global(.bar i::after) { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 6px; background: #8a7d61; transition: width .5s; }
+  .vr-bars :global(.bar.cur) { color: #fff; font-weight: 700; } .vr-bars :global(.bar.cur i::after) { background: var(--am); }
+  .vr-bars :global(.bar.low i::after) { background: #b2462f; }
+  .vr-bars :global(.bar b) { text-align: right; }
+  .vr-final { grid-area: fin; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); }
+  .vr-sum :global(span) { display: block; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #b3a88f; }
+  .vr-sum :global(b) { font-size: 17px; }
+  .vr-go { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; border-radius: 10px; background: var(--am); color: #1b1406; font-weight: 700; text-decoration: none; }
+  .vr-go.off { opacity: .4; pointer-events: none; }
+  .vr-assume { grid-area: as; font-size: 13px; color: #b3a88f; }
+  .vr-assume summary { cursor: pointer; font-weight: 600; color: #ddd5c4; }
+  .vr-assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+</style>

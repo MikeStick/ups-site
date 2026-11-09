@@ -128,6 +128,9 @@ export function pbModule(p) {
   const dims = (String(p.moduleDimensions || p.dimensions || '').match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 3);
   return { v, ah, wh, maxA, kg, dims: dims.length === 3 ? dims : [] };
 }
+// 12V 阀控式铅酸电池（VRLA，型号如 SK250-12 / SK250-12v）：栏目 /batteries/vrla/。参数解析在 vrla-engine.mjs（vrlaModule）
+export const VRLA_TYPES = ['铅酸电池', '阀控式铅酸电池', '胶体电池'];
+export const isVrla = (p) => has(p, VRLA_TYPES);
 // 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
 export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
 export const isHvCab = (p) => has(p, HV_CAB_TYPES);

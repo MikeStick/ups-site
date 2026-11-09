@@ -2,7 +2,7 @@
 // 栏目清单本身在 src/lib/catalog.mjs；这里只放首页上每个栏目的一句话介绍和备用的规格范围（没有已发布产品时显示）。
 export const HM = {
   en: {
-    strip: { ups: ['UPS', 'From mini DC UPS to 1200 kVA modular systems'], solar: ['Solar & storage', 'Hybrid inverters, home and C&I energy storage'], batt: ['Lithium batteries', 'LiFePO4 for walls, racks, HV cabinets and 12 V'] },
+    strip: { ups: ['UPS', 'From mini DC UPS to 1200 kVA modular systems'], solar: ['Solar & storage', 'Hybrid inverters, home and C&I energy storage'], batt: ['Batteries', 'LiFePO4 and 12 V VRLA for UPS, telecom and solar'] },
     stripCats: '{n} categories', stripGo: 'See all',
     metaTitle: 'UPS, solar inverters and energy storage — factory direct',
     metaDesc: 'SKE Power manufactures UPS systems from mini DC UPS to 1200 kVA modular UPS, solar inverters, home and C&I energy storage, and LiFePO4 batteries. Size your system online and get a factory quote.',
@@ -11,7 +11,7 @@ export const HM = {
     groups: {
       ups: ['Uninterruptible power supplies', 'Backup for routers and PCs up to data centres and factories.'],
       solar: ['Solar inverters and energy storage', 'Store the sun, cut the bill, keep homes and businesses running.'],
-      batt: ['Lithium batteries', 'LiFePO4 batteries for UPS, solar and replacing lead-acid.'],
+      batt: ['Batteries', 'LiFePO4 and sealed lead-acid batteries for UPS, telecom and solar.'],
     },
     cats: {
       mini: 'Routers, fibre ONT, cameras, Starlink', offline: 'PCs, POS and home electronics', online: 'Zero-transfer power for sensitive loads',
@@ -19,9 +19,9 @@ export const HM = {
       industrial: 'Transformer-based UPS for industry', inverter: 'Hybrid, off-grid and on-grid inverters', homeess: 'Battery + inverter in one unit',
       ciess: 'Outdoor cabinets for peak shaving and backup', designer: 'Size inverter, battery and panels online', wall: 'Home batteries that hang on the wall',
       floor: 'High-capacity home batteries on wheels', rackbatt: '48 V modules for racks and telecom', hvcab: '204.8 / 409.6 V cabinets for UPS',
-      pbr: 'Drop-in replacement for 12 / 24 / 48 V lead-acid',
+      pbr: 'Drop-in replacement for 12 / 24 / 48 V lead-acid', vrla: 'Sealed 12 V batteries for UPS, telecom and solar',
     },
-    fallback: { mini: 'USB · DC 5–48 V · PoE', modular: '30 – 1200 kVA', industrial: '1 – 400 kVA', homeess: '2.5 – 25 kWh', ciess: '107 – 233 kWh', hvcab: '204.8 / 409.6 V', pbr: '12 / 24 / 48 V', wall: '5 – 15 kWh', floor: '10 – 24 kWh', designer: 'Free online tool' },
+    fallback: { mini: 'USB · DC 5–48 V · PoE', modular: '30 – 1200 kVA', industrial: '1 – 400 kVA', homeess: '2.5 – 25 kWh', ciess: '107 – 233 kWh', hvcab: '204.8 / 409.6 V', pbr: '12 / 24 / 48 V', vrla: '12 V · 17 – 250 Ah', wall: '5 – 15 kWh', floor: '10 – 24 kWh', designer: 'Free online tool' },
     models: '{n} models', model1: '1 model', view: 'View', tool: 'Online tool',
     appEyebrow: 'By application', appH: 'Where do you need power?',
     apps: [
@@ -30,7 +30,7 @@ export const HM = {
       { k: 'it', h: 'Server rooms & telecom', cats: ['rack', 'modular', 'rackbatt'] },
       { k: 'factory', h: 'Factories & hospitals', cats: ['industrial', 'modular', 'hvcab', 'ciess'] },
       { k: 'solar', h: 'Solar & off-grid', cats: ['inverter', 'homeess', 'designer', 'wall'] },
-      { k: 'replace', h: 'Replacing old batteries', cats: ['pbr', 'hvcab', 'rackbatt'] },
+      { k: 'replace', h: 'Replacing old batteries', cats: ['vrla', 'pbr', 'hvcab', 'rackbatt'] },
     ],
     toolsEyebrow: 'Online tools', toolsH: 'Size it yourself in a minute',
     tools: [
@@ -40,6 +40,7 @@ export const HM = {
       ['Home backup planner', 'Appliances → all-in-one ESS', 'home-ess/#builder'],
       ['C&I cabinet builder', 'Peak shaving, backup, solar', 'ci-ess/#builder'],
       ['Lead-acid replacement finder', 'Your battery → LiFePO4 model', 'batteries/lead-acid-replacement/#builder'],
+      ['UPS battery calculator', 'Load + backup time → 12 V batteries', 'batteries/vrla/#calc'],
     ],
     miniEyebrow: 'Order online', miniH: 'Mini DC UPS — buy online or join a group order',
     miniP: 'Keep routers, fibre ONTs, cameras and Starlink online through power cuts. Mini UPS can be ordered directly on this site.', miniAll: 'Shop all Mini UPS',
@@ -50,7 +51,7 @@ export const HM = {
     stats: { years: 'Years in power', area: 'Factory', countries: 'Countries' },
   },
   es: {
-    strip: { ups: ['UPS', 'Desde mini UPS DC hasta sistemas modulares de 1200 kVA'], solar: ['Solar y almacenamiento', 'Inversores híbridos, almacenamiento residencial y C&I'], batt: ['Baterías de litio', 'LiFePO4 de pared, rack, gabinetes HV y 12 V'] },
+    strip: { ups: ['UPS', 'Desde mini UPS DC hasta sistemas modulares de 1200 kVA'], solar: ['Solar y almacenamiento', 'Inversores híbridos, almacenamiento residencial y C&I'], batt: ['Baterías', 'LiFePO4 y VRLA de 12 V para UPS, telecom y solar'] },
     stripCats: '{n} categorías', stripGo: 'Ver todo',
     metaTitle: 'UPS, inversores solares y almacenamiento de energía — directo de fábrica',
     metaDesc: 'SKE Power fabrica UPS desde mini UPS de CC hasta UPS modulares de 1200 kVA, inversores solares, almacenamiento doméstico y C&I, y baterías LiFePO4. Dimensione su sistema en línea y reciba una cotización de fábrica.',
@@ -59,7 +60,7 @@ export const HM = {
     groups: {
       ups: ['Sistemas de alimentación ininterrumpida', 'Respaldo desde routers y PC hasta centros de datos y fábricas.'],
       solar: ['Inversores solares y almacenamiento', 'Guarde el sol, baje la factura y mantenga hogares y negocios funcionando.'],
-      batt: ['Baterías de litio', 'Baterías LiFePO4 para UPS, solar y reemplazo de plomo-ácido.'],
+      batt: ['Baterías', 'Baterías LiFePO4 y de plomo-ácido selladas para UPS, telecom y solar.'],
     },
     cats: {
       mini: 'Routers, ONT de fibra, cámaras, Starlink', offline: 'PC, POS y electrónica del hogar', online: 'Energía sin transferencia para cargas sensibles',
@@ -67,9 +68,9 @@ export const HM = {
       industrial: 'UPS con transformador para la industria', inverter: 'Inversores híbridos, aislados y de red', homeess: 'Batería + inversor en una unidad',
       ciess: 'Gabinetes de exterior para picos y respaldo', designer: 'Dimensione inversor, batería y paneles', wall: 'Baterías domésticas de pared',
       floor: 'Baterías domésticas de gran capacidad con ruedas', rackbatt: 'Módulos de 48 V para racks y telecom', hvcab: 'Gabinetes de 204,8 / 409,6 V para UPS',
-      pbr: 'Reemplazo directo de plomo-ácido de 12 / 24 / 48 V',
+      pbr: 'Reemplazo directo de plomo-ácido de 12 / 24 / 48 V', vrla: 'Baterías selladas de 12 V para UPS, telecom y solar',
     },
-    fallback: { mini: 'USB · CC 5–48 V · PoE', modular: '30 – 1200 kVA', industrial: '1 – 400 kVA', homeess: '2,5 – 25 kWh', ciess: '107 – 233 kWh', hvcab: '204,8 / 409,6 V', pbr: '12 / 24 / 48 V', wall: '5 – 15 kWh', floor: '10 – 24 kWh', designer: 'Herramienta gratuita' },
+    fallback: { mini: 'USB · CC 5–48 V · PoE', modular: '30 – 1200 kVA', industrial: '1 – 400 kVA', homeess: '2,5 – 25 kWh', ciess: '107 – 233 kWh', hvcab: '204,8 / 409,6 V', pbr: '12 / 24 / 48 V', vrla: '12 V · 17 – 250 Ah', wall: '5 – 15 kWh', floor: '10 – 24 kWh', designer: 'Herramienta gratuita' },
     models: '{n} modelos', model1: '1 modelo', view: 'Ver', tool: 'Herramienta en línea',
     appEyebrow: 'Por aplicación', appH: '¿Dónde necesita energía?',
     apps: [
@@ -78,7 +79,7 @@ export const HM = {
       { k: 'it', h: 'Salas de servidores y telecom', cats: ['rack', 'modular', 'rackbatt'] },
       { k: 'factory', h: 'Fábricas y hospitales', cats: ['industrial', 'modular', 'hvcab', 'ciess'] },
       { k: 'solar', h: 'Solar y off-grid', cats: ['inverter', 'homeess', 'designer', 'wall'] },
-      { k: 'replace', h: 'Reemplazo de baterías viejas', cats: ['pbr', 'hvcab', 'rackbatt'] },
+      { k: 'replace', h: 'Reemplazo de baterías viejas', cats: ['vrla', 'pbr', 'hvcab', 'rackbatt'] },
     ],
     toolsEyebrow: 'Herramientas en línea', toolsH: 'Dimensiónelo usted mismo en un minuto',
     tools: [
@@ -88,6 +89,7 @@ export const HM = {
       ['Planificador de respaldo', 'Equipos → ESS todo en uno', 'home-ess/#builder'],
       ['Configurador de gabinetes C&I', 'Picos, respaldo, solar', 'ci-ess/#builder'],
       ['Buscador de reemplazo de plomo', 'Su batería → modelo LiFePO4', 'batteries/lead-acid-replacement/#builder'],
+      ['Calculadora de baterías UPS', 'Carga + autonomía → baterías de 12 V', 'batteries/vrla/#calc'],
     ],
     miniEyebrow: 'Pedido en línea', miniH: 'Mini UPS de CC — compre en línea o súmese a un pedido grupal',
     miniP: 'Mantenga routers, ONT de fibra, cámaras y Starlink en línea durante los cortes. Los Mini UPS se pueden pedir directamente en este sitio.', miniAll: 'Ver todos los Mini UPS',
@@ -98,7 +100,7 @@ export const HM = {
     stats: { years: 'Años en energía', area: 'Fábrica', countries: 'Países' },
   },
   ru: {
-    strip: { ups: ['ИБП', 'От мини-ИБП DC до модульных систем 1200 кВА'], solar: ['Солнечная энергия и накопители', 'Гибридные инверторы, домашние и коммерческие СНЭ'], batt: ['Литиевые батареи', 'LiFePO4: настенные, стоечные, HV-шкафы и 12 В'] },
+    strip: { ups: ['ИБП', 'От мини-ИБП DC до модульных систем 1200 кВА'], solar: ['Солнечная энергия и накопители', 'Гибридные инверторы, домашние и коммерческие СНЭ'], batt: ['Аккумуляторы', 'LiFePO4 и VRLA 12 В для ИБП, связи и СЭС'] },
     stripCats: '{n} категорий', stripGo: 'Смотреть',
     metaTitle: 'ИБП, солнечные инверторы и накопители энергии — напрямую с завода',
     metaDesc: 'SKE Power производит ИБП — от мини-ИБП постоянного тока до модульных ИБП на 1200 кВА, солнечные инверторы, домашние и коммерческие накопители энергии и аккумуляторы LiFePO4. Подберите систему онлайн и получите заводскую цену.',
@@ -107,7 +109,7 @@ export const HM = {
     groups: {
       ups: ['Источники бесперебойного питания', 'Резерв от роутеров и ПК до ЦОД и заводов.'],
       solar: ['Солнечные инверторы и накопители', 'Запасайте солнце, снижайте счета, держите дома и бизнес в работе.'],
-      batt: ['Литиевые аккумуляторы', 'LiFePO4 для ИБП, солнечных систем и замены свинцовых.'],
+      batt: ['Аккумуляторы', 'LiFePO4 и герметичные свинцовые батареи для ИБП, связи и СЭС.'],
     },
     cats: {
       mini: 'Роутеры, оптические ONT, камеры, Starlink', offline: 'ПК, кассы и домашняя техника', online: 'Без переключения для чувствительной нагрузки',
@@ -115,9 +117,9 @@ export const HM = {
       industrial: 'Трансформаторные ИБП для промышленности', inverter: 'Гибридные, автономные и сетевые инверторы', homeess: 'Аккумулятор + инвертор в одном',
       ciess: 'Уличные шкафы для пиков и резерва', designer: 'Подбор инвертора, батарей и панелей', wall: 'Домашние аккумуляторы на стену',
       floor: 'Ёмкие домашние аккумуляторы на колёсах', rackbatt: 'Модули 48 В для стоек и телекома', hvcab: 'Шкафы 204,8 / 409,6 В для ИБП',
-      pbr: 'Прямая замена свинцовых 12 / 24 / 48 В',
+      pbr: 'Прямая замена свинцовых 12 / 24 / 48 В', vrla: 'Герметичные батареи 12 В для ИБП, связи и СЭС',
     },
-    fallback: { mini: 'USB · DC 5–48 В · PoE', modular: '30 – 1200 кВА', industrial: '1 – 400 кВА', homeess: '2,5 – 25 кВт·ч', ciess: '107 – 233 кВт·ч', hvcab: '204,8 / 409,6 В', pbr: '12 / 24 / 48 В', wall: '5 – 15 кВт·ч', floor: '10 – 24 кВт·ч', designer: 'Бесплатный инструмент' },
+    fallback: { mini: 'USB · DC 5–48 В · PoE', modular: '30 – 1200 кВА', industrial: '1 – 400 кВА', homeess: '2,5 – 25 кВт·ч', ciess: '107 – 233 кВт·ч', hvcab: '204,8 / 409,6 В', pbr: '12 / 24 / 48 В', vrla: '12 В · 17 – 250 А·ч', wall: '5 – 15 кВт·ч', floor: '10 – 24 кВт·ч', designer: 'Бесплатный инструмент' },
     models: '{n} моделей', model1: '1 модель', view: 'Смотреть', tool: 'Онлайн-инструмент',
     appEyebrow: 'По применению', appH: 'Где нужно питание?',
     apps: [
@@ -126,7 +128,7 @@ export const HM = {
       { k: 'it', h: 'Серверные и телеком', cats: ['rack', 'modular', 'rackbatt'] },
       { k: 'factory', h: 'Заводы и больницы', cats: ['industrial', 'modular', 'hvcab', 'ciess'] },
       { k: 'solar', h: 'Солнце и автономия', cats: ['inverter', 'homeess', 'designer', 'wall'] },
-      { k: 'replace', h: 'Замена старых батарей', cats: ['pbr', 'hvcab', 'rackbatt'] },
+      { k: 'replace', h: 'Замена старых батарей', cats: ['vrla', 'pbr', 'hvcab', 'rackbatt'] },
     ],
     toolsEyebrow: 'Онлайн-инструменты', toolsH: 'Подберите сами за минуту',
     tools: [
@@ -136,6 +138,7 @@ export const HM = {
       ['Планировщик резерва', 'Приборы → ESS «всё в одном»', 'home-ess/#builder'],
       ['Подбор шкафов для бизнеса', 'Пики, резерв, солнце', 'ci-ess/#builder'],
       ['Подбор замены свинцовых', 'Ваш аккумулятор → модель LiFePO4', 'batteries/lead-acid-replacement/#builder'],
+      ['Калькулятор батарей ИБП', 'Нагрузка + автономия → батареи 12 В', 'batteries/vrla/#calc'],
     ],
     miniEyebrow: 'Заказ онлайн', miniH: 'Мини-ИБП DC — купите онлайн или присоединитесь к совместному заказу',
     miniP: 'Роутеры, оптические ONT, камеры и Starlink работают при отключениях. Мини-ИБП можно заказать прямо на сайте.', miniAll: 'Все мини-ИБП',

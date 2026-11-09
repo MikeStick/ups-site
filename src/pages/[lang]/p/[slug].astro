@@ -28,6 +28,9 @@ import { HE } from '../../../lib/ess-i18n.mjs';
 import { CI } from '../../../lib/cie-i18n.mjs';
 import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
+import { VR, VR_P, vrlaSpecRows, vrlaTables } from '../../../lib/vrla-i18n.mjs';
+import { vrlaModule } from '../../../lib/vrla-engine.mjs';
+import { isVrla } from '../../../lib/category.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -65,6 +68,11 @@ const S = SL[lang];
 const hvcab = isHvCab(P0);
 // 锂电替换铅酸电池：同一套电池参数表（能量按 V × Ah 算，单位 Wh），指向 /batteries/lead-acid-replacement/
 const pbr = isPbReplace(P0);
+// 12V 铅酸（VRLA）：自己的参数表（中文 extraSpecs 标签在 vrla-i18n 里翻译）+ 放电数据表，面包屑和横幅指向 /batteries/vrla/
+const vrla = isVrla(P0);
+const vm = vrla ? vrlaModule(p) : null;
+const vTables = vm ? vrlaTables(vm, lang) : [];
+const VR_P_DIS = VR_P[lang].dis, VR_P_END = VR_P[lang].endV;
 // 家庭储能一体机（壁挂 / 落地）：电池参数表 + 逆变器功率一行，标题后面注明外形，指向 /home-ess/
 const hess = isHomeEss(P0);
 // 工商业户外储能柜：电池参数表 + 冷却方式 / 交流功率 / 选配三行，指向 /ci-ess/
@@ -134,9 +142,14 @@ function tableSeries() {
   return lists.length ? [] : null;
 }
 const tSeries = tableSeries();
-const series = tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
+// 铅酸：同系列 = 同容量率（10HR / 20HR）、同系列（AGM / HR …）的型号，按 Ah 排
+const series = vrla
+  ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
+  : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
-const rows = rbatt
+const rows = vrla
+  ? vrlaSpecRows(p, vm, lang)
+  : rbatt
   ? [[RBT.spec.model, p.model], ...(cie ? [[CI[lang].rows.cool, CI[lang].cool[ciX.cool]], ...(ciX.kw ? [[CI[lang].rows.kw, `${ciX.kw} kW`]] : []), [CI[lang].cOpts, [ciX.pv ? CI[lang].optPv : '', ciX.sts ? CI[lang].optSts : ''].filter(Boolean).join(' · ') || CI[lang].optNone]] : []), ...(hess ? [[HE[lang].c.s1, essMountName], ...(bm.kw ? [[HE[lang].cInv, `${bm.kw} kW`]] : []), ...(bm.layers ? [[HE[lang].cLayers, `${bm.layers} × 5 kWh`]] : [])] : []), ...(bm.u ? [[RBT.spec.rackU, `${bm.u}U`]] : []), ...(bm.kwh && !specValue(p, 'moduleMaxEnergy', lang) ? [[RBT.spec.moduleMaxEnergy, bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`]] : []),
      ...RB_SPEC_FIELDS.map((f) => [RBT.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v), ...(bm.par ? [[RBT.spec.parallel, String(bm.par)]] : [])]
   : inverter
@@ -174,7 +187,9 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = rbatt ? [
+const highlights = vrla ? [
+  `${vm.v} V · ${vm.ah} Ah`, `${vm.rate}HR`, VR[lang].seriesName[vm.series], (vm.life.match(/\d+/) ? `${VR[lang].th.life} ${VR[lang].lifeVal.replace(/\d+/, vm.life.match(/\d+/)[0])}` : 'VRLA · AGM'),
+].filter(Boolean) : rbatt ? [
   [bm.v && `${bm.v} V`, bm.ah && `${bm.ah} Ah`].filter(Boolean).join(' · '),
   bm.kwh ? (bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`) : '',
   'LiFePO4',
@@ -219,7 +234,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{vrla ? <a href={`/${lang}/batteries/vrla/`}>{VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -248,7 +263,11 @@ const jsonLd = {
         </div>
       )}
 
-      {rbatt ? (
+      {vrla ? (
+        <a class="custom-banner" href={`/${lang}/batteries/vrla/#calc`}>
+          <span>{VR[lang].banner}</span><b>{VR[lang].bannerCta} →</b>
+        </a>
+      ) : rbatt ? (
         <a class="custom-banner" href={`/${lang}/${battPage}#builder`}>
           <span>{RBT.banner}</span><b>{RBT.bannerCta} →</b>
         </a>
@@ -289,7 +308,7 @@ const jsonLd = {
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
-        <p class="plug">{t.plugNote}</p>
+        {!vrla && !rbatt && <p class="plug">{t.plugNote}</p>}
         <div class="cta">
           {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
           {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
@@ -305,13 +324,25 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    {!offline && <RuntimeCalc p={p} lang={lang} />}
+    {!offline && !vrla && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">
         {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
       </dl>
     </section>
+    {vTables.length > 0 && (
+      <section class="card vdis">
+        <h2>{VR_P_DIS}</h2>
+        {vTables.map((tb) => (
+          <div class="vdis-t">
+            <h3>{tb.h}</h3>
+            <div class="vdis-w"><table><thead><tr><th>{VR_P_END}</th>{tb.cols.map((c) => <th>{c}</th>)}</tr></thead>
+              <tbody>{tb.rows.map((r) => <tr>{r.map((x, i) => (i ? <td>{x}</td> : <th>{x}</th>))}</tr>)}</tbody></table></div>
+          </div>
+        ))}
+      </section>
+    )}
     <PackingList p={p} lang={lang} />
     {detailAll.length > 0 && (
       <section class="card detail-imgs">
@@ -404,4 +435,11 @@ const jsonLd = {
   .detail-stack img { width: 100%; height: auto; display: block; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
   .specs dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .vdis-t + .vdis-t { margin-top: 18px; }
+  .vdis h3 { font-size: 15px; margin: 6px 0 8px; }
+  .vdis-w { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .vdis table { border-collapse: collapse; width: 100%; font: 12.5px var(--mono); }
+  .vdis th, .vdis td { padding: 7px 10px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .vdis thead th { border-top: 0; background: var(--bg); color: var(--muted); font-weight: 600; }
+  .vdis tbody th { text-align: left; font-weight: 600; }
 </style>
