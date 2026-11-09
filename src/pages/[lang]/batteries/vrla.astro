@@ -59,6 +59,14 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
           <a class="btn primary" href="#calc">{T.ctaFinder}</a>
           {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
         </div>
+        {RATES.length > 1 && (
+          <div class="rate-cards">
+            {RATES.map((r) => {
+              const a = list.filter((x) => x.b.rate === r).map((x) => x.b.ah);
+              return <a href={`#models-${r}hr`} data-gort={r}><b>{T.rateSeries.replace('{r}', r)}</b><span>{Math.min(...a)}–{Math.max(...a)} Ah · {a.length} {T.modelsN}</span></a>;
+            })}
+          </div>
+        )}
       </div>
       <div class="hero-vis" aria-hidden="true">
         <div class="hb"><i></i><i></i><span>12V</span><small>{ahTxt}</small></div>
@@ -166,6 +174,11 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
     box.querySelectorAll('[data-rt]').forEach((b: any) => b.addEventListener('click', () => pick('rt', b.dataset.rt)));
     box.querySelectorAll('[data-sr]').forEach((b: any) => b.addEventListener('click', () => pick('sr', b.dataset.sr)));
     document.querySelectorAll('[data-goser]').forEach((a: any) => a.addEventListener('click', () => pick('sr', a.dataset.goser)));
+    // 10HR / 20HR 两个系列：首屏卡片或链接 #models-10hr / #models-20hr 直接打开对应系列
+    const goRate = (r: string) => { pick('rt', r); pick('sr', 'all'); box.scrollIntoView({ behavior: 'smooth' }); };
+    document.querySelectorAll('[data-gort]').forEach((a: any) => a.addEventListener('click', (e: Event) => { e.preventDefault(); history.replaceState(null, '', `#models-${a.dataset.gort}hr`); goRate(a.dataset.gort); }));
+    const h = location.hash.match(/^#models-(10|20)hr$/);
+    if (h) goRate(h[1]);
   }
 </script>
 
@@ -193,6 +206,11 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   .hero h1 em { font-style: normal; color: #5ef0a0; }
   .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 580px; }
   .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .rate-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; max-width: 520px; }
+  .rate-cards a { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(245,184,61,.45); background: rgba(245,184,61,.08); color: #fff; text-decoration: none; }
+  .rate-cards a:hover { background: rgba(245,184,61,.18); }
+  .rate-cards b { font: 700 18px var(--display); color: #f5b83d; }
+  .rate-cards span { font: 12.5px var(--mono); color: #d8d2c4; }
   .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .hero-facts div { border: 1px solid #33443f; border-radius: 12px; padding: 14px; }
   .hero-facts b { display: block; font: 700 24px/1.1 var(--display); color: #5ef0a0; }
