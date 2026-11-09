@@ -100,7 +100,9 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
         <tbody>
           {list.map(({ p, b }) => (
             <tr data-r={b.rate} data-s={b.series}>
-              <th><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></th>
+              <th><a class="mdl" href={`/${lang}/p/${p.slug}/`}>
+                <span class="thumb">{p.images && p.images[0] ? <img src={p.images[0].thumb || p.images[0].src} alt={p.model} loading="lazy" /> : <i></i>}</span>{p.model}
+              </a></th>
               <td class="num">{b.ah} Ah</td><td class="num">{b.rate}HR</td><td>{T.seriesName[b.series]}</td>
               <td class="num">{dims(b.dims)}</td><td class="num">{b.kg ? `${b.kg} kg` : '—'}</td><td class="num">{b.terminal || '—'}</td>
               <td>{SITE.whatsapp && <a class="btn sm dark" href={wa(T.qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>}</td>
@@ -319,4 +321,8 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   .ser a { font-size: 14px; font-weight: 600; color: var(--accent); }
   .vsx { margin-top: 14px; display: flex; gap: 16px 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 20px 22px; border-radius: 12px; background: var(--ok-soft, #e8f5ef); border: 1px solid var(--line); }
   .vsx h3 { font-size: 22px; } .vsx p { margin: 4px 0 0; color: var(--muted); max-width: 680px; font-size: 14.5px; }
+  .mt .mdl { display: inline-flex; align-items: center; gap: 10px; }
+  .mt .thumb { width: 48px; height: 48px; flex: none; border-radius: 8px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+  .mt .thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .mt .thumb i { width: 26px; height: 18px; border-radius: 2px; background: #2a2724; box-shadow: inset 0 4px 0 #44403a; }
 </style>
