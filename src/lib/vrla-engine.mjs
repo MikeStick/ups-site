@@ -50,6 +50,30 @@ export function seriesOf(p) {
   return 'agm';
 }
 
+
+// SK 系列规格书上的尺寸 / 重量 / 端子 / 设计寿命（逐个型号从规格书抄录）。
+// AI 导入这些规格书时尺寸、重量常常没填或填错，网站以这张表为准；表里没有的型号仍然用 CRM 里的数据。
+const SK_SPECS = {
+  // 10HR（型号不带 v）
+  'SK17-12': { dims: [181, 77, 167, 167], kg: 4.7, terminal: 'B1 (M5)', life: 3 },
+  'SK24-12': { dims: [165, 126, 174, 174], kg: 7.6, terminal: 'B2', life: 5 },
+  'SK38-12': { dims: [196, 165, 170, 170], kg: 11.8, terminal: 'B4', life: 10 },
+  'SK65-12': { dims: [350, 167, 174, 174], kg: 20, terminal: 'B5 (M8)', life: 10 },
+  'SK100-12': { dims: [332, 173, 218, 223], kg: 28, terminal: 'B5 (M8)', life: 10 },
+  'SK120-12': { dims: [406, 173, 236, 236], kg: 34.5, terminal: 'B5 (M8)', life: 10 },
+  'SK150-12': { dims: [486, 171, 240, 240], kg: 43, terminal: 'B5 (M8)', life: 10 },
+  'SK200-12': { dims: [523, 240, 219, 223], kg: 58, terminal: 'B5 (M8)', life: 10 },
+  'SK250-12': { dims: [520, 269, 220, 224], kg: 69, terminal: 'T16 (M8)', life: 8 },
+  // 20HR（型号带 v）
+  'SK24-12V': { dims: [165, 127, 173.5, 173.5], kg: 7.3, terminal: 'Φ14×M6', life: 8 },
+  'SK38-12V': { dims: [197, 166, 170, 170], kg: 10.2, terminal: 'Φ14×M6', life: 8 },
+  'SK65-12V': { dims: [330, 172, 180, 185], kg: 18.1, terminal: 'Φ16×M6', life: 8 },
+  'SK100-12V': { dims: [329, 172, 216, 221], kg: 27.2, terminal: 'Φ18×M8', life: 8 },
+  'SK120-12V': { dims: [404, 174.5, 210, 235], kg: 30.8, terminal: 'Φ18×M8', life: 8 },
+  'SK150-12V': { dims: [483, 171, 240, 245], kg: 39.6, terminal: 'Φ18×M8', life: 8 },
+  'SK200-12V': { dims: [522, 239, 216, 221], kg: 54.3, terminal: 'Φ20×M8', life: 8 },
+  'SK250-12V': { dims: [520, 267.5, 220, 225], kg: 68.5, terminal: 'Φ20×M8', life: 8 },
+};
 // 一节电池的参数
 export function vrlaModule(p) {
   const mm = String(p.model || '').match(/(\d{2,3})\s*-\s*(\d{1,2})\b/); // SK250-12 → 250 Ah, 12 V
@@ -63,6 +87,11 @@ export function vrlaModule(p) {
   const dims = (String(p.moduleDimensions || p.dimensions || spec(p, /尺寸|dimension/i)).match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 4);
   const kg = num(p.moduleWeight || p.netWeight || spec(p, /重量|weight/i));
   const cells = Math.max(1, Math.round(v / 2));
+  const fix = SK_SPECS[String(p.model || '').trim().toUpperCase()];
+  if (fix) return { ...vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }), dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: `${fix.life}年以上` };
+  return vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells });
+}
+function vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }) {
   return { model: p.model, slug: p.slug, v, ah, rate, dims, kg, cells, series: seriesOf(p),
     life: spec(p, /设计寿命|design\s*life|寿命/i), terminal: spec(p, /端子|terminal/i), tables: dischargeTables(p, cells) };
 }
