@@ -89,13 +89,14 @@ const SK_SPECS = {
   'SK3000-2V': { dims: [712, 353, 341, 382], kg: 180, terminal: 'B6 (M10)', life: 15, res: 0.15, imax: 750 },
 };
 // 2V 单体电池（型号 SK…-2 / SK…-2v，或额定电压 2 V）
-export const is2vModel = (p) => /^SK\d{2,4}-2v?$/i.test(String(p.model || '').trim()) || num(p.moduleVoltage || p.batteryVoltage) === 2;
+const skModel = (m) => String(m || '').replace(/[（(].*$/, '').trim().split(/\s+/)[0];
+export const is2vModel = (p) => /^SK\d{2,4}-2v?$/i.test(skModel(p.model)) || num(p.moduleVoltage || p.batteryVoltage) === 2;
 // 一节电池的参数
 export function vrlaModule(p) {
   const mm = String(p.model || '').match(/(\d{2,4})\s*-\s*(\d{1,2})(?:v\b|\b)/i); // SK250-12 → 250 Ah, 12 V；SK1000-2v → 1000 Ah, 2 V
   // SK 系列命名：SK100-12 = 10HR、SK100-12v = 20HR，型号里的数字就是该容量率下的额定 Ah（规格书同时列了 20HR / 10HR 等多个容量，导入时容易填错）
   // 2V 单体 SK100-2v … SK3000-2v 全是 10HR
-  const sk = String(p.model || '').trim().match(/^SK(\d{2,4})-(12|2)(v?)$/i);
+  const sk = skModel(p.model).match(/^SK(\d{2,4})-(12|2)(v?)$/i);
   const v = sk ? +sk[2] : num(p.moduleVoltage || p.batteryVoltage || spec(p, /额定电压|nominal\s*voltage/i)) || (mm ? +mm[2] : 12);
   const ah = sk ? +sk[1] : num(p.moduleCapacity || spec(p, /额定容量|rated\s*capacity/i)) || (mm ? +mm[1] : 0);
   const rateTxt = spec(p, /容量率|小时率|rate/i) + ' ' + p.model;
@@ -104,7 +105,7 @@ export function vrlaModule(p) {
   const dims = (String(p.moduleDimensions || p.dimensions || spec(p, /尺寸|dimension/i)).match(/\d+(?:\.\d+)?/g) || []).map(Number).slice(0, 4);
   const kg = num(p.moduleWeight || p.netWeight || spec(p, /重量|weight/i));
   const cells = Math.max(1, Math.round(v / 2));
-  const fix = SK_SPECS[String(p.model || '').trim().toUpperCase()];
+  const fix = SK_SPECS[skModel(p.model).toUpperCase()];
   if (fix) return { ...vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }), dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: `${fix.life}年以上`, ...(fix.res ? { res: fix.res, imax: fix.imax } : {}) };
   return vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells });
 }
