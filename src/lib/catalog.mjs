@@ -19,9 +19,10 @@ import { CI } from './cie-i18n.mjs';
 import { CT } from './custom-i18n.mjs';
 import { VR } from './vrla-i18n.mjs';
 import { V2 } from './vrla2-i18n.mjs';
+import { PAC } from './pac-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -36,6 +37,7 @@ export function catalog(lang) {
       { key: 'rack', page: 'rack-ups/', label: RT[lang].nav, f: isRack, unit: 'va' },
       { key: 'modular', page: 'modular-ups/', label: MT[lang].nav, f: isModular, unit: 'va' },
       { key: 'industrial', page: 'industrial-ups/', label: IT[lang].nav, f: isIndustrial, unit: 'va' },
+      { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' }, // 精密空调：机房配套，放在 UPS 组
     ] },
     { key: 'solar', h: NG.solar, items: [
       { key: 'inverter', page: 'solar-inverters/', label: SL[lang].nav, f: isInverter, unit: 'kw' },

@@ -1,0 +1,411 @@
+---
+// 精密空调栏目页（/precision-ac/）：首屏 → 五个系列卡片 → 选型工具（热负荷 + 场景 + 是否恒温恒湿 + N+1 → 型号 × 台数）
+// → 型号大卡片（系列 + 单冷/恒温恒湿两个筛选）→ 各系列参数对照表 → 设计特点 → 常见问题 → 询价。只询价，不显示价格。
+// 产品来自客户档案系统：型号 SK-FAJ… / SK-LAJ… / SK-RMJ…（或品类名带"精密空调"）。参数按型号查 pac-specs.mjs（由画册抄录）。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { PAC } from '../../lib/pac-i18n.mjs';
+import { pacSpec, PAC_SERIES, PAC_SCENE } from '../../lib/pac-engine.mjs';
+import { PAC_SPECS } from '../../lib/pac-specs.mjs';
+import { isPac } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = PAC[lang];
+const ORD = Object.fromEntries(PAC_SERIES.map((s, i) => [s, i]));
+const list = all.filter(isPac).map((p) => ({ p, s: pacSpec(p) })).filter((x) => x.s)
+  .sort((a, b) => ORD[a.s.series] - ORD[b.s.series] || (a.s.rh ? 1 : 0) - (b.s.rh ? 1 : 0) || a.s.cool - b.s.cool);
+const SERS = PAC_SERIES.filter((s) => list.some((x) => x.s.series === s));
+// 选型用全部型号（含 CRM 里还没上架的），有产品页的带链接
+const slugOf = Object.fromEntries(list.map(({ p, s }) => [s.model, p.slug]));
+const models = Object.values(PAC_SPECS).map((s) => ({ model: s.model, series: s.series, rh: s.rh, sens: s.sens, cool: s.cool, slug: slugOf[s.model] || '' }));
+const cfg = { lang, wa: SITE.whatsapp, models, t: T, scene: PAC_SCENE };
+const IMG = { rack: '/img/pac/rack.webp', bts: '/img/pac/bts1.webp', row: '/img/pac/row2.webp', room1: '/img/pac/room1.webp', room2: '/img/pac/room2.webp' };
+const RNG = { rack: '3.5–12.5 kW', bts: '8–20 kW', row: '12.5–50 kW', room1: '25–50 kW', room2: '50–100 kW' };
+const dec = (x: number | string) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
+const kwU = lang === 'ru' ? 'кВт' : 'kW', m3U = lang === 'ru' ? 'м³/ч' : 'm³/h', kgU = lang === 'ru' ? 'кг' : 'kg';
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const nSer = (s: string) => Object.values(PAC_SPECS).filter((x) => x.series === s).length;
+const CAT = { en: '/docs/SKE_Precision_AC_Catalogue_EN.pdf', es: '/docs/SKE_Precision_AC_Catalogue_ES.pdf', ru: '/docs/SKE_Precision_AC_Catalogue_RU.pdf' }[lang];
+const WHY_ICONS = [
+  '<path d="M15 4v14M10 22a5 5 0 1 0 10 0 5 5 0 0 0-3-4.6V4a2 2 0 0 0-4 0v13.4A5 5 0 0 0 10 22z"/>',
+  '<path d="M4 15h22M15 4v22M7 7l16 16M23 7L7 23"/>',
+  '<rect x="4" y="5" width="22" height="15" rx="2"/><path d="M10 25h10M15 20v5M9 13l3-3 3 3 3-4 3 4"/>',
+  '<circle cx="15" cy="15" r="5"/><path d="M15 3v3M15 24v3M3 15h3M24 15h3M6.5 6.5l2 2M21.5 21.5l2 2M6.5 23.5l2-2M21.5 8.5l2-2"/>',
+];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: T.crumbs, item: `${site}/${lang}/` },
+  { '@type': 'ListItem', position: 2, name: T.title, item: `${site}/${lang}/precision-ac/` },
+] };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="precision-ac/">
+<div class="off rbp pacp">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero" style="--bg:url(/img/pac/hero.webp)">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#sizing">{T.ctaSel}</a>
+          {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
+          <a class="btn ghost" href={CAT} target="_blank" rel="noopener">{T.ctaCat} ↓</a>
+        </div>
+      </div>
+      <div class="hero-facts">
+        <div><b class="num">3.5–100 kW</b><span>{T.facts.range}</span></div>
+        <div><b class="num">±1 °C / ±5%</b><span>{T.facts.acc}</span></div>
+        <div><b class="num">{Object.keys(PAC_SPECS).length}</b><span>{T.facts.models}</span></div>
+        <div><b class="num">R410A</b><span>{T.facts.refr}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="series">
+    <div class="head"><span class="eyebrow">{T.serEyebrow}</span><h2>{T.serH}</h2></div>
+    <div class="sers">
+      {PAC_SERIES.map((s) => (
+        <a class="ser" href="#models" data-goser={s}>
+          <span class="si"><img src={IMG[s]} alt="" loading="lazy" /></span>
+          <span class="sb">
+            <small>{T.ser[s][1]}</small>
+            <b>{T.ser[s][0]}</b>
+            <em class="num">{lang === 'en' ? RNG[s] : RNG[s].replace(/\./g, ',')}</em>
+            <span>{T.ser[s][2]}</span>
+            <i>{nSer(s)} {T.facts.models} · {T.seeModels} →</i>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="block" id="sizing" data-pacs>
+    <script type="application/json" data-pacs-cfg set:html={JSON.stringify(cfg)} />
+    <div class="head"><span class="eyebrow">{T.selEyebrow}</span><h2>{T.selH}</h2><p>{T.selP}</p></div>
+    <div class="stage">
+      <div class="ctl">
+        <div class="grp">
+          <div class="gh"><span class="n">1</span><b>{T.scene}</b></div>
+          <div class="chips">{Object.keys(PAC_SCENE).map((k) => <button type="button" class:list={['chip', { on: k === 'room' }]} data-scene={k}>{T.sceneName[k]}</button>)}</div>
+        </div>
+        <div class="grp">
+          <div class="gh"><span class="n">2</span><b>{T.load}</b></div>
+          <label class="numin"><input type="number" min="1" step="0.5" value="60" inputmode="decimal" data-kw /><span>{kwU}</span></label>
+          <small class="hint">{T.loadHint}</small>
+        </div>
+        <div class="grp">
+          <div class="gh"><span class="n">3</span><b>{T.rhQ}</b></div>
+          <div class="chips"><button type="button" class="chip on" data-rh="0">{T.rhNo}</button><button type="button" class="chip" data-rh="1">{T.rhYes}</button></div>
+          <label class="chk"><input type="checkbox" checked data-red /> {T.red}</label>
+        </div>
+      </div>
+      <div class="out">
+        <div class="room" data-room></div>
+        <div class="rows" data-rows></div>
+        <div class="alts" data-alts></div>
+        {SITE.whatsapp && <a class="btn primary" data-qsel href="#" target="_blank" rel="noopener">{T.quoteSel}</a>}
+      </div>
+    </div>
+  </section>
+
+  {list.length > 0 && (
+    <section class="block" id="models" data-pacm>
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <div class="filters">
+        <div class="vtabs">
+          <button type="button" class="on" data-sr="all">{T.tabAll} <small>{list.length}</small></button>
+          {SERS.map((s) => <button type="button" data-sr={s}>{T.seriesName[s]} <small>{list.filter((x) => x.s.series === s).length}</small></button>)}
+        </div>
+        <div class="vtabs">
+          <button type="button" class="on" data-rhf="all">{T.tabAll}</button>
+          <button type="button" data-rhf="0">{T.fCool}</button>
+          <button type="button" data-rhf="1">{T.fRh}</button>
+        </div>
+      </div>
+      <div class="grid">
+        {list.map(({ p, s }) => {
+          const img = p.images && p.images[0];
+          return (
+            <article class="pcard" data-s={s.series} data-rh={s.rh ? '1' : '0'}>
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                <img src={img ? img.thumb || img.src : IMG[s.series]} alt={p.model} loading="lazy" />
+                <span class="tags"><span class="tag pb">{T.seriesName[s.series].split(' (')[0]}</span><span class:list={['tag', s.rh ? 'rh' : 'u']}>{s.rh ? T.tagRh : T.tagCool}</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                <span class="va">{dec(s.cool)} {kwU}</span>
+                <ul>
+                  <li>{T.sens} <b>{dec(s.sens)} {kwU}</b></li>
+                  <li>{T.air} <b>{s.air} {m3U}</b></li>
+                  <li>{T.size} <b>{s.dims.replace(/×/g, ' × ')}</b></li>
+                  <li>{T.odu} <b>{s.odu}{s.n > 1 ? ` × ${s.n}` : ''}</b></li>
+                </ul>
+                <div class="pact">
+                  <a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a>
+                  {SITE.whatsapp && <a class="btn sm dark" href={wa(T.qMsg.replace('{m}', p.model))} target="_blank" rel="noopener">{T.quote}</a>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <section class="block" id="tables">
+    <div class="head"><span class="eyebrow">{T.tblH}</span><h2>{T.tblH}</h2><p>{T.tblP}</p></div>
+    {PAC_SERIES.map((ser) => {
+      const rows = Object.values(PAC_SPECS).filter((x) => x.series === ser).sort((a, b) => (a.rh ? 1 : 0) - (b.rh ? 1 : 0) || a.cool - b.cool);
+      return (
+        <details class="tblock" open={ser === 'room1'}>
+          <summary>{T.seriesName[ser]} <span class="num">{lang === 'en' ? RNG[ser] : RNG[ser].replace(/\./g, ',')}</span></summary>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>{T.th.model}</th><th>{T.th.cool}</th><th>{T.th.sens}</th><th>{T.th.air}</th><th>{T.th.heat}</th><th>{T.th.hum}</th><th>{T.th.power}</th><th>{T.th.dims}</th><th>{T.th.kg}</th><th>{T.th.odu}</th></tr></thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr>
+                    <th>{slugOf[r.model] ? <a href={`/${lang}/p/${slugOf[r.model]}/`}>{r.model}</a> : r.model}</th>
+                    <td class="num">{dec(r.cool)}</td><td class="num">{dec(r.sens)}</td><td class="num">{r.air}</td>
+                    <td class="num">{r.heat ? dec(r.heat) : '—'}</td><td class="num">{r.hum ? dec(r.hum) : '—'}</td>
+                    <td class="num">{r.power.replace('V/', ' V / ')}</td><td class="num">{r.dims.replace(/×/g, ' × ')}</td><td class="num">{r.kg}</td>
+                    <td class="num">{r.odu}{r.n > 1 ? ` × ${r.n}` : ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      );
+    })}
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
+    <div class="feats">
+      {T.why.map(([h, d], i) => <div class="card feat"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={WHY_ICONS[i]} /><h3>{h}</h3><p>{d}</p></div>)}
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+        <a class="btn line" href={CAT} target="_blank" rel="noopener">{T.ctaCat} (PDF)</a>
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(crumbLd)} />
+</div>
+</Base>
+
+<script>
+  import { pacSize } from '../../lib/pac-engine.mjs';
+  // 选型工具：场景 + 热负荷 + 单冷/恒温恒湿 + N+1 → 推荐方案；右侧画出机组（运行的实心、备用的虚线）
+  const root = document.querySelector('[data-pacs]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-pacs-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const dec = (x: number) => (c.lang === 'en' ? String(x) : String(x).replace('.', ','));
+    const kwU = c.lang === 'ru' ? 'кВт' : 'kW';
+    const st: any = { scene: 'room', rh: false };
+    const link = (m: any) => (m.slug ? `<a href="/${c.lang}/p/${m.slug}/">${m.model}</a>` : m.model);
+    const draw = (n: number, s: number) => {
+      const W = 26, H = 44, g = 8, cols = Math.min(n + s, 13), w = cols * (W + g);
+      let svg = '';
+      for (let i = 0; i < Math.min(n + s, 13); i++) {
+        const x = i * (W + g), sb = i >= n;
+        svg += `<g class="u${sb ? ' sb' : ''}" style="--d:${i * 40}ms"><rect x="${x}" y="4" width="${W}" height="${H}" rx="2"/><rect class="scr" x="${x + 7}" y="10" width="${W - 14}" height="6" rx="1"/><path d="M${x + 5} ${24}h${W - 10}M${x + 5} ${30}h${W - 10}M${x + 5} ${36}h${W - 10}"/></g>`;
+      }
+      return `<svg viewBox="-2 0 ${w + 2} ${H + 10}" role="img">${svg}</svg>`;
+    };
+    const run = () => {
+      const kw = Math.max(0, parseFloat(String(($('[data-kw]') as HTMLInputElement).value).replace(',', '.')) || 0);
+      const red = ($('[data-red]') as HTMLInputElement).checked;
+      const r = pacSize({ kw, series: c.scene[st.scene], rh: st.rh, redundancy: red ? 1 : 0, models: c.models });
+      const q = $('[data-qsel]') as HTMLAnchorElement | null;
+      const rhTxt = st.rh ? T.rhYes : T.rhNo;
+      if (!r.length) {
+        $('[data-room]').innerHTML = `<p class="none">${kw > 0 ? T.none : ''}</p>`; $('[data-rows]').innerHTML = ''; $('[data-alts]').innerHTML = '';
+        if (q) q.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qSel, { kw, scene: T.sceneName[st.scene], rh: rhTxt, n: '?', m: '?', s: '' }))}`;
+        return;
+      }
+      const b = r[0], s = red ? 1 : 0;
+      $('[data-room]').innerHTML = `<div class="tag">${T.res}: ${link(b.m)}</div>${draw(b.n, s)}<div class="lg"><span>${fmt(T.units, { n: b.n })}</span>${s ? `<span class="sbk">${fmt(T.unitsS, { s })}</span>` : ''}</div>`;
+      const row = (a: string, v: string) => `<div><span>${a}</span><b>${v}</b></div>`;
+      $('[data-rows]').innerHTML = row(T.res, `${b.n + s} × ${link(b.m)}`) + row(T.capTot, `${dec(b.cap)} ${kwU}`) + row(T.spare, `+${b.spare}%`);
+      $('[data-alts]').innerHTML = r.length > 1 ? `<span>${T.alt}</span>` + r.slice(1).map((o: any) => `<em>${o.n + s} × ${link(o.m)}</em>`).join('') : '';
+      if (q) q.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qSel, { kw, scene: T.sceneName[st.scene], rh: rhTxt, n: b.n + s, m: b.m.model, s: s ? ' (N+1)' : '' }))}`;
+    };
+    const bind = (attr: string, set: (v: string) => void) => root.querySelectorAll(`[${attr}]`).forEach((x: any) => x.addEventListener('click', () => { set(x.getAttribute(attr)); root.querySelectorAll(`[${attr}]`).forEach((y: any) => y.classList.toggle('on', y === x)); run(); }));
+    bind('data-scene', (v) => { st.scene = v; const i = $('[data-kw]') as HTMLInputElement; const d: any = { rack: 8, bts: 15, row: 40, room: 60 }; i.value = String(d[v]); });
+    bind('data-rh', (v) => (st.rh = v === '1'));
+    $('[data-kw]').addEventListener('input', run);
+    $('[data-red]').addEventListener('change', run);
+    run();
+  }
+  // 型号筛选：系列 × 单冷/恒温恒湿；系列卡片点了直接筛选
+  const box = document.querySelector('[data-pacm]') as HTMLElement | null;
+  if (box) {
+    const f: any = { sr: 'all', rhf: 'all' };
+    const apply = () => box.querySelectorAll('.pcard').forEach((r: any) => (r.hidden = (f.sr !== 'all' && r.dataset.s !== f.sr) || (f.rhf !== 'all' && r.dataset.rh !== f.rhf)));
+    const pick = (k: string, v: string) => { f[k] = v; box.querySelectorAll(`[data-${k}]`).forEach((x: any) => x.classList.toggle('on', x.dataset[k] === v)); apply(); };
+    box.querySelectorAll('[data-sr]').forEach((b: any) => b.addEventListener('click', () => pick('sr', b.dataset.sr)));
+    box.querySelectorAll('[data-rhf]').forEach((b: any) => b.addEventListener('click', () => pick('rhf', b.dataset.rhf)));
+    document.querySelectorAll('[data-goser]').forEach((a: any) => a.addEventListener('click', () => { pick('sr', a.dataset.goser); pick('rhf', 'all'); }));
+    const h = location.hash.match(/^#models-(rack|bts|row|room1|room2)$/);
+    if (h) { pick('sr', h[1]); box.scrollIntoView(); }
+  }
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero { color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; background: linear-gradient(90deg, rgba(10,20,34,.94) 0%, rgba(10,20,34,.82) 48%, rgba(10,20,34,.35) 100%), var(--bg) center / cover, #0f1a2a; }
+  .hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 28px; padding: 52px 40px; align-items: end; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(34px, 5.4vw, 60px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #7cc7ff; }
+  .hero p { margin: 0; color: #cfd8e3; font-size: 17px; max-width: 600px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero .btn.ghost { border-color: rgba(255,255,255,.35); }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid rgba(255,255,255,.18); background: rgba(10,20,34,.55); backdrop-filter: blur(4px); border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 20px/1.1 var(--display); color: #7cc7ff; }
+  .hero-facts span { font-size: 13px; color: #b9c6d4; }
+
+  .sers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 1100px) { .sers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .sers { grid-template-columns: minmax(0, 1fr); } }
+  .ser { display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .ser:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .si { height: 190px; display: grid; place-items: center; background: linear-gradient(180deg, #f3f6f9, #fff); border-bottom: 1px solid var(--line); }
+  .si img { max-height: 170px; max-width: 80%; object-fit: contain; }
+  .sb { padding: 14px 16px 16px; display: grid; gap: 4px; align-content: start; }
+  .sb small { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .sb b { font: 700 22px var(--display); }
+  .sb em { font-style: normal; font-weight: 700; color: #1f6f8b; }
+  .sb > span { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+  .sb i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 6px; }
+  @media (max-width: 700px) { .ser { grid-template-columns: 120px minmax(0, 1fr); grid-template-rows: none; } .si { height: auto; border-bottom: 0; border-right: 1px solid var(--line); } .si img { max-height: 130px; } }
+
+  .stage { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; padding: 22px; border-radius: 16px; color: #e6edf5; background: radial-gradient(120% 90% at 75% 40%, #16304a 0%, #0d1c2c 55%, #08121d 100%); }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+  .ctl { display: grid; gap: 18px; align-content: start; }
+  .grp { display: grid; gap: 10px; }
+  .gh { display: flex; gap: 10px; align-items: center; } .gh b { font-size: 15px; }
+  .n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #7cc7ff; color: #06223a; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 0 12px; min-height: 36px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #d3dde8; font: 600 13px var(--body); cursor: pointer; }
+  .chip.on { background: #7cc7ff; color: #06223a; border-color: #7cc7ff; }
+  .hint { font-size: 12.5px; color: #9fb0c2; }
+  .chk { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #d3dde8; cursor: pointer; }
+  .numin { display: flex; align-items: center; gap: 8px; } .numin span { font: 600 14px var(--mono); color: #9fb0c2; }
+  .numin input { width: 140px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.2); background: #06121e; color: #fff; }
+  .out { display: grid; gap: 12px; align-content: start; }
+  .room { padding: 18px 16px; border-radius: 14px; background: linear-gradient(180deg, #eef3f8, #dce5ee); box-shadow: inset 0 0 0 1px #c3cfdb, 0 24px 50px rgba(0,0,0,.45); color: #1d2b39; display: grid; gap: 12px; justify-items: center; min-height: 160px; align-content: center; }
+  .room :global(.tag) { font: 700 12.5px var(--mono); padding: 5px 12px; border-radius: 99px; background: #0b1a29; color: #7cc7ff; text-align: center; }
+  .room :global(.tag a) { color: #fff; }
+  .room :global(svg) { width: 100%; max-height: 120px; }
+  .room :global(.u rect) { fill: #1c2228; animation: pop .35s both; animation-delay: var(--d); }
+  .room :global(.u .scr) { fill: #4aa8e8; }
+  .room :global(.u path) { stroke: #3b444d; stroke-width: 1.5; }
+  .room :global(.u.sb rect:first-child) { fill: none; stroke: #1c2228; stroke-width: 1.6; stroke-dasharray: 4 3; }
+  .room :global(.u.sb .scr), .room :global(.u.sb path) { opacity: .25; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .room :global(.lg) { display: flex; gap: 14px; font: 600 12.5px var(--mono); }
+  .room :global(.sbk) { color: #5c6b7a; }
+  .room :global(.none) { margin: 0; text-align: center; font-weight: 600; }
+  .rows :global(div) { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.14); font-size: 14px; }
+  .rows :global(span) { color: #9fb0c2; } .rows :global(b) { font: 700 15px var(--mono); text-align: right; }
+  .rows :global(a), .alts :global(a) { color: #7cc7ff; }
+  .alts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: #9fb0c2; }
+  .alts :global(em) { font-style: normal; font-family: var(--mono); color: #d3dde8; }
+  .out .btn { justify-self: start; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 16px; }
+  .vtabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vtabs button { min-height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 14px var(--body); cursor: pointer; }
+  .vtabs button small { font: 600 12px var(--mono); color: var(--muted); margin-left: 4px; }
+  .vtabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .vtabs button.on small { color: #c9d4d1; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6%; box-sizing: border-box; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; }
+  .tag.pb { background: #e6eef5; color: #1f4b6e; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .tag.rh { background: #1f6f8b; color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 21px; overflow-wrap: anywhere; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .tblock { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; }
+  .tblock summary { cursor: pointer; padding: 14px 18px; font-weight: 700; font-size: 16px; display: flex; gap: 12px; align-items: baseline; }
+  .tblock summary span { font-size: 13px; color: var(--muted); }
+  .tbl-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 11.5px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  .tbl-wrap a { color: var(--ink); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat svg { width: 34px; height: 34px; fill: none; stroke: #1f6f8b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { font-size: 21px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>

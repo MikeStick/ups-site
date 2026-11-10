@@ -277,3 +277,6 @@ export function seriesName(p) {
   const k = seriesKey(p);
   return k ? k.key.slice(2) : String(p.model || '').toUpperCase();
 }
+
+// 精密空调（机房空调）：型号 SK-FAJ… / SK-LAJ… / SK-RMJ…，或品类名带"精密空调 / 机房空调 / 基站空调 / 列间 / 机架式空调"。栏目 /precision-ac/，参数在 pac-engine.mjs
+export const isPac = (p) => /^SK-?(FAJ|LAJ|RMJ)\d{3}/i.test(String(p.model || '').trim()) || typesOf(p).some((t) => /精密空调|机房空调|基站空调|列间空调|机架式空调|房间级空调/.test(t));

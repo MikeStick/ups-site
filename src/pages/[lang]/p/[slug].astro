@@ -32,6 +32,8 @@ import { VR, VR_P, vrlaSpecRows, vrlaTables } from '../../../lib/vrla-i18n.mjs';
 import { vrlaModule } from '../../../lib/vrla-engine.mjs';
 import { isVrla, isCell2v } from '../../../lib/category.mjs';
 import { V2 } from '../../../lib/vrla2-i18n.mjs';
+import { PAC, pacSpecRows } from '../../../lib/pac-i18n.mjs';
+import { pacSpec } from '../../../lib/pac-engine.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -77,7 +79,10 @@ const hvcab = isHvCab(P0);
 // 锂电替换铅酸电池：同一套电池参数表（能量按 V × Ah 算，单位 Wh），指向 /batteries/lead-acid-replacement/
 const pbr = isPbReplace(P0);
 // 12V 铅酸（VRLA）：自己的参数表（中文 extraSpecs 标签在 vrla-i18n 里翻译）+ 放电数据表，面包屑和横幅指向 /batteries/vrla/
-const vrla = isVrla(P0);
+// 精密空调：参数按型号查画册数据（pac-specs），面包屑和横幅指向 /precision-ac/
+const pacS = pacSpec(P0);
+const pac = !!pacS;
+const vrla = !pac && isVrla(P0);
 const cell2 = vrla && isCell2v(P0); // 2V 单体：面包屑和横幅指向 /batteries/vrla-2v/
 const vrlaPage = cell2 ? 'batteries/vrla-2v/' : 'batteries/vrla/';
 const vm = vrla ? vrlaModule(p) : null;
@@ -153,11 +158,15 @@ function tableSeries() {
 }
 const tSeries = tableSeries();
 // 铅酸：同系列 = 同容量率（10HR / 20HR）、同系列（AGM / HR …）的型号，按 Ah 排
-const series = vrla
+const series = pac
+  ? products.map((x) => ({ x, s: pacSpec(x) })).filter((o) => o.s && o.s.series === pacS.series && o.s.rh === pacS.rh).sort((a, b) => a.s.cool - b.s.cool).map((o) => o.x)
+  : vrla
   ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.v === vm.v && o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
   : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
-const rows = vrla
+const rows = pac
+  ? pacSpecRows(p, pacS, lang)
+  : vrla
   ? vrlaSpecRows(p, vm, lang)
   : rbatt
   ? [[RBT.spec.model, p.model], ...(cie ? [[CI[lang].rows.cool, CI[lang].cool[ciX.cool]], ...(ciX.kw ? [[CI[lang].rows.kw, `${ciX.kw} kW`]] : []), [CI[lang].cOpts, [ciX.pv ? CI[lang].optPv : '', ciX.sts ? CI[lang].optSts : ''].filter(Boolean).join(' · ') || CI[lang].optNone]] : []), ...(hess ? [[HE[lang].c.s1, essMountName], ...(bm.kw ? [[HE[lang].cInv, `${bm.kw} kW`]] : []), ...(bm.layers ? [[HE[lang].cLayers, `${bm.layers} × 5 kWh`]] : [])] : []), ...(bm.u ? [[RBT.spec.rackU, `${bm.u}U`]] : []), ...(bm.kwh && !specValue(p, 'moduleMaxEnergy', lang) ? [[RBT.spec.moduleMaxEnergy, bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`]] : []),
@@ -197,7 +206,9 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = vrla ? [
+const highlights = pac ? [
+  `${lang === 'en' ? pacS.cool : String(pacS.cool).replace('.', ',')} ${lang === 'ru' ? 'кВт' : 'kW'}`, PAC[lang].seriesName[pacS.series], pacS.rh ? PAC[lang].spec.kindRh : PAC[lang].spec.kindCool, '±1 °C · R410A',
+] : vrla ? [
   `${vm.v} V · ${vm.ah} Ah`, `${vm.rate}HR`, VR[lang].seriesName[vm.series], (vm.life.match(/\d+/) ? `${VR[lang].th.life} ${VR[lang].lifeVal.replace(/\d+/, vm.life.match(/\d+/)[0])}` : (vm.series === 'gel' ? 'VRLA · Gel' : 'VRLA · AGM')),
 ].filter(Boolean) : rbatt ? [
   [bm.v && `${bm.v} V`, bm.ah && `${bm.ah} Ah`].filter(Boolean).join(' · '),
@@ -244,7 +255,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -273,7 +284,11 @@ const jsonLd = {
         </div>
       )}
 
-      {vrla ? (
+      {pac ? (
+        <a class="custom-banner" href={`/${lang}/precision-ac/#sizing`}>
+          <span>{PAC[lang].banner}</span><b>{PAC[lang].bannerCta} →</b>
+        </a>
+      ) : vrla ? (
         <a class="custom-banner" href={`/${lang}/${vrlaPage}#calc`}>
           <span>{cell2 ? V2[lang].banner : VR[lang].banner}</span><b>{cell2 ? V2[lang].bannerCta : VR[lang].bannerCta} →</b>
         </a>
@@ -318,7 +333,7 @@ const jsonLd = {
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
-        {!vrla && !rbatt && <p class="plug">{t.plugNote}</p>}
+        {!vrla && !rbatt && !pac && <p class="plug">{t.plugNote}</p>}
         <div class="cta">
           {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
           {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
@@ -334,7 +349,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    {!offline && !vrla && <RuntimeCalc p={p} lang={lang} />}
+    {!offline && !vrla && !pac && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">
