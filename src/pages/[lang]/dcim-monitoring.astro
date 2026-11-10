@@ -1,0 +1,333 @@
+---
+// 动环监控系统栏目页（/dcim-monitoring/）：首屏 → 前面板接口 → 监控点规划（设备数量 → 接口占用、需几台 SK-DEM）→ 组网架构 → 三级方案 → 产品特点 / V3.0 平台 / DCIM → FAQ → 询价。
+// 产品来自客户档案系统：型号 SK-DEM（或品类名带"动环"）。文字在 dem-data.mjs，规划在 dem-engine.mjs。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { DEMT } from '../../lib/dem-i18n.mjs';
+import { DEM } from '../../lib/dem-data.mjs';
+import { DEM_DEVICES, DEM_PORTS } from '../../lib/dem-engine.mjs';
+import { isDem } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = DEMT[lang];
+const tr = (x: any) => (x && typeof x === 'object' && !Array.isArray(x) ? x[lang] ?? x.en : x);
+const prod = all.filter(isDem)[0];
+const href = prod ? `/${lang}/p/${prod.slug}/` : '';
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const cfg = { lang, wa: SITE.whatsapp, t: T };
+const GROUPS = [['grpBus', ['ups', 'ac', 'pdc', 'pdu', 'batt', 'th']], ['grpIo', ['smoke', 'leak', 'door', 'ir']], ['grpSec', ['reader', 'cam']]];
+const DEF: Record<string, number> = { ups: 1, ac: 2, pdc: 1, pdu: 0, batt: 0, th: 2, smoke: 2, leak: 2, door: 2, ir: 0, reader: 1, cam: 2 };
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="dcim-monitoring/">
+<div class="off rbp demp">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#planner">{T.ctaPlan}</a>
+          <a class="btn ghost" href="#ports">{T.ctaPorts}</a>
+          {href && <a class="btn ghost" href={href}>SK-DEM →</a>}
+        </div>
+      </div>
+      <div class="hero-img"><img src="/img/dem/v3.webp" alt="" /></div>
+    </div>
+    <div class="hero-facts">
+      <div><b class="num">8</b><span>{T.facts.com}</span></div>
+      <div><b class="num">8</b><span>{T.facts.di}</span></div>
+      <div><b class="num">2</b><span>{T.facts.eth}</span></div>
+      <div><b class="num">1U</b><span>{T.facts.rack}</span></div>
+    </div>
+  </section>
+
+  <section class="block" id="ports">
+    <div class="head"><span class="eyebrow">{T.portsEyebrow}</span><h2>{T.portsH}</h2><p>{tr(DEM.ov)}</p></div>
+    <div class="dev"><img src="/img/dem/sk-dem.webp" alt="SK-DEM" /></div>
+    <div class="ports">
+      {DEM.ports.map((p) => <div class="card port"><b class="num">{p.k}</b><em>× {p.n}</em><span>{tr(p.d)}</span></div>)}
+    </div>
+    <p class="pnote">{tr(DEM.portNote)}</p>
+    <div class="pact2">
+      {href && <a class="btn line" href={href}>{T.details}</a>}
+      {SITE.whatsapp && <a class="btn dark" href={wa(T.qMsg)} target="_blank" rel="noopener">{T.quote}</a>}
+    </div>
+  </section>
+
+  <section class="block" id="planner" data-demp>
+    <script type="application/json" data-demp-cfg set:html={JSON.stringify(cfg)} />
+    <div class="head"><span class="eyebrow">{T.planEyebrow}</span><h2>{T.planH}</h2><p>{T.planP}</p></div>
+    <div class="stage">
+      <div class="ctl">
+        {GROUPS.map(([g, ks], gi) => (
+          <div class="grp">
+            <div class="gh"><span class="n">{gi + 1}</span><b>{T[g as string]}</b></div>
+            <div class="qty">
+              {(ks as string[]).map((k) => (
+                <label><span>{T.dev[k]}</span><span class="step"><button type="button" data-dec={k}>−</button><input type="number" min="0" max="99" value={DEF[k]} data-q={k} inputmode="numeric" /><button type="button" data-inc={k}>+</button></span></label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div class="out">
+        <div class="room" data-room></div>
+        <div class="rows" data-rows></div>
+        <div class="notes" data-notes></div>
+        {SITE.whatsapp && <a class="btn primary" data-qsel href="#" target="_blank" rel="noopener">{T.quoteSel}</a>}
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="network">
+    <div class="head"><span class="eyebrow">{T.netEyebrow}</span><h2>{tr(DEM.netH)}</h2></div>
+    <div class="net"><img src={`/img/dem/net-${lang}.webp`} alt="" loading="lazy" /></div>
+    <div class="two">
+      <div class="card"><h3>{tr(DEM.objH)}</h3><ul class="dots">{DEM.obj.map((x) => <li>{tr(x)}</li>)}</ul></div>
+      <div class="card"><h3>{tr(DEM.alarmH)}</h3><ul class="dots">{DEM.alarm.map((x) => <li>{tr(x)}</li>)}</ul></div>
+    </div>
+  </section>
+
+  <section class="block" id="tiers">
+    <div class="head"><span class="eyebrow">{T.tiersEyebrow}</span><h2>{tr(DEM.tiersH)}</h2></div>
+    <div class="tiers">
+      {DEM.tiers.map((x, i) => (
+        <div class="card tier"><img src={['/img/dem/cab.webp', '/img/dem/v3b.webp', '/img/dem/dcim.webp'][i]} alt="" loading="lazy" /><b class="sn">0{i + 1}</b><h3>{tr(x.h)}</h3><p>{tr(x.d)}</p>
+          {i === 2 && <div class="tags">{DEM.dcimSys.map((s) => <span>{tr(s)}</span>)}</div>}
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.platEyebrow}</span><h2>{tr(DEM.featH)}</h2></div>
+    <div class="feats4">{DEM.feat.map((x) => <div class="card"><h3>{tr(x.h)}</h3><p>{tr(x.d)}</p></div>)}</div>
+    <div class="v3 card">
+      <div><h3>{tr(DEM.v3H)}</h3><p>{tr(DEM.v3)}</p><div class="tags">{DEM.v3i.map((s) => <span>{tr(s)}</span>)}</div></div>
+      <img src="/img/dem/v3b.webp" alt="" loading="lazy" />
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+</div>
+</Base>
+
+<script>
+  import { demPlan, DEM_PORTS } from '../../lib/dem-engine.mjs';
+  const root = document.querySelector('[data-demp]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-demp-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const qty = () => Object.fromEntries([...root.querySelectorAll('[data-q]')].map((i: any) => [i.dataset.q, Math.max(0, parseInt(i.value) || 0)]));
+    const run = () => {
+      const q = qty(); const p = demPlan(q);
+      if (!p.lines.length) { $('[data-room]').innerHTML = `<p class="none">${T.empty}</p>`; $('[data-rows]').innerHTML = ''; $('[data-notes]').innerHTML = ''; return; }
+      // 接口占用条：每台 SK-DEM 一行格子，已用的实心
+      const bar = (k: string) => {
+        const cap = p.cap[k], used = p.used[k];
+        let cells = ''; for (let i = 0; i < cap; i++) cells += `<i class="${i < used ? 'on' : ''}" style="--d:${i * 20}ms"></i>`;
+        return `<div class="bar"><span>${T.portName[k]}</span><div class="cells" style="--n:${(DEM_PORTS as any)[k]}">${cells}</div><b>${used} / ${cap}</b></div>`;
+      };
+      $('[data-room]').innerHTML = `<div class="tag">${T.res}: <b>${p.units} × SK-DEM</b></div>` + ['com', 'di', 'ir', 'wg'].map(bar).join('');
+      const row = (a: string, v: string) => `<div><span>${a}</span><b>${v}</b></div>`;
+      $('[data-rows]').innerHTML = p.lines.map((l: any) => row(`${l.n} × ${T.dev[l.k]}`, `${T.portName[l.port]}${l.port === 'com' ? ` · ${T.bus}` : l.ports ? ` · ${l.ports}` : ''}`)).join('');
+      $('[data-notes]').innerHTML = p.nvr ? `<p>ⓘ ${T.nvr}</p>` : '';
+      const a = $('[data-qsel]') as HTMLAnchorElement | null;
+      if (a) a.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qSel, { list: p.lines.map((l: any) => `${l.n} × ${T.dev[l.k]}`).join(', '), n: p.units }))}`;
+    };
+    root.querySelectorAll('[data-q]').forEach((i: any) => i.addEventListener('input', run));
+    root.querySelectorAll('[data-inc],[data-dec]').forEach((b: any) => b.addEventListener('click', () => {
+      const k = b.dataset.inc || b.dataset.dec; const i = root.querySelector(`[data-q="${k}"]`) as HTMLInputElement;
+      i.value = String(Math.max(0, Math.min(99, (parseInt(i.value) || 0) + (b.dataset.inc ? 1 : -1)))); run();
+    }));
+    run();
+  }
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero-x { color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; background: linear-gradient(90deg, rgba(10,20,34,.94) 0%, rgba(10,20,34,.82) 48%, rgba(10,20,34,.35) 100%), var(--bg) center / cover, #0f1a2a; }
+  .hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 28px; padding: 52px 40px; align-items: end; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(34px, 5.4vw, 60px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #7cc7ff; }
+  .hero p { margin: 0; color: #cfd8e3; font-size: 17px; max-width: 600px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero .btn.ghost { border-color: rgba(255,255,255,.35); }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid rgba(255,255,255,.18); background: rgba(10,20,34,.55); backdrop-filter: blur(4px); border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 20px/1.1 var(--display); color: #7cc7ff; }
+  .hero-facts span { font-size: 13px; color: #b9c6d4; }
+
+  .sers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 1100px) { .sers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .sers { grid-template-columns: minmax(0, 1fr); } }
+  .ser { display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .ser:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .si { height: 190px; display: grid; place-items: center; background: linear-gradient(180deg, #f3f6f9, #fff); border-bottom: 1px solid var(--line); }
+  .si img { max-height: 170px; max-width: 80%; object-fit: contain; }
+  .sb { padding: 14px 16px 16px; display: grid; gap: 4px; align-content: start; }
+  .sb small { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .sb b { font: 700 22px var(--display); }
+  .sb em { font-style: normal; font-weight: 700; color: #1f6f8b; }
+  .sb > span { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+  .sb i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 6px; }
+  @media (max-width: 700px) { .ser { grid-template-columns: 120px minmax(0, 1fr); grid-template-rows: none; } .si { height: auto; border-bottom: 0; border-right: 1px solid var(--line); } .si img { max-height: 130px; } }
+
+  .stage { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; padding: 22px; border-radius: 16px; color: #e6edf5; background: radial-gradient(120% 90% at 75% 40%, #16304a 0%, #0d1c2c 55%, #08121d 100%); }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+  .ctl { display: grid; gap: 18px; align-content: start; }
+  .grp { display: grid; gap: 10px; }
+  .gh { display: flex; gap: 10px; align-items: center; } .gh b { font-size: 15px; }
+  .n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #7cc7ff; color: #06223a; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 0 12px; min-height: 36px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #d3dde8; font: 600 13px var(--body); cursor: pointer; }
+  .chip.on { background: #7cc7ff; color: #06223a; border-color: #7cc7ff; }
+  .hint { font-size: 12.5px; color: #9fb0c2; }
+  .chk { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #d3dde8; cursor: pointer; }
+  .numin { display: flex; align-items: center; gap: 8px; } .numin span { font: 600 14px var(--mono); color: #9fb0c2; }
+  .numin input { width: 140px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.2); background: #06121e; color: #fff; }
+  .out { display: grid; gap: 12px; align-content: start; }
+  .room { padding: 18px 16px; border-radius: 14px; background: linear-gradient(180deg, #eef3f8, #dce5ee); box-shadow: inset 0 0 0 1px #c3cfdb, 0 24px 50px rgba(0,0,0,.45); color: #1d2b39; display: grid; gap: 12px; justify-items: center; min-height: 160px; align-content: center; }
+  .room :global(.tag) { font: 700 12.5px var(--mono); padding: 5px 12px; border-radius: 99px; background: #0b1a29; color: #7cc7ff; text-align: center; }
+  .room :global(.tag a) { color: #fff; }
+  .room :global(svg) { width: 100%; max-height: 120px; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .room :global(.lg) { display: flex; gap: 14px; font: 600 12.5px var(--mono); }
+  .room :global(.sbk) { color: #5c6b7a; }
+  .room :global(.none) { margin: 0; text-align: center; font-weight: 600; }
+  .rows :global(div) { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.14); font-size: 14px; }
+  .rows :global(span) { color: #9fb0c2; } .rows :global(b) { font: 700 15px var(--mono); text-align: right; }
+  .rows :global(a), .alts :global(a) { color: #7cc7ff; }
+  .alts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: #9fb0c2; }
+  .alts :global(em) { font-style: normal; font-family: var(--mono); color: #d3dde8; }
+  .out .btn { justify-self: start; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 16px; }
+  .vtabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vtabs button { min-height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 14px var(--body); cursor: pointer; }
+  .vtabs button small { font: 600 12px var(--mono); color: var(--muted); margin-left: 4px; }
+  .vtabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .vtabs button.on small { color: #c9d4d1; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6%; box-sizing: border-box; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; }
+  .tag.pb { background: #e6eef5; color: #1f4b6e; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .tag.rh { background: #1f6f8b; color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 21px; overflow-wrap: anywhere; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .tblock { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; }
+  .tblock summary { cursor: pointer; padding: 14px 18px; font-weight: 700; font-size: 16px; display: flex; gap: 12px; align-items: baseline; }
+  .tblock summary span { font-size: 13px; color: var(--muted); }
+  .tbl-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 11.5px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  .tbl-wrap a { color: var(--ink); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat svg { width: 34px; height: 34px; fill: none; stroke: #1f6f8b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { font-size: 21px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .hero { color: #fff; margin-top: 14px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 80% 30%, #16304a 0%, #0d1c2c 55%, #08121d 100%); }
+  .hero-in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; padding: 44px 40px 20px; }
+  .hero-img img { width: 100%; border-radius: 12px; box-shadow: 0 30px 50px rgba(0,0,0,.5); }
+  .hero > .hero-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 40px 34px; }
+  @media (max-width: 860px) { .hero > .hero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 20px 22px; } }
+  .dev { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; place-items: center; margin-bottom: 14px; } .dev img { width: 100%; max-width: 900px; }
+  .ports { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 860px) { .ports { grid-template-columns: minmax(0, 1fr); } }
+  .port { padding: 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; } .port b { font-size: 17px; } .port em { font-style: normal; font: 700 14px var(--mono); color: #e2231a; } .port span { grid-column: 1 / -1; font-size: 13.5px; color: var(--muted); }
+  .pnote { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; } .pact2 { display: flex; gap: 10px; margin-top: 14px; }
+  .qty { display: grid; gap: 6px; } .qty label { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: #d3dde8; }
+  .step { display: inline-flex; align-items: center; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; overflow: hidden; }
+  .step button { width: 30px; height: 32px; background: transparent; color: #fff; border: 0; font-size: 17px; cursor: pointer; } .step button:hover { background: rgba(255,255,255,.1); }
+  .step input { width: 44px; height: 32px; text-align: center; background: #06121e; color: #fff; border: 0; font: 700 15px var(--mono); -moz-appearance: textfield; } .step input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .room :global(.tag b) { color: #fff; }
+  .room :global(.bar) { width: 100%; display: grid; grid-template-columns: 120px minmax(0, 1fr) 54px; gap: 10px; align-items: center; font-size: 12.5px; }
+  .room :global(.bar b) { font: 700 13px var(--mono); text-align: right; }
+  .room :global(.cells) { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; }
+  .room :global(.cells i) { height: 16px; border-radius: 3px; background: #fff; border: 1px solid #b3c2d0; animation: pop .3s both; animation-delay: var(--d); }
+  .room :global(.cells i.on) { background: #1f6f8b; border-color: #1f6f8b; }
+  .notes :global(p) { margin: 0; font-size: 13px; color: #9fd3ff; }
+  .net { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; } .net img { width: 100%; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } @media (max-width: 760px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  .two h3, .tier h3, .feats4 h3, .v3 h3 { font-size: 18px; }
+  ul.dots { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } @media (max-width: 900px) { .tiers { grid-template-columns: minmax(0, 1fr); } }
+  .tier { display: grid; gap: 8px; align-content: start; } .tier img { width: 100%; height: 170px; object-fit: cover; border-radius: 8px; background: #0d1c2c; } .tier .sn { font: 700 13px var(--mono); color: #e2231a; } .tier p { margin: 0; font-size: 14px; color: var(--muted); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; } .tags span { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: #e6eef5; color: #1f4b6e; }
+  .feats4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; } .feats4 p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+  @media (max-width: 760px) { .feats4 { grid-template-columns: minmax(0, 1fr); } }
+  .v3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: center; } .v3 p { font-size: 14px; color: var(--muted); } .v3 img { width: 100%; border-radius: 8px; }
+  @media (max-width: 860px) { .v3 { grid-template-columns: minmax(0, 1fr); } }
+</style>

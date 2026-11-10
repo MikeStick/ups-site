@@ -51,6 +51,8 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
         <ul>{items('solar').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
         <h2 class="mt">{H.strip.batt[0]}</h2>
         <ul>{items('batt').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
+        <h2 class="mt">{H.strip.dc[0]}</h2>
+        <ul>{items('dc').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
       </div>
       <div class="sf-col">
         <h2>{T.tools}</h2>

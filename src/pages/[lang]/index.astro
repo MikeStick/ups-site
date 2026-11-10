@@ -36,7 +36,7 @@ function rangeOf(it, ps) {
   if (it.unit === 'kw') return span(ps.map((p) => invKw(p)), (x) => `${x} kW`);
   if (it.unit === 'kwh') return span(ps.map((p) => kwhOf(it.key, p)), (x) => `${+(+x).toFixed(1)} kWh`);
   if (it.unit === 'pac') { const r = span(ps.map((p) => (pacSpec(p) || {}).cool).filter(Boolean), (x) => `${x} kW`); return r; }
-  if (it.unit === 'idm') return '';
+  if (it.unit === 'idm' || it.unit === 'dem') return '';
   if (it.unit === 'cab') { const v = ps.map((p) => (cabSpec(p) || {}).dcv).filter(Boolean); return v.length ? span(v, (x) => `${x} V`) + ' DC' : ''; }
   if (it.unit === 'ah2') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `2 V · ${r}` : ''; }
   if (it.unit === 'ah') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `12 V · ${r}` : ''; }
@@ -52,7 +52,7 @@ const groups = catalog(lang).map((g) => ({
   }),
 }));
 // 开场动画下面的一排产品照片：每组三张类目图（中间大、两边小），点了跳到产品总览里对应的组
-const STRIP_PICK = { ups: ['online', 'modular', 'mini'], solar: ['inverter', 'homeess', 'ciess'], batt: ['wall', 'hvcab', 'pbr'] };
+const STRIP_PICK = { ups: ['online', 'modular', 'mini'], solar: ['inverter', 'homeess', 'ciess'], batt: ['wall', 'hvcab', 'pbr'], dc: ['pac', 'idm', 'dem'] };
 // 不属于任何栏目的已发布产品：网站上不会出现，构建日志里提醒一下（CRM 里新加了品类、网站还没给它建栏目时会这样）
 if (lang === 'en') {
   const fs = catalog(lang).flatMap((g) => g.items.map((x) => x.f).filter(Boolean));
@@ -86,6 +86,7 @@ const ICONS = {
   hvcab: '<rect x="12" y="4" width="24" height="40" rx="2"/><rect x="16" y="8" width="16" height="6" rx="1"/><path d="M16 19h16M16 24h16M16 29h16M16 34h16M16 39h16"/>',
   pbr: '<rect x="6" y="14" width="36" height="24" rx="3"/><path d="M12 14v-4h6v4M30 14v-4h6v4M14 26h6M31 23v6M28 26h6"/>',
   pac: '<rect x="10" y="4" width="28" height="40" rx="2"/><rect x="15" y="9" width="18" height="7" rx="1"/><path d="M15 22h18M15 27h18M15 32h18M15 37h18"/><path d="M40 14c2 2 2 5 0 7M43 11c4 4 4 9 0 13"/>',
+  dem: '<rect x="6" y="8" width="36" height="24" rx="2"/><path d="M18 40h12M24 32v8M11 24l7-7 6 5 7-9 6 6"/>',
   idm: '<rect x="4" y="14" width="40" height="26" rx="2"/><path d="M4 20h40M12 20v20M20 20v20M28 20v20M36 20v20"/><path d="M10 14l4-6h20l4 6"/>',
   cab: '<rect x="10" y="4" width="28" height="40" rx="2"/><path d="M10 17h28M10 30h28"/><rect x="14" y="8" width="8" height="7" rx="1"/><rect x="26" y="8" width="8" height="7" rx="1"/><rect x="14" y="21" width="8" height="7" rx="1"/><rect x="26" y="21" width="8" height="7" rx="1"/><rect x="14" y="34" width="8" height="7" rx="1"/><rect x="26" y="34" width="8" height="7" rx="1"/>',
   vrla2: '<rect x="12" y="10" width="24" height="32" rx="2"/><path d="M12 16h24M17 10V6h5v4M26 10V6h5v4M19 28h10"/>',
@@ -237,17 +238,17 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
   .btn:hover { filter: brightness(.96); }
   /* —— 开场动画下的产品照片条 —— */
-  .strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 26px 0 0; }
+  .strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 26px 0 0; }
   .st { display: grid; grid-template-rows: auto 1fr; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
   .st:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 14px 30px rgba(15,107,92,.12); }
   .st-pics { display: grid; grid-template-columns: 1fr 1.4fr 1fr; align-items: end; gap: 0; padding: 18px 14px 0; height: 190px; box-sizing: border-box; background: linear-gradient(#f1f4f3, #e6ecea); }
-  .g-solar .st-pics { background: linear-gradient(#faf5e6, #f3ead0); } .g-batt .st-pics { background: linear-gradient(#eef2fa, #e0e7f4); }
+  .g-solar .st-pics { background: linear-gradient(#faf5e6, #f3ead0); } .g-batt .st-pics { background: linear-gradient(#eef2fa, #e0e7f4); } .g-dc .st-pics { background: linear-gradient(#eaf5f8, #d9ecf2); }
   .st-pic { position: relative; height: 72%; display: grid; place-items: center; }
   .st-pic.mid { height: 100%; }
   .st-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; mix-blend-mode: multiply; transition: transform .25s; }
   .st:hover .st-pic img { transform: translateY(-4px); }
   .st-pic svg { width: 56%; max-width: 70px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  .g-solar .st-pic svg { stroke: #b07f00; } .g-batt .st-pic svg { stroke: #2b4f8f; }
+  .g-solar .st-pic svg { stroke: #b07f00; } .g-batt .st-pic svg { stroke: #2b4f8f; } .g-dc .st-pic svg { stroke: #1f6f8b; }
   .st-b { display: grid; gap: 4px; align-content: start; padding: 16px 18px 18px; }
   .st-b b { font-family: var(--display); text-transform: uppercase; font-size: 24px; line-height: 1.05; }
   .st-b small { color: var(--muted); font-size: 14px; line-height: 1.45; }
@@ -260,7 +261,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .grp-h h3 { margin: 0; font-family: var(--display); text-transform: uppercase; font-size: clamp(26px, 3vw, 34px); line-height: 1.05; }
   .grp-h p { margin: 0; flex-basis: 100%; color: var(--muted); font-size: 15.5px; line-height: 1.5; }
   .grp-tag { order: 2; padding: 3px 10px; border-radius: 999px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; background: #e3efeb; color: var(--accent); }
-  .g-solar .grp-tag { background: #fbefc6; color: #7a5a00; } .g-batt .grp-tag { background: #e6ecf8; color: #2b4f8f; }
+  .g-solar .grp-tag { background: #fbefc6; color: #7a5a00; } .g-batt .grp-tag { background: #e6ecf8; color: #2b4f8f; } .g-dc .grp-tag { background: #e0f0f5; color: #1f6f8b; }
   .grp-h p { order: 3; }
   .cats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 16px; }
   .cat { position: relative; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; overflow: hidden; transition: border-color .15s, transform .15s, box-shadow .15s; }
@@ -272,6 +273,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .cimg svg { width: 84px; height: 84px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .g-solar .cimg { background: #faf5e6; } .g-solar .cimg svg { stroke: #b07f00; }
   .g-batt .cimg { background: #eef2fa; } .g-batt .cimg svg { stroke: #2b4f8f; }
+  .g-dc .cimg { background: #eaf5f8; } .g-dc .cimg svg { stroke: #1f6f8b; }
   .cat.istool { border-style: dashed; }
   .cbody { display: grid; gap: 5px; align-content: start; flex: 1; padding: 16px 18px 18px; min-width: 0; }
   .cbody b { font-size: 18px; line-height: 1.25; }

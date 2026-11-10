@@ -22,9 +22,10 @@ import { V2 } from './vrla2-i18n.mjs';
 import { PAC } from './pac-i18n.mjs';
 import { CAB } from './cab-i18n.mjs';
 import { IDMT } from './idm-i18n.mjs';
+import { DEMT } from './dem-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm, isDem,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -45,8 +46,6 @@ export function catalog(lang) {
       { key: 'homeess', page: 'home-ess/', label: HE[lang].nav, f: isHomeEss, unit: 'kwh' },
       { key: 'ciess', page: 'ci-ess/', label: CI[lang].nav, f: isCiEss, unit: 'kwh' },
       { key: 'designer', page: 'solar-designer/', label: SD[lang].nav, tool: true },
-      { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' }, // 精密空调：放在“太阳能与储能”一栏末尾（该栏较短）
-      { key: 'idm', page: 'micro-data-center/', label: IDMT[lang].nav, f: isIdm, unit: 'idm' }, // 微模块数据中心：紧跟精密空调
     ] },
     { key: 'batt', h: NG.batt, items: [
       { key: 'wall', page: 'batteries/wall-lithium/', label: WB[lang].nav, f: isWallBattery, unit: 'kwh' },
@@ -57,6 +56,12 @@ export function catalog(lang) {
       { key: 'vrla', page: 'batteries/vrla/', label: VR[lang].nav, f: isVrla12, unit: 'ah' },
       { key: 'vrla2', page: 'batteries/vrla-2v/', label: V2[lang].nav, f: isVrla2, unit: 'ah2' },
       { key: 'cab', page: 'batteries/battery-cabinet/', label: CAB[lang].nav, f: isBattCab, unit: 'cab' }, // 铅酸电池柜：电池一栏最后
+    ] },
+    // 第四栏：制冷与数据中心（电池右侧）——精密空调、微模块数据中心、动环监控系统
+    { key: 'dc', h: NG.dc, items: [
+      { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' },
+      { key: 'idm', page: 'micro-data-center/', label: IDMT[lang].nav, f: isIdm, unit: 'idm' },
+      { key: 'dem', page: 'dcim-monitoring/', label: DEMT[lang].nav, f: isDem, unit: 'dem' },
     ] },
   ];
 }

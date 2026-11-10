@@ -30,7 +30,7 @@ import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import { VR, VR_P, vrlaSpecRows, vrlaTables } from '../../../lib/vrla-i18n.mjs';
 import { vrlaModule } from '../../../lib/vrla-engine.mjs';
-import { isVrla, isCell2v, isBattCab, isIdm } from '../../../lib/category.mjs';
+import { isVrla, isCell2v, isBattCab, isIdm, isDem } from '../../../lib/category.mjs';
 import { V2 } from '../../../lib/vrla2-i18n.mjs';
 import { PAC, pacSpecRows } from '../../../lib/pac-i18n.mjs';
 import { pacSpec } from '../../../lib/pac-engine.mjs';
@@ -38,6 +38,8 @@ import { CAB, cabSpecRows } from '../../../lib/cab-i18n.mjs';
 import { IDMT } from '../../../lib/idm-i18n.mjs';
 import { IDM } from '../../../lib/idm-data.mjs';
 import { idmKey } from '../../../lib/idm-engine.mjs';
+import { DEMT } from '../../../lib/dem-i18n.mjs';
+import { DEM } from '../../../lib/dem-data.mjs';
 import { cabSpec } from '../../../lib/cab-engine.mjs';
 import products from '../../../data/products.json';
 
@@ -89,11 +91,13 @@ const pacS = pacSpec(P0);
 const pac = !!pacS;
 // 铅酸电池柜（C-1 … C-40）：参数按型号查画册数据（cab-specs），面包屑和横幅指向 /batteries/battery-cabinet/；12V 电池产品页加一条"配电池柜"横幅
 // 微模块数据中心（IDM-S / IDM-R / IDM2-D）：参数表 = 画册配置表，面包屑和横幅指向 /micro-data-center/
-const idmK = !pac && isIdm(P0) ? idmKey(P0.model) : '';
+// 动环监控主机 SK-DEM：参数表 = 前面板接口，面包屑和横幅指向 /dcim-monitoring/
+const dem = !pac && isDem(P0);
+const idmK = !pac && !dem && isIdm(P0) ? idmKey(P0.model) : '';
 const idm = !!idmK;
-const cabS = !pac && !idm && isBattCab(P0) ? cabSpec(P0) : null;
+const cabS = !pac && !idm && !dem && isBattCab(P0) ? cabSpec(P0) : null;
 const cab = !!cabS;
-const vrla = !pac && !cab && !idm && isVrla(P0);
+const vrla = !pac && !cab && !idm && !dem && isVrla(P0);
 const cell2 = vrla && isCell2v(P0); // 2V 单体：面包屑和横幅指向 /batteries/vrla-2v/
 const vrlaPage = cell2 ? 'batteries/vrla-2v/' : 'batteries/vrla/';
 const vm = vrla ? vrlaModule(p) : null;
@@ -169,7 +173,9 @@ function tableSeries() {
 }
 const tSeries = tableSeries();
 // 铅酸：同系列 = 同容量率（10HR / 20HR）、同系列（AGM / HR …）的型号，按 Ah 排
-const series = idm
+const series = dem
+  ? []
+  : idm
   ? products.filter(isIdm).sort((a, b) => ['IDM-S', 'IDM-R', 'IDM2-D'].indexOf(idmKey(a.model)) - ['IDM-S', 'IDM-R', 'IDM2-D'].indexOf(idmKey(b.model)))
   : cab
   ? products.map((x) => ({ x, s: isBattCab(x) ? cabSpec(x) : null })).filter((o) => o.s).sort((a, b) => a.s.n - b.s.n).map((o) => o.x)
@@ -180,7 +186,10 @@ const series = idm
   : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
 const idmTr = (x) => (x && typeof x === 'object' ? x[lang] ?? x.en : x);
-const rows = idm
+const demTr = (x) => (x && typeof x === 'object' ? x[lang] ?? x.en : x);
+const rows = dem
+  ? [[DEMT[lang].spec.model, p.model], [DEMT[lang].spec.type, demTr(DEM.name)], [DEMT[lang].spec.mount, DEMT[lang].spec.mountV], ...DEM.ports.map((x) => [x.k, `${x.n} × ${demTr(x.d)}`])]
+  : idm
   ? [[IDMT[lang].spec.model, p.model], [IDMT[lang].spec.format, IDMT[lang].forms[idmK][0]], ...IDM.bom[idmK].flatMap((g) => g.items.map((it) => [`${idmTr(g.sys)} · ${idmTr(it.name)}`, `${it.qty !== '1' ? it.qty + ' × ' : ''}${idmTr(it.val)}`]))]
   : cab
   ? cabSpecRows(p, cabS, lang)
@@ -226,7 +235,7 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = idm ? [IDMT[lang].forms[idmK][0], IDMT[lang].forms[idmK][1], IDMT[lang].forms[idmK][3], 'PUE < 1.5'] : cab ? [
+const highlights = dem ? ['8 × COM RS485/RS232', '8 × DI', '2 × ETH · SNMP', '1U 19"'] : idm ? [IDMT[lang].forms[idmK][0], IDMT[lang].forms[idmK][1], IDMT[lang].forms[idmK][3], 'PUE < 1.5'] : cab ? [
   `${cabS.dcv} ${CAB[lang].u.v} DC`, CAB[lang].hl.replace('{n}', cabS.n), `12 ${CAB[lang].u.v} ≤ ${cabS.maxAh} ${CAB[lang].u.ah}`, `${cabS.size.replace(/×/g, ' × ')} ${CAB[lang].u.mm}`,
 ] : pac ? [
   `${lang === 'en' ? pacS.cool : String(pacS.cool).replace('.', ',')} ${lang === 'ru' ? 'кВт' : 'kW'}`, PAC[lang].seriesName[pacS.series], pacS.rh ? PAC[lang].spec.kindRh : PAC[lang].spec.kindCool, '±1 °C · R410A',
@@ -277,7 +286,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -306,7 +315,11 @@ const jsonLd = {
         </div>
       )}
 
-      {idm ? (
+      {dem ? (
+        <a class="custom-banner" href={`/${lang}/dcim-monitoring/#planner`}>
+          <span>{DEMT[lang].banner}</span><b>{DEMT[lang].bannerCta} →</b>
+        </a>
+      ) : idm ? (
         <a class="custom-banner" href={`/${lang}/micro-data-center/?m=${idmK}#configurator`}>
           <span>{IDMT[lang].banner}</span><b>{IDMT[lang].bannerCta} →</b>
         </a>
@@ -370,7 +383,7 @@ const jsonLd = {
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
-        {!vrla && !rbatt && !pac && !cab && !idm && <p class="plug">{t.plugNote}</p>}
+        {!vrla && !rbatt && !pac && !cab && !idm && !dem && <p class="plug">{t.plugNote}</p>}
         <div class="cta">
           {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
           {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
@@ -386,7 +399,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    {!offline && !vrla && !pac && !cab && !idm && <RuntimeCalc p={p} lang={lang} />}
+    {!offline && !vrla && !pac && !cab && !idm && !dem && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">

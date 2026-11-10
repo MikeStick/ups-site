@@ -283,5 +283,7 @@ export function seriesName(p) {
 
 // 精密空调（机房空调）：型号 SK-FAJ… / SK-LAJ… / SK-RMJ…，或品类名带"精密空调 / 机房空调 / 基站空调 / 列间 / 机架式空调"。栏目 /precision-ac/，参数在 pac-engine.mjs
 // 微模块数据中心（IDM Ⅱ）：型号 IDM-S / IDM-R / IDM2-D，或品类名带"微模块 / 模块化数据中心"。栏目 /micro-data-center/，数据在 idm-engine / idm-data
+// 动环监控系统：型号 SK-DEM，或品类名带"动环"。栏目 /dcim-monitoring/
+export const isDem = (p) => /^SK-?DEM\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /动环|动力环境监控/.test(t));
 export const isIdm = (p) => /^IDM(2|Ⅱ|II)?\s*-?\s*[SRD]\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /微模块|模块化数据中心|一体化机柜/.test(t));
 export const isPac = (p) => /^SK-?(FAJ|LAJ|RMJ)\d{3}/i.test(String(p.model || '').trim()) || typesOf(p).some((t) => /精密空调|机房空调|基站空调|列间空调|机架式空调|房间级空调/.test(t));

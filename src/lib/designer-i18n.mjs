@@ -81,7 +81,7 @@ export const SD = {
 
 // 菜单分组标题（光伏栏从工商业储能柜上线起改名为"光伏与储能"）
 export const NAV_GROUPS = {
-  en: { ups: 'UPS', solar: 'Solar & storage', batt: 'Batteries' },
-  es: { ups: 'UPS', solar: 'Solar y almacenamiento', batt: 'Baterías' },
-  ru: { ups: 'ИБП', solar: 'Солнце и накопители', batt: 'Аккумуляторы' },
+  en: { ups: 'UPS', solar: 'Solar & storage', batt: 'Batteries', dc: 'Cooling and Datacenter' },
+  es: { ups: 'UPS', solar: 'Solar y almacenamiento', batt: 'Baterías', dc: 'Climatización y centro de datos' },
+  ru: { ups: 'ИБП', solar: 'Солнце и накопители', batt: 'Аккумуляторы', dc: 'Охлаждение и ЦОД' },
 };

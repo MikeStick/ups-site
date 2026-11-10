@@ -10,7 +10,7 @@ import { IDM_MODELS, idmKey } from '../../lib/idm-engine.mjs';
 import { pacSpec } from '../../lib/pac-engine.mjs';
 import { cabSpec } from '../../lib/cab-engine.mjs';
 import { vrlaModule } from '../../lib/vrla-engine.mjs';
-import { isIdm, isPac, isBattCab, isVrla12 } from '../../lib/category.mjs';
+import { isIdm, isPac, isBattCab, isVrla12, isDem } from '../../lib/category.mjs';
 import all from '../../data/products.json';
 
 export function getStaticPaths() {
@@ -27,6 +27,7 @@ const pic = (m: string) => imgOf[m] || `/img/idm/${m.toLowerCase()}.webp`;
 const links: Record<string, string> = {};
 for (const p of all.filter(isPac)) { const s = pacSpec(p); if (s) links[s.model] = p.slug; }
 for (const p of all.filter(isBattCab)) { const s = cabSpec(p); if (s) links[s.model] = p.slug; }
+for (const p of all.filter(isDem)) links['SK-DEM'] = p.slug;
 const batts = all.filter(isVrla12).map((p) => vrlaModule(p)).filter((m) => m.v === 12 && m.ah)
   .map((m) => ({ model: m.model, slug: m.slug || '', v: m.v, ah: m.ah, rate: m.rate, kg: m.kg || 0, series: m.series, tables: m.tables }));
 const cfg = { lang, wa: SITE.whatsapp, t: T, links, batts, forms: Object.fromEntries(IDM_MODELS.map((m) => [m, tr(T.forms[m][0])])) };
@@ -294,7 +295,7 @@ const cellCls: Record<string, string> = { I: 'i', A: 'a', P: 'p', U: 'u', B: 'b'
       const ups = p.ups.type === 'rack' ? fmt(T.upsRack, { k: p.ups.kva }) : fmt(T.upsMod, { n: p.ups.modules, m: p.ups.module, k: p.ups.kva });
       const bat = !p.battery ? '—' : p.battery.internal ? T.battInt : `${p.battery.total} × ${p.battery.slug ? `<a href="/${c.lang}/p/${p.battery.slug}/">${p.battery.model}</a>` : p.battery.model} <small>${fmt(T.battRun, { t: p.battery.runtime })}${p.battery.est ? ` · ${T.est}` : ''}</small>`;
       $('[data-rows]').innerHTML = row(T.rForm, `${p.model}${p.modules > 1 ? ` × ${p.modules}` : ''}`) + row(T.rLoad, `${dec(p.total)} ${kwU}`) + row(T.rCool, cool) + row(T.rUps, ups) + row(T.rBatt, bat)
-        + (p.cabinets ? row(T.rCab, fmt(T.cabs, { q: p.cabinets.qty, m: link(p.cabinets.model) })) : '') + (p.form === 'D' ? row(T.rLen, `${dec(p.length)} ${mU}`) : '');
+        + (p.cabinets ? row(T.rCab, fmt(T.cabs, { q: p.cabinets.qty, m: link(p.cabinets.model) })) : '') + (p.form !== 'S' ? row(T.rMon, `${p.modules} × ${link('SK-DEM')}`) : '') + (p.form === 'D' ? row(T.rLen, `${dec(p.length)} ${mU}`) : '');
       const N: any = { density: T.nDensity, multi: fmt(T.nMulti, { n: p.modules }), length: T.nLength, rack: T.nRack, battery: T.nBattery, cells: fmt(T.nCells, { lang: c.lang }) };
       $('[data-notes]').innerHTML = p.notes.map((k: string) => `<p>⚠ ${N[k] || ''}</p>`).join('');
       const q = $('[data-qsel]') as HTMLAnchorElement | null;

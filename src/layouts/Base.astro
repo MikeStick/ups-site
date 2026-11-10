@@ -89,7 +89,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
     .nav-menu summary i { font-style: normal; font-size: 10px; color: #a9b8b4; }
     .nav-menu summary:hover, .nav-menu[open] summary { color: #fff; }
     .nav-menu summary[aria-current="page"] { color: #fff; box-shadow: inset 0 0 0 1px #4b5f5b; }
-    .nav-list { position: absolute; right: 0; top: calc(100% - 6px); z-index: 50; width: min(760px, 100%); box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; }
+    .nav-list { position: absolute; right: 0; top: calc(100% - 6px); z-index: 50; width: min(960px, calc(100vw - 32px)); box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; }
     .nav-col { display: grid; align-content: start; gap: 1px; }
     .nav-col + .nav-col { border-left: 1px solid var(--line); padding-left: 14px; }
     .nav-gh { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 4px 10px 8px; }
