@@ -21,6 +21,7 @@ export const NW = {
 };
 const MON = { en: 'en-GB', es: 'es-ES', ru: 'ru-RU' };
 export const monthYear = (d, lang) => new Date(d + 'T00:00:00Z').toLocaleDateString(MON[lang], { month: 'long', year: 'numeric', timeZone: 'UTC' });
+export const fullDate = (d, lang) => new Date(d + 'T00:00:00Z').toLocaleDateString(MON[lang], { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const tx = (x, lang) => (x && typeof x === 'object' && !Array.isArray(x) ? x[lang] || x.en || '' : x || '');
 // 阅读时长：按全部文字词数 / 200
 export const readMin = (n, lang) => {

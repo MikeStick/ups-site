@@ -18,7 +18,7 @@ const items = (k) => (g(k) ? g(k).items.filter((x) => !x.tool) : []);
 const waUrl = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '';
 const qr = waUrl ? await QRCode.toString(CONTACT.scanUrl || waUrl, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0f1d1b', light: '#ffffff' } }) : '';
 const L = T.links;
-const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory', L.factory], ['about/#honors', L.certs], ['about/#beijing', L.beijing], ['contact/#factory', L.tour], ['about/#news', L.news], ['contact/', L.contact]];
+const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory', L.factory], ['about/#honors', L.certs], ['about/#beijing', L.beijing], ['contact/#factory', L.tour], ['news/', L.news], ['contact/', L.contact]];
 ---
 <footer class="sf">
   <div class="sf-wrap sf-main">

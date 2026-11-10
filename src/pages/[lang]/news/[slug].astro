@@ -3,16 +3,16 @@
 // （导语、小标题、单图、双图、横滑图集+灯箱、YouTube 点击加载、引言、数字条、相关产品卡）→ 继续阅读 → 上一篇 / 下一篇。
 import Base from '../../../layouts/Base.astro';
 import { LANGS, SITE } from '../../../config.mjs';
-import { NW, monthYear, tx, readMin, hasVideo } from '../../../lib/news-i18n.mjs';
-import { NEWS_SAMPLE } from '../../../data/news-sample.mjs';
+import { NW, monthYear, fullDate, tx, readMin, hasVideo } from '../../../lib/news-i18n.mjs';
+import { NEWS_LIST } from '../../../lib/news-data.mjs';
 import { catalog } from '../../../lib/catalog.mjs';
 
 export function getStaticPaths() {
-  return LANGS.flatMap((lang) => NEWS_SAMPLE.map((n) => ({ params: { lang, slug: n.slug } })));
+  return LANGS.flatMap((lang) => NEWS_LIST.map((n) => ({ params: { lang, slug: n.slug } })));
 }
 const { lang, slug } = Astro.params;
 const T = NW[lang];
-const list = [...NEWS_SAMPLE].sort((a, b) => b.date.localeCompare(a.date));
+const list = NEWS_LIST;
 const i = list.findIndex((n) => n.slug === slug);
 const n = list[i];
 const prev = list[i + 1], next = list[i - 1];
@@ -32,7 +32,7 @@ const ICON = '<rect x="6" y="10" width="36" height="28" rx="3"/><path d="M6 18h3
     <img src={n.cover} alt="" class:list={{ fit: n.coverFit === 'contain' }} />
     <div class="wrap cv-in">
       <nav class="crumbs"><a href={`/${lang}/news/`}>← {T.back}</a></nav>
-      <span class="meta"><i class={`c c-${n.cat}`}>{T.cats[n.cat]}</i><time>{monthYear(n.date, lang)}</time>{n.place && <span>· {n.place}</span>}<span>· {readMin(n, lang)} {T.min}</span>{hasVideo(n) && <span>· ▶ {T.video}</span>}</span>
+      <span class="meta"><i class={`c c-${n.cat}`}>{T.cats[n.cat]}</i><time datetime={n.datetime || n.date}>{fullDate(n.date, lang)}</time>{n.place && <span>· {tx(n.place, lang)}</span>}<span>· {readMin(n, lang)} {T.min}</span>{hasVideo(n) && <span>· ▶ {T.video}</span>}</span>
       <h1>{title}</h1>
     </div>
   </header>

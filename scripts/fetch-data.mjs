@@ -80,7 +80,7 @@ async function saveHeroMedia(url, slot) {
 
 // 详情图：通常是很长的竖图，WebP 最大边长只有 16383px，所以用 JPEG（最大 65535px），宽度压到 1200 以内
 // prefix：产品自己的详情图是 d1、d2…；模板图片放在 _tpl/<模板id>/ 下，用 t1、t2…
-async function saveDetailImage(url, slug, idx, prefix = 'd') {
+async function saveDetailImage(url, slug, idx, prefix = 'd', width = 1200) {
   const r = await fetch(url, { headers: { 'x-site-key': KEY } });
   if (!r.ok) { console.warn(`[fetch-data] 详情图下载失败 ${url} → HTTP ${r.status}`); return null; }
   const buf = Buffer.from(await r.arrayBuffer());
@@ -89,7 +89,7 @@ async function saveDetailImage(url, slug, idx, prefix = 'd') {
   if (sharp) {
     const name = `${prefix}${idx + 1}-${hashOf(buf)}.jpg`;
     const info = await sharp(buf, { limitInputPixels: false }).rotate()
-      .resize({ width: 1200, withoutEnlargement: true })
+      .resize({ width, withoutEnlargement: true })
       .flatten({ background: '#ffffff' })
       .jpeg({ quality: 82, progressive: true, mozjpeg: true })
       .toFile(path.join(dir, name));
@@ -222,6 +222,31 @@ async function main() {
   await fetchSite();
 }
 
+// 新闻文章：封面、正文图片下载到 /media/news-<slug>/（封面 1600 px，正文 1200 px），YouTube 封面也存到本地
+async function saveArticleMedia(n) {
+  if (!n.slug || !/^[a-z0-9-]+$/.test(n.slug)) return null;
+  const dir = `news-${n.slug}`;
+  let k = 0;
+  const get = async (url, w = 1200) => { try { const im = await saveDetailImage(url, dir, k++, 'n', w); return im ? im.src : null; } catch (e) { console.warn(`[fetch-data] 新闻图片处理失败 ${n.slug}：${e.message}`); return null; } };
+  const out = { ...n, cover: n.cover ? await get(n.cover, 1600) : null, blocks: [] };
+  for (const b of n.blocks || []) {
+    if (b.t === 'img') { const src = await get(b.src); if (src) out.blocks.push({ ...b, src }); }
+    else if (b.t === 'pair' || b.t === 'gallery') {
+      const items = [];
+      for (const it of b.items || []) { const src = await get(it.src); if (src) items.push({ ...it, src }); }
+      if (items.length === 1) out.blocks.push({ t: 'img', ...items[0] });
+      else if (items.length) out.blocks.push({ ...b, t: b.t === 'pair' && items.length === 2 ? 'pair' : 'gallery', items });
+    }
+    else if (b.t === 'yt') {
+      // 封面直接用 YouTube 的地址（不经过 saveDetailImage：那个函数会带上构建密钥请求头，不能发给外站）
+      if (/^[\w-]{11}$/.test(b.id || '')) out.blocks.push({ ...b, poster: `https://i.ytimg.com/vi/${b.id}/hqdefault.jpg` });
+    }
+    else out.blocks.push(b);
+  }
+  if (!out.cover) out.cover = (out.blocks.find((b) => b.t === 'img') || {}).src || '/img/beijing-office.jpg';
+  return out;
+}
+
 // 网站管理的图片和动态。接口不可用时（比如 CRM 还没更新）不让构建失败，页面按"没上传图片、默认动态"显示。
 async function fetchSite() {
   let site = { assets: {}, news: [] };
@@ -243,7 +268,12 @@ async function fetchSite() {
       }
       if (saved.length) assets[slot] = saved;
     }
-    site = { assets, news: Array.isArray(raw.news) ? raw.news : [] };
+    const news = [];
+    for (const n of Array.isArray(raw.news) ? raw.news : []) {
+      if (n && n.kind === 'article') { const a = await saveArticleMedia(n); if (a) news.push(a); }
+      else news.push(n);
+    }
+    site = { assets, news };
     console.log(`[fetch-data] 网站管理：${Object.keys(assets).length} 个图片位，${site.news.length} 条动态`);
   } catch (e) {
     console.warn('[fetch-data] 网站管理数据拉取失败（按默认内容构建）：', e.message);

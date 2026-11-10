@@ -1,17 +1,18 @@
 ---
 // 新闻中心（/news/）：滚动标题条 → 头条（大图 + 右侧 3 条）→ 分类筛选 → 杂志式拼图网格（视频卡深色、图集卡带缩略条）→ 询价。
-// 预览版：数据来自 src/data/news-sample.mjs。
+// 数据：src/lib/news-data.mjs（后台文章；没有时用示例）。
 import Base from '../../../layouts/Base.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { NW, monthYear, tx, readMin, hasVideo, photoCount } from '../../../lib/news-i18n.mjs';
-import { NEWS_SAMPLE, NEWS_CATS } from '../../../data/news-sample.mjs';
+import { NEWS_CATS } from '../../../data/news-sample.mjs';
+import { NEWS_LIST } from '../../../lib/news-data.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 const { lang } = Astro.params;
 const T = NW[lang];
-const list = [...NEWS_SAMPLE].sort((a, b) => b.date.localeCompare(a.date));
+const list = NEWS_LIST;
 const [lead, ...rest] = list;
 const side = rest.slice(0, 3);
 const grid = list.slice(1);
@@ -36,17 +37,17 @@ const used = NEWS_CATS.filter((c) => list.some((n) => n.cat === c));
     <p>{T.lead}</p>
   </header>
 
-  <section class="wrap ntop">
+  <section class:list={["wrap ntop", { solo: side.length === 0 }]}>
     <a class="nlead" href={href(lead)}>
       <span class="lead-img"><img src={lead.cover} alt="" class:list={{ fit: lead.coverFit === 'contain' }} /></span>
       <span class="lead-b">
-        <span class="meta"><i class={`c c-${lead.cat}`}>{T.cats[lead.cat]}</i><time>{monthYear(lead.date, lang)}</time>{lead.place && <span>· {lead.place}</span>}</span>
+        <span class="meta"><i class={`c c-${lead.cat}`}>{T.cats[lead.cat]}</i><time>{monthYear(lead.date, lang)}</time>{lead.place && <span>· {tx(lead.place, lang)}</span>}</span>
         <b class="lead-t">{tx(lead.title, lang)}</b>
         <span class="lead-x">{tx(lead.excerpt, lang)}</span>
         <span class="go">{T.read} <em>→</em></span>
       </span>
     </a>
-    <ol class="nside">
+    <ol class="nside" style={`grid-template-rows: repeat(${Math.max(1, side.length)}, 1fr)`}>
       {side.map((n, i) => (
         <li><a href={href(n)}>
           <span class="sn num">0{i + 2}</span>
@@ -57,7 +58,7 @@ const used = NEWS_CATS.filter((c) => list.some((n) => n.cat === c));
     </ol>
   </section>
 
-  <section class="wrap nfeed">
+  <section class:list={["wrap nfeed", { empty: grid.length === 0 }]}>
     <div class="bar">
       <h2>{T.more}</h2>
       <div class="chips">
@@ -80,7 +81,7 @@ const used = NEWS_CATS.filter((c) => list.some((n) => n.cat === c));
               <b>{tx(n.title, lang)}</b>
               <span class="cx">{tx(n.excerpt, lang)}</span>
               {g.length >= 2 && size(i) && <span class="strip">{g.map((s: string) => <img src={s} alt="" loading="lazy" />)}</span>}
-              <span class="rt">{n.place ? `${n.place} · ` : ''}{readMin(n, lang)} {T.min}</span>
+              <span class="rt">{n.place ? `${tx(n.place, lang)} · ` : ''}{readMin(n, lang)} {T.min}</span>
             </span>
           </a>
         );
@@ -152,6 +153,8 @@ const used = NEWS_CATS.filter((c) => list.some((n) => n.cat === c));
   .st { position: relative; height: 84px; border-radius: 10px; overflow: hidden; } .st img { width: 100%; height: 100%; object-fit: cover; }
   /* 筛选 + 拼图 */
   .nfeed { padding-top: 56px; }
+  .nfeed.empty { display: none; }
+  .ntop.solo { grid-template-columns: minmax(0, 1fr); } .ntop.solo .nside { display: none; } .ntop.solo .nlead { min-height: 560px; }
   .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 12px 0; background: var(--bg); border-bottom: 1px solid var(--line); margin-bottom: 20px; }
   .bar h2 { font-size: clamp(24px, 3vw, 34px); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }

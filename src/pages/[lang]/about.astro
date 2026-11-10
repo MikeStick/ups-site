@@ -14,8 +14,9 @@ const { lang } = Astro.params;
 const T = AT[lang];
 const ph = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0].src : null; };
 // 近期动态：网站管理里有内容就用它，没有就显示官网的 3 条默认动态
-const news = Array.isArray(site.news) && site.news.length
-  ? site.news.map((n) => ({ d: n.date, title: (n.title && (n.title[lang] || n.title.en)) || '', text: (n.text && (n.text[lang] || n.text.en)) || '', yt: n.youtube }))
+const shortNews = (Array.isArray(site.news) ? site.news : []).filter((n) => n && n.kind !== 'article');
+const news = shortNews.length
+  ? shortNews.map((n) => ({ d: n.date, title: (n.title && (n.title[lang] || n.title.en)) || '', text: (n.text && (n.text[lang] || n.text.en)) || '', yt: n.youtube }))
   : NEWS.map((n) => ({ d: n.d, title: T.news[n.k][0], text: T.news[n.k][1], yt: null }));
 const introPhotos = ['line', 'rd', 'warehouse'].filter((k) => ph(k));
 // 图集（生产线、研发、仓库）：第一张是首图，点开可翻看全部，带标题
