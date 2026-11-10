@@ -37,13 +37,13 @@ export function catalog(lang) {
       { key: 'rack', page: 'rack-ups/', label: RT[lang].nav, f: isRack, unit: 'va' },
       { key: 'modular', page: 'modular-ups/', label: MT[lang].nav, f: isModular, unit: 'va' },
       { key: 'industrial', page: 'industrial-ups/', label: IT[lang].nav, f: isIndustrial, unit: 'va' },
-      { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' }, // 精密空调：机房配套，放在 UPS 组
     ] },
     { key: 'solar', h: NG.solar, items: [
       { key: 'inverter', page: 'solar-inverters/', label: SL[lang].nav, f: isInverter, unit: 'kw' },
       { key: 'homeess', page: 'home-ess/', label: HE[lang].nav, f: isHomeEss, unit: 'kwh' },
       { key: 'ciess', page: 'ci-ess/', label: CI[lang].nav, f: isCiEss, unit: 'kwh' },
       { key: 'designer', page: 'solar-designer/', label: SD[lang].nav, tool: true },
+      { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' }, // 精密空调：放在“太阳能与储能”一栏末尾（该栏较短）
     ] },
     { key: 'batt', h: NG.batt, items: [
       { key: 'wall', page: 'batteries/wall-lithium/', label: WB[lang].nav, f: isWallBattery, unit: 'kwh' },
