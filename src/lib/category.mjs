@@ -134,7 +134,10 @@ export const VRLA_TYPES = ['铅酸电池', '阀控式铅酸电池', '胶体电�
 // 型号规范化：去掉括号及后面的内容（"SK100-2V(2V100AH)" "SK100-2V 100Ah" → "SK100-2V"）
 export const skModel = (m) => String(m || '').replace(/[（(].*$/, '').trim().split(/\s+/)[0];
 // 品类名不含铅酸字样时，SK…-12 / SK…-12v / SK…-12vJ / SK…-2v 型号也算（锂电品类除外）
-export const isVrla = (p) => has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t)));
+// 铅酸电池柜（电池箱）C-1 … C-40：型号 C-数字，或品类名带"电池柜 / 电池箱"（不含锂电、高压电池柜）。栏目 /batteries/battery-cabinet/，参数在 cab-engine.mjs
+export const isBattCab = (p) => /^\s*C\s*-?\s*\d{1,2}(?=$|[\s(（\u4e00-\u9fff])/i.test(String(p.model || '').normalize('NFKC'))
+  || typesOf(p).some((t) => /电池柜|电池箱|battery\s*cabinet/i.test(t) && !/锂|磷酸铁|高压|储能柜/.test(t));
+export const isVrla = (p) => !isBattCab(p) && (has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t))));
 // 2V 单体（SK100-2v … SK3000-2v，或额定电压 2 V）单独一个栏目 /batteries/vrla-2v/；12V 栏目只放 12V 的
 export const isCell2v = (p) => /^SK\d{2,4}-2v?$/i.test(skModel(p.model)) || /^2(?:\.0+)?\s*V?$/i.test(String(p.moduleVoltage || p.batteryVoltage || '').trim());
 export const isVrla12 = (p) => isVrla(p) && !isCell2v(p);

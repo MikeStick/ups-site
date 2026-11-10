@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { cabFor, cabKey, cabSpec, cabsForAh } from '../src/lib/cab-engine.mjs';
+assert.equal(cabKey('C-16'), 'C-16'); assert.equal(cabKey('c16 电池柜'), 'C-16'); assert.equal(cabKey('C-40(480V)'), 'C-40'); assert.equal(cabKey('C-400'), '');
+assert.equal(cabSpec({ model: 'C-32' }).dcv, 384);
+let r = cabFor({ n: 16, ah: 100 }); assert.equal(r.best.cab.model, 'C-16'); assert.equal(r.best.qty, 1);
+r = cabFor({ n: 16, ah: 100, strings: 3 }); assert.equal(r.best.qty, 3);
+r = cabFor({ n: 40, ah: 120 }); assert.notEqual(r.best.cab.model, 'C-40'); assert.equal(r.best.cab.model, 'C-20'); assert.equal(r.best.qty, 2);
+r = cabFor({ n: 40, ah: 100 }); assert.equal(r.best.cab.model, 'C-40');
+r = cabFor({ n: 18, ah: 65 }); assert.equal(r.best.cab.model, 'C-20'); assert.equal(r.best.empty, 2);
+r = cabFor({ n: 32, ah: 38 }); assert.equal(r.best.cab.model, 'C-32');
+assert.equal(cabFor({ n: 16, ah: 150 }).none, 'ah');
+assert.equal(cabsForAh(120).length, 11); assert.equal(cabsForAh(100).length, 12);
+console.log('cab-engine ok');

@@ -30,10 +30,12 @@ import { OT, SPEC_FIELDS, specValue } from '../../../lib/offline-i18n.mjs';
 import { socketsText } from '../../../lib/sockets.mjs';
 import { VR, VR_P, vrlaSpecRows, vrlaTables } from '../../../lib/vrla-i18n.mjs';
 import { vrlaModule } from '../../../lib/vrla-engine.mjs';
-import { isVrla, isCell2v } from '../../../lib/category.mjs';
+import { isVrla, isCell2v, isBattCab } from '../../../lib/category.mjs';
 import { V2 } from '../../../lib/vrla2-i18n.mjs';
 import { PAC, pacSpecRows } from '../../../lib/pac-i18n.mjs';
 import { pacSpec } from '../../../lib/pac-engine.mjs';
+import { CAB, cabSpecRows } from '../../../lib/cab-i18n.mjs';
+import { cabSpec } from '../../../lib/cab-engine.mjs';
 import products from '../../../data/products.json';
 
 export function getStaticPaths() {
@@ -82,7 +84,10 @@ const pbr = isPbReplace(P0);
 // 精密空调：参数按型号查画册数据（pac-specs），面包屑和横幅指向 /precision-ac/
 const pacS = pacSpec(P0);
 const pac = !!pacS;
-const vrla = !pac && isVrla(P0);
+// 铅酸电池柜（C-1 … C-40）：参数按型号查画册数据（cab-specs），面包屑和横幅指向 /batteries/battery-cabinet/；12V 电池产品页加一条"配电池柜"横幅
+const cabS = !pac && isBattCab(P0) ? cabSpec(P0) : null;
+const cab = !!cabS;
+const vrla = !pac && !cab && isVrla(P0);
 const cell2 = vrla && isCell2v(P0); // 2V 单体：面包屑和横幅指向 /batteries/vrla-2v/
 const vrlaPage = cell2 ? 'batteries/vrla-2v/' : 'batteries/vrla/';
 const vm = vrla ? vrlaModule(p) : null;
@@ -158,13 +163,17 @@ function tableSeries() {
 }
 const tSeries = tableSeries();
 // 铅酸：同系列 = 同容量率（10HR / 20HR）、同系列（AGM / HR …）的型号，按 Ah 排
-const series = pac
+const series = cab
+  ? products.map((x) => ({ x, s: isBattCab(x) ? cabSpec(x) : null })).filter((o) => o.s).sort((a, b) => a.s.n - b.s.n).map((o) => o.x)
+  : pac
   ? products.map((x) => ({ x, s: pacSpec(x) })).filter((o) => o.s && o.s.series === pacS.series && o.s.rh === pacS.rh).sort((a, b) => a.s.cool - b.s.cool).map((o) => o.x)
   : vrla
   ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.v === vm.v && o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
   : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
 const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
-const rows = pac
+const rows = cab
+  ? cabSpecRows(p, cabS, lang)
+  : pac
   ? pacSpecRows(p, pacS, lang)
   : vrla
   ? vrlaSpecRows(p, vm, lang)
@@ -206,7 +215,9 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = pac ? [
+const highlights = cab ? [
+  `${cabS.dcv} ${CAB[lang].u.v} DC`, CAB[lang].hl.replace('{n}', cabS.n), `12 ${CAB[lang].u.v} ≤ ${cabS.maxAh} ${CAB[lang].u.ah}`, `${cabS.size.replace(/×/g, ' × ')} ${CAB[lang].u.mm}`,
+] : pac ? [
   `${lang === 'en' ? pacS.cool : String(pacS.cool).replace('.', ',')} ${lang === 'ru' ? 'кВт' : 'kW'}`, PAC[lang].seriesName[pacS.series], pacS.rh ? PAC[lang].spec.kindRh : PAC[lang].spec.kindCool, '±1 °C · R410A',
 ] : vrla ? [
   `${vm.v} V · ${vm.ah} Ah`, `${vm.rate}HR`, VR[lang].seriesName[vm.series], (vm.life.match(/\d+/) ? `${VR[lang].th.life} ${VR[lang].lifeVal.replace(/\d+/, vm.life.match(/\d+/)[0])}` : (vm.series === 'gel' ? 'VRLA · Gel' : 'VRLA · AGM')),
@@ -255,7 +266,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
@@ -284,14 +295,25 @@ const jsonLd = {
         </div>
       )}
 
-      {pac ? (
+      {cab ? (
+        <a class="custom-banner" href={`/${lang}/batteries/battery-cabinet/?dc=${cabS.dcv}#planner`}>
+          <span>{CAB[lang].banner}</span><b>{CAB[lang].bannerCta} →</b>
+        </a>
+      ) : pac ? (
         <a class="custom-banner" href={`/${lang}/precision-ac/#sizing`}>
           <span>{PAC[lang].banner}</span><b>{PAC[lang].bannerCta} →</b>
         </a>
       ) : vrla ? (
+        <>
         <a class="custom-banner" href={`/${lang}/${vrlaPage}#calc`}>
           <span>{cell2 ? V2[lang].banner : VR[lang].banner}</span><b>{cell2 ? V2[lang].bannerCta : VR[lang].bannerCta} →</b>
         </a>
+        {!cell2 && vm.v === 12 && vm.ah > 0 && vm.ah <= 120 && (
+          <a class="custom-banner" href={`/${lang}/batteries/battery-cabinet/?ah=${vm.ah}#planner`}>
+            <span>{CAB[lang].battBanner}</span><b>{CAB[lang].battBannerCta} →</b>
+          </a>
+        )}
+        </>
       ) : rbatt ? (
         <a class="custom-banner" href={`/${lang}/${battPage}#builder`}>
           <span>{RBT.banner}</span><b>{RBT.bannerCta} →</b>
@@ -333,7 +355,7 @@ const jsonLd = {
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
-        {!vrla && !rbatt && !pac && <p class="plug">{t.plugNote}</p>}
+        {!vrla && !rbatt && !pac && !cab && <p class="plug">{t.plugNote}</p>}
         <div class="cta">
           {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
           {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
@@ -349,7 +371,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    {!offline && !vrla && !pac && <RuntimeCalc p={p} lang={lang} />}
+    {!offline && !vrla && !pac && !cab && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">

@@ -20,9 +20,10 @@ import { CT } from './custom-i18n.mjs';
 import { VR } from './vrla-i18n.mjs';
 import { V2 } from './vrla2-i18n.mjs';
 import { PAC } from './pac-i18n.mjs';
+import { CAB } from './cab-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -53,6 +54,7 @@ export function catalog(lang) {
       { key: 'pbr', page: 'batteries/lead-acid-replacement/', label: PB[lang].nav, f: isPbReplace, unit: 'v' },
       { key: 'vrla', page: 'batteries/vrla/', label: VR[lang].nav, f: isVrla12, unit: 'ah' },
       { key: 'vrla2', page: 'batteries/vrla-2v/', label: V2[lang].nav, f: isVrla2, unit: 'ah2' },
+      { key: 'cab', page: 'batteries/battery-cabinet/', label: CAB[lang].nav, f: isBattCab, unit: 'cab' }, // 铅酸电池柜：电池一栏最后
     ] },
   ];
 }
