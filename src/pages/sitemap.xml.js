@@ -4,7 +4,7 @@ import products from '../data/products.json';
 
 export function GET({ site }) {
   const base = String(site || '').replace(/\/$/, '');
-  const paths = ['', 'mini-ups/', 'offline-ups/', 'rack-ups/', 'modular-ups/', 'industrial-ups/', 'online-ups/', 'all-in-one-ups/', 'solar-inverters/', 'batteries/rack-lithium/', 'batteries/wall-lithium/', 'batteries/floor-lithium/', 'batteries/hv-cabinet/', 'batteries/lead-acid-replacement/', 'batteries/vrla/', 'batteries/vrla-2v/', 'batteries/battery-cabinet/', 'precision-ac/', 'solar-designer/', 'home-ess/', 'ci-ess/', 'about/', 'custom/', 'contact/', 'cases/', ...products.map((p) => `p/${p.slug}/`)];
+  const paths = ['', 'mini-ups/', 'offline-ups/', 'rack-ups/', 'modular-ups/', 'industrial-ups/', 'online-ups/', 'all-in-one-ups/', 'solar-inverters/', 'batteries/rack-lithium/', 'batteries/wall-lithium/', 'batteries/floor-lithium/', 'batteries/hv-cabinet/', 'batteries/lead-acid-replacement/', 'batteries/vrla/', 'batteries/vrla-2v/', 'batteries/battery-cabinet/', 'precision-ac/', 'micro-data-center/', 'solar-designer/', 'home-ess/', 'ci-ess/', 'about/', 'custom/', 'contact/', 'cases/', ...products.map((p) => `p/${p.slug}/`)];
   const today = new Date().toISOString().slice(0, 10);
   const urls = paths.flatMap((path) => LANGS.map((lang) => {
     const alt = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${base}/${l}/${path}"/>`).join('')

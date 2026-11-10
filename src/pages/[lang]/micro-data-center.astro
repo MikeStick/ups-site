@@ -1,0 +1,508 @@
+---
+// 微模块数据中心栏目页（/micro-data-center/）：首屏 → 三种形态 → 配置器（IT 柜数 + 单柜功率 + 后备时间 → 形态、精密空调、UPS、电池、电池柜、布局图）
+// → IDM2 设计特点 → 三种典型方案 → 子系统（通道部件 / 机柜 / 配电 / 监控）→ 配置表 → 技术特点 → FAQ → 询价。只询价，不显示价格。
+// 产品来自客户档案系统：型号 IDM-S / IDM-R / IDM2-D（或品类名带"微模块"）。画册文字在 idm-data.mjs，配置器在 idm-engine.mjs。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { IDMT } from '../../lib/idm-i18n.mjs';
+import { IDM } from '../../lib/idm-data.mjs';
+import { IDM_MODELS, idmKey } from '../../lib/idm-engine.mjs';
+import { pacSpec } from '../../lib/pac-engine.mjs';
+import { cabSpec } from '../../lib/cab-engine.mjs';
+import { vrlaModule } from '../../lib/vrla-engine.mjs';
+import { isIdm, isPac, isBattCab, isVrla12 } from '../../lib/category.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = IDMT[lang];
+const tr = (x: any) => (x && typeof x === 'object' && !Array.isArray(x) ? x[lang] ?? x.en : x);
+const idmProducts = all.filter(isIdm);
+const slugOf: Record<string, string> = Object.fromEntries(idmProducts.map((p) => [idmKey(p.model), p.slug]).filter(([k]) => k));
+const imgOf: Record<string, string> = Object.fromEntries(idmProducts.filter((p) => p.images && p.images[0]).map((p) => [idmKey(p.model), p.images[0].thumb || p.images[0].src]));
+const pic = (m: string) => imgOf[m] || `/img/idm/${m.toLowerCase()}.webp`;
+// 配置器联动：精密空调 / 电池柜 / 12V 电池的产品页链接
+const links: Record<string, string> = {};
+for (const p of all.filter(isPac)) { const s = pacSpec(p); if (s) links[s.model] = p.slug; }
+for (const p of all.filter(isBattCab)) { const s = cabSpec(p); if (s) links[s.model] = p.slug; }
+const batts = all.filter(isVrla12).map((p) => vrlaModule(p)).filter((m) => m.v === 12 && m.ah)
+  .map((m) => ({ model: m.model, slug: m.slug || '', v: m.v, ah: m.ah, rate: m.rate, kg: m.kg || 0, series: m.series, tables: m.tables }));
+const cfg = { lang, wa: SITE.whatsapp, t: T, links, batts, forms: Object.fromEntries(IDM_MODELS.map((m) => [m, tr(T.forms[m][0])])) };
+const CAT = { en: '/docs/SKE_IDM2_Catalogue_EN.pdf', es: '/docs/SKE_IDM2_Catalogue_ES.pdf', ru: '/docs/SKE_IDM2_Catalogue_RU.pdf' }[lang];
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const dec = (x: number | string) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
+const kwU = lang === 'ru' ? 'кВт' : 'kW';
+// 三种典型方案的平面图（I = IT 柜，A = 列间空调，P = 精密配电柜，U = UPS，B = 蓄电池，R = 房间级空调）
+const SCN_PLAN = [
+  { rows: ['PUBAIIIIAII', 'IIIAIIIIAII'], side: '' },
+  { rows: ['IIAIIIIAIP', 'IIAIIIIAII'], side: 'U' },
+  { rows: ['IIIIIIIIIP', 'IIIIIIIIII'], side: 'URR' },
+];
+const scnPacLink = (series: string, m: number) => {
+  const want = `${series}${String(m).padStart(3, '0')}`;
+  const k = Object.keys(links).find((x) => x.replace(/[()]/g, '').startsWith(want));
+  return k ? `/${lang}/p/${links[k]}/` : '';
+};
+const PARTS_IMG = ['p-sky', 'p-trough', 'p-ladder', 'p-base', 'p-ctrl'];
+const WHY_ICONS = [
+  '<path d="M15 3l10 4v7c0 6-4 10-10 13C9 24 5 20 5 14V7z"/><path d="M10 15l3 3 7-7"/>',
+  '<path d="M17 3L7 17h7l-2 10 10-14h-7z"/>',
+  '<rect x="4" y="6" width="22" height="18" rx="2"/><path d="M4 12h22M11 6v18"/>',
+];
+const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
+const faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: T.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: T.crumbs, item: `${site}/${lang}/` },
+  { '@type': 'ListItem', position: 2, name: T.title, item: `${site}/${lang}/micro-data-center/` },
+] };
+const cellCls: Record<string, string> = { I: 'i', A: 'a', P: 'p', U: 'u', B: 'b', R: 'r' };
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="micro-data-center/">
+<div class="off rbp idmp">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#configurator">{T.ctaCfg}</a>
+          <a class="btn ghost" href="#forms">{T.ctaForms}</a>
+          <a class="btn ghost" href={CAT} target="_blank" rel="noopener">{T.ctaCat} ↓</a>
+        </div>
+      </div>
+      <div class="hero-img"><img src="/img/idm/hero.webp" alt="SKE IDM Ⅱ" /></div>
+    </div>
+    <div class="hero-facts">
+      <div><b class="num">≤ 48</b><span>{T.facts.racks}</span></div>
+      <div><b class="num">3–600 {lang === 'ru' ? 'кВА' : 'kVA'}</b><span>{T.facts.ups}</span></div>
+      <div><b class="num">&lt; {dec(1.5)}</b><span>{T.facts.pue}</span></div>
+      <div><b class="num">3 {lang === 'ru' ? 'ч' : 'h'}</b><span>{T.facts.deploy}</span></div>
+    </div>
+  </section>
+
+  <section class="block" id="forms">
+    <div class="head"><span class="eyebrow">{T.formsEyebrow}</span><h2>{T.formsH}</h2></div>
+    <div class="forms">
+      {IDM_MODELS.map((m) => {
+        const f = T.forms[m]; const href = slugOf[m] ? `/${lang}/p/${slugOf[m]}/` : '#configurator';
+        return (
+          <article class="form">
+            <a class="fimg" href={href}><img src={pic(m)} alt={m} loading="lazy" /></a>
+            <div class="fb">
+              <small>{f[1]}</small>
+              <h3><a href={href}>{m}</a> <span>{f[0]}</span></h3>
+              <em class="num">{f[3]}</em>
+              <p>{tr(IDM.ov[m])}</p>
+              <ul>{IDM.feat[m].slice(0, 4).map((x) => <li>{tr(x)}</li>)}</ul>
+              <div class="pact">
+                {slugOf[m] && <a class="btn sm line" href={href}>{T.details}</a>}
+                {SITE.whatsapp && <a class="btn sm dark" href={wa(T.qMsg.replace('{m}', m))} target="_blank" rel="noopener">{T.quote}</a>}
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="block" id="configurator" data-idmc>
+    <script type="application/json" data-idmc-cfg set:html={JSON.stringify(cfg)} />
+    <div class="head"><span class="eyebrow">{T.cfgEyebrow}</span><h2>{T.cfgH}</h2><p>{T.cfgP}</p></div>
+    <div class="stage">
+      <div class="ctl">
+        <div class="grp"><div class="gh"><span class="n">1</span><b>{T.qRacks}</b></div>
+          <label class="numin"><input type="number" min="1" max="96" step="1" value="12" inputmode="numeric" data-racks /><span>×</span></label></div>
+        <div class="grp"><div class="gh"><span class="n">2</span><b>{T.qKw}</b></div>
+          <label class="numin"><input type="number" min="0.5" max="30" step="0.5" value="5" inputmode="decimal" data-kw /><span>{kwU}</span></label>
+          <small class="hint">{T.hintKw}</small></div>
+        <div class="grp"><div class="gh"><span class="n">3</span><b>{T.qMin}</b></div>
+          <div class="chips">{[10, 15, 30, 60].map((m) => <button type="button" class:list={['chip', { on: m === 15 }]} data-min={m}>{m} {T.min}</button>)}</div>
+          <label class="chk"><input type="checkbox" checked data-red /> {T.qRed}</label>
+          <label class="chk"><input type="checkbox" data-rh /> {T.qRh}</label></div>
+      </div>
+      <div class="out">
+        <div class="room" data-room></div>
+        <div class="rows" data-rows></div>
+        <div class="notes" data-notes></div>
+        {SITE.whatsapp && <a class="btn primary" data-qsel href="#" target="_blank" rel="noopener">{T.quoteSel}</a>}
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="design">
+    <div class="head"><span class="eyebrow">IDM2</span><h2>{tr(IDM.h.D_DESIGN_H)}</h2></div>
+    <div class="design">
+      <img src={`/img/idm/explode-${lang}.webp`} alt="IDM2" loading="lazy" />
+      <div><h3>{tr(IDM.h.TECH_H)}</h3><ul class="dots">{IDM.tech.map((x) => <li>{tr(x)}</li>)}</ul></div>
+    </div>
+  </section>
+
+  <section class="block" id="solutions">
+    <div class="head"><span class="eyebrow">{T.scnEyebrow}</span><h2>{T.scnH}</h2><p>{tr(IDM.cold)}</p></div>
+    <div class="scns">
+      {SCN_PLAN.map((pl, i) => {
+        const P = IDM.scnPac[i];
+        return (
+          <div class="card scn">
+            <b class="sn">{String(i + 1).padStart(2, '0')}</b>
+            <h3>{T.scn[i]}</h3>
+            <div class="plan">
+              <div class="rowsw">
+                <div class="pr">{pl.rows[0].split('').map((c) => <i class={cellCls[c]}></i>)}</div>
+                <div class="aisle"></div>
+                <div class="pr">{pl.rows[1].split('').map((c) => <i class={cellCls[c]}></i>)}</div>
+              </div>
+              {pl.side && <div class="side">{pl.side.split('').map((c) => <i class={cellCls[c]}></i>)}</div>}
+            </div>
+            <dl>
+              <dt>UPS</dt><dd>{tr(IDM.scnUps[i])}</dd>
+              <dt>{T.rCool}</dt>
+              <dd class="mods">{P.models.map((m, j) => { const h = scnPacLink(P.series, m); return h ? <a href={h}>{P.series}{m}</a> : <span>{P.series}{m}</span>; })}</dd>
+            </dl>
+          </div>
+        );
+      })}
+    </div>
+    <div class="legend">{Object.entries({ i: T.legend.I, a: T.legend.A, p: T.legend.P, u: T.legend.U, b: T.legend.B, r: T.legend.R }).map(([k, v]) => <span><i class={k}></i>{v}</span>)}</div>
+  </section>
+
+  <section class="block" id="subsystems" data-tabs>
+    <div class="head"><span class="eyebrow">{T.sysEyebrow}</span><h2>{T.sysH}</h2></div>
+    <div class="vtabs">{Object.entries(T.tabs).map(([k, v], i) => <button type="button" class:list={{ on: i === 0 }} data-tab={k}>{v}</button>)}</div>
+    <div class="pane" data-pane="cool">
+      <div class="parts">{IDM.parts.map((p, i) => <div class="card part"><img src={`/img/idm/${PARTS_IMG[i]}.webp`} alt="" loading="lazy" /><h3>{tr(p.h)}</h3><p>{tr(p.d)}</p></div>)}</div>
+      <div class="card wide"><h3>{tr(IDM.h.CONT_H)}</h3><p>{tr(IDM.cont)}</p></div>
+    </div>
+    <div class="pane" data-pane="cab" hidden>
+      <div class="split"><img src="/img/idm/cabinet.webp" alt="" loading="lazy" class="draw" />
+        <div><h3>{tr(IDM.h.CAB_H)}</h3><p>{tr(IDM.cabIntro)}</p><h3>{tr(IDM.h.CABP_H)}</h3><ul class="dots">{IDM.cabp.map((x) => <li>{tr(x)}</li>)}</ul></div></div>
+    </div>
+    <div class="pane" data-pane="pwr" hidden>
+      <div class="pw">
+        <div class="card"><img src="/img/idm/ppd.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.PPD_H)}</h3><p>{tr(IDM.ppd)}</p><ul class="dots">{IDM.ppdFn.map((x) => <li>{tr(x)}</li>)}</ul></div>
+        <div class="card"><img src="/img/idm/pdm.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.PDM_H)}</h3><p>{tr(IDM.pdm)}</p></div>
+        <div class="card"><img src="/img/idm/pdu.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.PDU_H)}</h3><p>{tr(IDM.pdu.ov)}</p><ul class="dots">{IDM.pdu.fe.map((x) => <li>{tr(x)}</li>)}</ul></div>
+        <div class="card"><img src="/img/idm/ipdu.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.IPDU_H)}</h3><p>{tr(IDM.ipdu)}</p></div>
+      </div>
+    </div>
+    <div class="pane" data-pane="mon" hidden>
+      <div class="pw">
+        <div class="card"><img src="/img/idm/mon-cab.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.CMF_H)}</h3><ul class="dots">{IDM.cmf.map((x) => <li>{tr(x)}</li>)}</ul></div>
+        <div class="card"><img src="/img/idm/mon-v3.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.MMF_H)}</h3>{IDM.mmf.map((x) => <p><b>{tr(x.h)}:</b> {tr(x.d)}</p>)}</div>
+        <div class="card"><img src="/img/idm/dcim.webp" alt="" loading="lazy" /><h3>{tr(IDM.h.DCIM_H)}</h3><p>{tr(IDM.v3)}</p><div class="tags">{IDM.dcimSys.map((x) => <span>{tr(x)}</span>)}</div><ul class="dots">{IDM.dcimFn.map((x) => <li>{tr(x)}</li>)}</ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="tables">
+    <div class="head"><span class="eyebrow">{T.bomEyebrow}</span><h2>{T.bomH}</h2><p>{T.bomP}</p></div>
+    {IDM_MODELS.map((m, mi) => (
+      <details class="tblock" open={mi === 2}>
+        <summary>{m} <span>{T.forms[m][0]}</span></summary>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>{T.th.sys}</th><th>{T.th.item}</th><th>{T.th.unit}</th><th>{T.th.qty}</th><th>{T.th.spec}</th></tr></thead>
+            <tbody>
+              {IDM.bom[m].map((g) => g.items.map((it, i) => (
+                <tr>{i === 0 && <th rowspan={g.items.length} class="sys">{tr(g.sys)}</th>}<td>{tr(it.name)}</td><td>{tr(it.unit)}</td><td class="num">{it.qty}</td><td>{tr(it.val)}</td></tr>
+              )))}
+            </tbody>
+          </table>
+          <p class="tnote">{tr(IDM.h.NOTE)}</p>
+        </div>
+      </details>
+    ))}
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.whyEyebrow}</span><h2>{T.whyH}</h2></div>
+    <div class="feats">{IDM.adv.map((g, i) => <div class="card feat"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={WHY_ICONS[i]} /><h3>{tr(g.h)}</h3><ul class="dots">{g.items.map((x) => <li>{tr(x)}</li>)}</ul></div>)}</div>
+    <ul class="tf">{IDM.tf.map((x) => <li>{tr(x).replace(/[;；]$/, '')}</li>)}</ul>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="head"><span class="eyebrow">{T.faqEyebrow}</span><h2>{T.faqH}</h2></div>
+    <div class="faq">{T.faq.map(([q, a], i) => <details class="card" open={i === 0}><summary>{q}</summary><p>{a}</p></details>)}</div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+        <a class="btn line" href={CAT} target="_blank" rel="noopener">{T.catalogue}</a>
+      </div>
+    </div>
+  </section>
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(crumbLd)} />
+</div>
+</Base>
+
+<script>
+  import { idmPlan } from '../../lib/idm-engine.mjs';
+  // 配置器：IT 柜数 + 单柜功率 + 后备时间 + N+1 / 恒温恒湿 → 形态、空调、UPS、电池、电池柜，右侧画俯视布局
+  const root = document.querySelector('[data-idmc]') as HTMLElement | null;
+  if (root) {
+    const c = JSON.parse(root.querySelector('[data-idmc-cfg]')!.textContent || '{}'), T = c.t;
+    const $ = (s: string) => root.querySelector(s) as HTMLElement;
+    const fmt = (s: string, o: any) => String(s).replace(/\{(\w+)\}/g, (_: string, k: string) => (o[k] !== undefined ? o[k] : ''));
+    const dec = (x: number) => (c.lang === 'en' ? String(x) : String(x).replace('.', ','));
+    const kwU = c.lang === 'ru' ? 'кВт' : 'kW', mU = c.lang === 'ru' ? 'м' : 'm';
+    const link = (m: string) => (c.links[m] ? `<a href="/${c.lang}/p/${c.links[m]}/">${m}</a>` : m);
+    const st: any = { min: 15 };
+    const COL: any = { I: 'i', A: 'a', P: 'p', U: 'u', S: 's', B: 'b' };
+    const draw = (p: any) => {
+      const u = 22, acW = p.cooling && p.cooling.w ? (p.cooling.w / 600) * u : u / 2, h = 30, gap = 2;
+      const w = (k: string) => (k === 'A' ? acW : u);
+      const rowW = (r: string[]) => r.reduce((s, k) => s + w(k) + gap, 0);
+      const rows = p.layout.rows as string[][];
+      const maxW = Math.max(...rows.map(rowW));
+      const bq = p.cabinets ? Math.min(p.cabinets.qty, 6) : 0;
+      let svg = '', y = 4;
+      const drawRow = (r: string[], yy: number) => { let x = 0; r.forEach((k, i) => { svg += `<rect class="${COL[k]}" x="${x}" y="${yy}" width="${w(k)}" height="${h}" rx="2" style="--d:${i * 25}ms"/>`; x += w(k) + gap; }); };
+      if (p.form === 'S') {
+        svg += `<rect class="s" x="0" y="4" width="${u * 2}" height="${h * 2}" rx="3"/><rect class="scr" x="${u * 0.6}" y="18" width="${u * 0.8}" height="10" rx="1"/>`;
+        y = 4 + h * 2;
+      } else {
+        drawRow(rows[0], y); y += h;
+        if (rows[1]) { svg += `<rect class="aisle" x="0" y="${y + 3}" width="${maxW - gap}" height="${h * 0.9}"/>`; y += h * 0.9 + 6; drawRow(rows[1], y); y += h; }
+        else { svg += `<rect class="aisle" x="0" y="${y + 3}" width="${maxW - gap}" height="${h * 0.5}"/>`; y += h * 0.5 + 6; }
+      }
+      const x0 = (p.form === 'S' ? u * 2 : maxW) + 16;
+      for (let i = 0; i < bq; i++) svg += `<rect class="b" x="${x0 + (i % 2) * (u + gap)}" y="${4 + Math.floor(i / 2) * (h * 0.7 + gap)}" width="${u}" height="${h * 0.7}" rx="2"/>`;
+      const W = x0 + (bq ? 2 * (u + gap) : 0);
+      return `<svg viewBox="-2 0 ${W + 4} ${Math.max(y, 4 + Math.ceil(bq / 2) * (h * 0.7 + gap)) + 6}" role="img">${svg}</svg>`;
+    };
+    const run = () => {
+      const racks = Math.max(1, parseInt(($('[data-racks]') as HTMLInputElement).value) || 1);
+      const kw = Math.max(0.5, parseFloat(String(($('[data-kw]') as HTMLInputElement).value).replace(',', '.')) || 1);
+      const red = ($('[data-red]') as HTMLInputElement).checked, rh = ($('[data-rh]') as HTMLInputElement).checked;
+      const p = idmPlan({ racks, kw, minutes: st.min, redundancy: red, rh, batts: c.batts });
+      const L = T.legend;
+      const used = new Set(p.layout.rows.flat()); if (p.cabinets) used.add('B');
+      const leg = ['S', 'I', 'A', 'P', 'U', 'B'].filter((k) => used.has(k)).map((k) => `<span><i class="${COL[k]}"></i>${L[k]}</span>`).join('');
+      $('[data-room]').innerHTML = `<div class="tag">${T.res}: <b>${p.model}</b> · ${c.forms[p.model]}</div>${draw(p)}<div class="lg">${leg}</div>`;
+      const row = (a: string, v: string) => `<div><span>${a}</span><b>${v}</b></div>`;
+      const cool = p.cooling ? (p.form === 'S' ? `${link(p.cooling.model)} <small>${T.inCab}</small>` : `${fmt(T.coolN, { n: p.cooling.n, m: link(p.cooling.model) })}${p.cooling.spare ? ` <small>${fmt(T.coolSpare, { s: p.cooling.spare })}</small>` : ''}`) : '—';
+      const ups = p.ups.type === 'rack' ? fmt(T.upsRack, { k: p.ups.kva }) : fmt(T.upsMod, { n: p.ups.modules, m: p.ups.module, k: p.ups.kva });
+      const bat = !p.battery ? '—' : p.battery.internal ? T.battInt : `${p.battery.total} × ${p.battery.slug ? `<a href="/${c.lang}/p/${p.battery.slug}/">${p.battery.model}</a>` : p.battery.model} <small>${fmt(T.battRun, { t: p.battery.runtime })}${p.battery.est ? ` · ${T.est}` : ''}</small>`;
+      $('[data-rows]').innerHTML = row(T.rForm, `${p.model}${p.modules > 1 ? ` × ${p.modules}` : ''}`) + row(T.rLoad, `${dec(p.total)} ${kwU}`) + row(T.rCool, cool) + row(T.rUps, ups) + row(T.rBatt, bat)
+        + (p.cabinets ? row(T.rCab, fmt(T.cabs, { q: p.cabinets.qty, m: link(p.cabinets.model) })) : '') + (p.form === 'D' ? row(T.rLen, `${dec(p.length)} ${mU}`) : '');
+      const N: any = { density: T.nDensity, multi: fmt(T.nMulti, { n: p.modules }), length: T.nLength, rack: T.nRack, battery: T.nBattery, cells: fmt(T.nCells, { lang: c.lang }) };
+      $('[data-notes]').innerHTML = p.notes.map((k: string) => `<p>⚠ ${N[k] || ''}</p>`).join('');
+      const q = $('[data-qsel]') as HTMLAnchorElement | null;
+      if (q) q.href = `https://wa.me/${c.wa}?text=${encodeURIComponent(fmt(T.qSel, { r: racks, kw, min: st.min, m: p.model, c: p.cooling ? `${p.cooling.n + p.cooling.spare} × ${p.cooling.model}` : '-', u: `${p.ups.kva} kVA` }))}`;
+    };
+    root.querySelectorAll('[data-min]').forEach((b: any) => b.addEventListener('click', () => { st.min = +b.dataset.min; root.querySelectorAll('[data-min]').forEach((x: any) => x.classList.toggle('on', x === b)); run(); }));
+    ['[data-racks]', '[data-kw]'].forEach((s) => $(s).addEventListener('input', run));
+    ['[data-red]', '[data-rh]'].forEach((s) => $(s).addEventListener('change', run));
+    // 从产品页过来：?m=IDM-S / IDM-R / IDM2-D → 填入该形态的典型值
+    const m = new URLSearchParams(location.search).get('m');
+    const preset: any = { 'IDM-S': [1, 6], 'IDM-R': [6, 5], 'IDM2-D': [20, 6] };
+    if (m && preset[m]) { ($('[data-racks]') as HTMLInputElement).value = preset[m][0]; ($('[data-kw]') as HTMLInputElement).value = preset[m][1]; }
+    run();
+  }
+  // 子系统页签
+  const tabs = document.querySelector('[data-tabs]');
+  if (tabs) tabs.querySelectorAll('[data-tab]').forEach((b: any) => b.addEventListener('click', () => {
+    tabs.querySelectorAll('[data-tab]').forEach((x: any) => x.classList.toggle('on', x === b));
+    tabs.querySelectorAll('[data-pane]').forEach((p: any) => (p.hidden = p.dataset.pane !== b.dataset.tab));
+  }));
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: #4b5f5b; background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .rbp :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 760px; }
+  .rbp :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .rbp :global(.head p) { margin: 0; color: var(--muted); }
+  .rbp :global(section.block) { padding-block: 56px 0; }
+  .rbp :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+
+  .hero-x { color: #fff; position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; background: linear-gradient(90deg, rgba(10,20,34,.94) 0%, rgba(10,20,34,.82) 48%, rgba(10,20,34,.35) 100%), var(--bg) center / cover, #0f1a2a; }
+  .hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 28px; padding: 52px 40px; align-items: end; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px; } }
+  .hero h1 { font-size: clamp(34px, 5.4vw, 60px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: #7cc7ff; }
+  .hero p { margin: 0; color: #cfd8e3; font-size: 17px; max-width: 600px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero .btn.ghost { border-color: rgba(255,255,255,.35); }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-facts div { border: 1px solid rgba(255,255,255,.18); background: rgba(10,20,34,.55); backdrop-filter: blur(4px); border-radius: 12px; padding: 14px; }
+  .hero-facts b { display: block; font: 700 20px/1.1 var(--display); color: #7cc7ff; }
+  .hero-facts span { font-size: 13px; color: #b9c6d4; }
+
+  .sers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 1100px) { .sers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .sers { grid-template-columns: minmax(0, 1fr); } }
+  .ser { display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .ser:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .si { height: 190px; display: grid; place-items: center; background: linear-gradient(180deg, #f3f6f9, #fff); border-bottom: 1px solid var(--line); }
+  .si img { max-height: 170px; max-width: 80%; object-fit: contain; }
+  .sb { padding: 14px 16px 16px; display: grid; gap: 4px; align-content: start; }
+  .sb small { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .sb b { font: 700 22px var(--display); }
+  .sb em { font-style: normal; font-weight: 700; color: #1f6f8b; }
+  .sb > span { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+  .sb i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 6px; }
+  @media (max-width: 700px) { .ser { grid-template-columns: 120px minmax(0, 1fr); grid-template-rows: none; } .si { height: auto; border-bottom: 0; border-right: 1px solid var(--line); } .si img { max-height: 130px; } }
+
+  .stage { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; padding: 22px; border-radius: 16px; color: #e6edf5; background: radial-gradient(120% 90% at 75% 40%, #16304a 0%, #0d1c2c 55%, #08121d 100%); }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+  .ctl { display: grid; gap: 18px; align-content: start; }
+  .grp { display: grid; gap: 10px; }
+  .gh { display: flex; gap: 10px; align-items: center; } .gh b { font-size: 15px; }
+  .n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: #7cc7ff; color: #06223a; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 0 12px; min-height: 36px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: #d3dde8; font: 600 13px var(--body); cursor: pointer; }
+  .chip.on { background: #7cc7ff; color: #06223a; border-color: #7cc7ff; }
+  .hint { font-size: 12.5px; color: #9fb0c2; }
+  .chk { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #d3dde8; cursor: pointer; }
+  .numin { display: flex; align-items: center; gap: 8px; } .numin span { font: 600 14px var(--mono); color: #9fb0c2; }
+  .numin input { width: 140px; font: 700 22px var(--mono); padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.2); background: #06121e; color: #fff; }
+  .out { display: grid; gap: 12px; align-content: start; }
+  .room { padding: 18px 16px; border-radius: 14px; background: linear-gradient(180deg, #eef3f8, #dce5ee); box-shadow: inset 0 0 0 1px #c3cfdb, 0 24px 50px rgba(0,0,0,.45); color: #1d2b39; display: grid; gap: 12px; justify-items: center; min-height: 160px; align-content: center; }
+  .room :global(.tag) { font: 700 12.5px var(--mono); padding: 5px 12px; border-radius: 99px; background: #0b1a29; color: #7cc7ff; text-align: center; }
+  .room :global(.tag a) { color: #fff; }
+  .room :global(svg) { width: 100%; max-height: 120px; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .room :global(.lg) { display: flex; gap: 14px; font: 600 12.5px var(--mono); }
+  .room :global(.sbk) { color: #5c6b7a; }
+  .room :global(.none) { margin: 0; text-align: center; font-weight: 600; }
+  .rows :global(div) { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.14); font-size: 14px; }
+  .rows :global(span) { color: #9fb0c2; } .rows :global(b) { font: 700 15px var(--mono); text-align: right; }
+  .rows :global(a), .alts :global(a) { color: #7cc7ff; }
+  .alts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: #9fb0c2; }
+  .alts :global(em) { font-style: normal; font-family: var(--mono); color: #d3dde8; }
+  .out .btn { justify-self: start; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 16px; }
+  .vtabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vtabs button { min-height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 14px var(--body); cursor: pointer; }
+  .vtabs button small { font: 600 12px var(--mono); color: var(--muted); margin-left: 4px; }
+  .vtabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .vtabs button.on small { color: #c9d4d1; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6%; box-sizing: border-box; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; }
+  .tag.pb { background: #e6eef5; color: #1f4b6e; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .tag.rh { background: #1f6f8b; color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 21px; overflow-wrap: anywhere; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .tblock { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; }
+  .tblock summary { cursor: pointer; padding: 14px 18px; font-weight: 700; font-size: 16px; display: flex; gap: 12px; align-items: baseline; }
+  .tblock summary span { font-size: 13px; color: var(--muted); }
+  .tbl-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font: 600 11.5px var(--mono); text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  .tbl-wrap a { color: var(--ink); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat svg { width: 34px; height: 34px; fill: none; stroke: #1f6f8b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { font-size: 21px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details { padding: 16px 20px; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .faq p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .cta-box .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .hero { color: #fff; margin-top: 14px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 80% 30%, #1b3a5c 0%, #0d1c2c 55%, #08121d 100%); }
+  .hero-in { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; padding: 44px 40px 20px; }
+  .hero-img img { width: 100%; max-height: 360px; object-fit: contain; filter: drop-shadow(0 30px 40px rgba(0,0,0,.5)); background: #fff; border-radius: 14px; padding: 10px; }
+  .hero > .hero-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 40px 34px; }
+  @media (max-width: 860px) { .hero > .hero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 20px 22px; } }
+  .forms { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 900px) { .forms { grid-template-columns: minmax(0, 1fr); } }
+  .form { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .fimg { display: grid; place-items: center; height: 230px; background: #fff; border-bottom: 1px solid var(--line); } .fimg img { max-height: 210px; max-width: 85%; object-fit: contain; }
+  .fb { padding: 16px; display: grid; gap: 6px; align-content: start; } .fb small { font: 600 11px var(--mono); text-transform: uppercase; color: var(--muted); letter-spacing: .06em; }
+  .fb h3 { font-size: 22px; } .fb h3 a { color: inherit; text-decoration: none; } .fb h3 span { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .fb em { font-style: normal; font-weight: 700; color: #1f6f8b; } .fb p { margin: 0; font-size: 14px; color: var(--muted); }
+  .fb ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--ink); display: grid; gap: 2px; }
+  .room :global(svg) { width: 100%; max-height: 220px; }
+  .room :global(rect) { animation: pop .35s both; animation-delay: var(--d); stroke: #0b1a29; stroke-width: .6; }
+  .room :global(rect.i) { fill: #2a3138; } .room :global(rect.a) { fill: #4aa8e8; } .room :global(rect.p) { fill: #2e3192; } .room :global(rect.u) { fill: #e2231a; }
+  .room :global(rect.b) { fill: #b9ae78; } .room :global(rect.s) { fill: #1c2228; } .room :global(rect.scr) { fill: #4aa8e8; } .room :global(rect.aisle) { fill: #cfe6f7; stroke: none; }
+  .room :global(.lg) { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 600 12px var(--body); } .room :global(.lg i) { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .room :global(.lg i.i) { background: #2a3138; } .room :global(.lg i.a) { background: #4aa8e8; } .room :global(.lg i.p) { background: #2e3192; } .room :global(.lg i.u) { background: #e2231a; } .room :global(.lg i.b) { background: #b9ae78; } .room :global(.lg i.s) { background: #1c2228; }
+  .room :global(.tag b) { color: #fff; }
+  .rows :global(small) { color: #9fb0c2; font: 500 12px var(--body); }
+  .notes :global(p) { margin: 0; font-size: 13px; color: #ffd27a; } .notes :global(a) { color: #7cc7ff; }
+  .design { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  @media (max-width: 860px) { .design { grid-template-columns: minmax(0, 1fr); } }
+  .design img { width: 100%; background: #fff; border-radius: 12px; border: 1px solid var(--line); }
+  .design h3 { font-size: 20px; margin-bottom: 8px; }
+  ul.dots { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .scns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 900px) { .scns { grid-template-columns: minmax(0, 1fr); } }
+  .scn { display: grid; gap: 10px; align-content: start; } .scn .sn { font: 700 13px var(--mono); color: #e2231a; } .scn h3 { font-size: 17px; }
+  .plan { display: flex; gap: 8px; } .rowsw { flex: 1; display: grid; gap: 3px; } .pr { display: flex; gap: 2px; height: 22px; }
+  .plan i, .legend i { display: block; flex: 1; border-radius: 2px; } .plan i.a { flex: .5; }
+  i.i { background: #d9dee3; } i.a { background: #b9ae78; } i.p { background: #2e3192; } i.u { background: #e2231a; } i.b { background: #e8dfb5; } i.r { background: #9fb0c2; }
+  .aisle { height: 18px; border-left: 3px solid #333; border-right: 3px solid #333; background: repeating-linear-gradient(90deg, #eef6fc 0 8px, #fff 8px 16px); }
+  .side { width: 18px; display: grid; gap: 3px; }
+  .scn dl { margin: 0; font-size: 13.5px; } .scn dt { font-weight: 700; margin-top: 4px; } .scn dd { margin: 0; color: var(--muted); }
+  .scn dd.mods { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--mono); font-size: 12.5px; } .scn dd.mods a { color: var(--accent); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 13px; color: var(--muted); } .legend span { display: inline-flex; align-items: center; gap: 6px; } .legend i { width: 12px; height: 12px; flex: none; }
+  .vtabs { margin-bottom: 14px; }
+  .pane[hidden] { display: none; }
+  .parts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 1000px) { .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .part { padding: 12px; display: grid; gap: 6px; align-content: start; } .part img { width: 100%; height: 110px; object-fit: contain; background: #fff; }
+  .part h3, .pw h3, .split h3, .wide h3 { font-size: 17px; } .part p, .pw p, .split p, .wide p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .split { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 20px; } .split .draw { width: 100%; background: #fff; border-radius: 12px; border: 1px solid var(--line); }
+  @media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } }
+  .split > div { display: grid; gap: 8px; align-content: start; }
+  .pw { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } .pw .card { display: grid; gap: 8px; align-content: start; }
+  @media (max-width: 860px) { .pw { grid-template-columns: minmax(0, 1fr); } }
+  .pw img { width: 100%; height: 200px; object-fit: contain; background: #fff; border-radius: 8px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; } .tags span { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: #e6eef5; color: #1f4b6e; }
+  .tbl-wrap table { min-width: 860px; } .tbl-wrap td { white-space: normal; vertical-align: top; } .tbl-wrap th.sys { vertical-align: middle; background: var(--bg); white-space: normal; }
+  .tbl-wrap td.num { white-space: nowrap; }
+  .tnote { font-size: 12px; color: var(--muted); margin: 8px 12px 12px; }
+  .feats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tf { margin: 16px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; font-size: 14px; }
+  .tf li::before { content: "✓ "; color: #1f6f8b; font-weight: 700; }
+  @media (max-width: 760px) { .tf { grid-template-columns: minmax(0, 1fr); } }
+</style>

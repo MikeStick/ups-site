@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { idmPlan, idmKey } from '../src/lib/idm-engine.mjs';
+assert.equal(idmKey('IDM-S'), 'IDM-S'); assert.equal(idmKey('IDM2-D'), 'IDM2-D'); assert.equal(idmKey('idm r'), 'IDM-R'); assert.equal(idmKey('IDM Ⅱ-D'), 'IDM2-D'); assert.equal(idmKey('IDMX'), '');
+let p = idmPlan({ racks: 1, kw: 6, minutes: 10 }); assert.equal(p.form, 'S'); assert.equal(p.ups.type, 'rack'); assert.ok(p.battery.internal); assert.equal(p.cooling.model, 'SK-RMJ007S');
+p = idmPlan({ racks: 1, kw: 8, minutes: 30 }); assert.equal(p.form, 'S'); assert.ok(p.battery.model); console.log('S30', p.ups, p.battery, p.cabinets);
+p = idmPlan({ racks: 6, kw: 5, minutes: 15 }); assert.equal(p.form, 'R'); console.log('R', p.cooling, p.ups, p.battery, p.cabinets, p.layout.rows[0].join(''), p.length);
+p = idmPlan({ racks: 20, kw: 6, minutes: 15 }); assert.equal(p.form, 'D'); console.log('D', p.cooling, p.ups, p.battery, p.cabinets, p.layout.rows.map((r) => r.join('')), p.length, p.notes);
+p = idmPlan({ racks: 48, kw: 8, minutes: 10 }); console.log('D48', p.cooling, p.ups, p.length, p.notes);
+p = idmPlan({ racks: 60, kw: 5 }); assert.equal(p.modules, 2); console.log('multi', p.notes);
+console.log('idm-engine ok');

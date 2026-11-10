@@ -21,9 +21,10 @@ import { VR } from './vrla-i18n.mjs';
 import { V2 } from './vrla2-i18n.mjs';
 import { PAC } from './pac-i18n.mjs';
 import { CAB } from './cab-i18n.mjs';
+import { IDMT } from './idm-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -45,6 +46,7 @@ export function catalog(lang) {
       { key: 'ciess', page: 'ci-ess/', label: CI[lang].nav, f: isCiEss, unit: 'kwh' },
       { key: 'designer', page: 'solar-designer/', label: SD[lang].nav, tool: true },
       { key: 'pac', page: 'precision-ac/', label: PAC[lang].nav, f: isPac, unit: 'pac' }, // 精密空调：放在“太阳能与储能”一栏末尾（该栏较短）
+      { key: 'idm', page: 'micro-data-center/', label: IDMT[lang].nav, f: isIdm, unit: 'idm' }, // 微模块数据中心：紧跟精密空调
     ] },
     { key: 'batt', h: NG.batt, items: [
       { key: 'wall', page: 'batteries/wall-lithium/', label: WB[lang].nav, f: isWallBattery, unit: 'kwh' },
