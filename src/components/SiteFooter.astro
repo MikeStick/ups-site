@@ -1,5 +1,6 @@
 ---
-// 页脚：左边公司简介 + 联系方式 + 二合一扫码；右边 UPS / 光伏与储能 + 电池 / 在线工具 / 公司 四列；最下面版权、语言、回到顶部。
+// 页脚：左边公司简介 + 联系方式 + 二合一扫码；右边 UPS / 光伏与储能 / 电池 / 制冷与数据中心 / 在线工具 / 公司 六列；最下面版权、语言、回到顶部。
+// 页脚用比正文更宽的容器（最宽 1600px），大屏上把左右空白用起来；中屏简介放上面，六列在下面；手机两列。
 // 产品链接来自 lib/catalog.mjs（和顶部菜单同一份），工具链接来自 home-i18n 的 tools。
 import QRCode from 'qrcode';
 import { SITE, LANGS, CONTACT } from '../config.mjs';
@@ -20,7 +21,7 @@ const L = T.links;
 const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory', L.factory], ['about/#honors', L.certs], ['about/#beijing', L.beijing], ['contact/#factory', L.tour], ['about/#news', L.news], ['contact/', L.contact]];
 ---
 <footer class="sf">
-  <div class="wrap sf-main">
+  <div class="sf-wrap sf-main">
     <div class="sf-brand">
       <a class="sf-logo" href={`/${lang}/`}>{SITE.name}</a>
       <p class="sf-tag">{T.tagline}</p>
@@ -49,9 +50,13 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
       <div class="sf-col">
         <h2>{H.strip.solar[0]}</h2>
         <ul>{items('solar').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
-        <h2 class="mt">{H.strip.batt[0]}</h2>
+      </div>
+      <div class="sf-col">
+        <h2>{H.strip.batt[0]}</h2>
         <ul>{items('batt').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
-        <h2 class="mt">{H.strip.dc[0]}</h2>
+      </div>
+      <div class="sf-col">
+        <h2>{H.strip.dc[0]}</h2>
         <ul>{items('dc').map((x) => <li><a href={`/${lang}/${x.page}`}>{x.label}</a></li>)}</ul>
       </div>
       <div class="sf-col">
@@ -66,7 +71,7 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
   </div>
 
   <div class="sf-bar">
-    <div class="wrap sf-bar-in">
+    <div class="sf-wrap sf-bar-in">
       <span>© {new Date().getFullYear()} {SITE.name}. {T.rights}</span>
       <span class="sf-langs" aria-label={T.lang}>{LANGS.map((l) => <a href={altHref(l)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined}>{UI[l].langName}</a>)}</span>
       <a class="sf-top" href="#top">{T.top} ↑</a>
@@ -77,7 +82,8 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
 <style>
   .sf { margin-top: 64px; background: #0f1d1b; color: #b9c8c4; font-size: 14px; }
   .sf a { color: inherit; text-decoration: none; }
-  .sf-main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 3fr); gap: 40px; padding-block: 48px 40px; }
+  .sf-wrap { max-width: 1760px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 48px); }
+  .sf-main { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: clamp(32px, 4vw, 72px); padding-block: 52px 44px; }
   .sf-logo { display: inline-block; font-family: var(--display); font-size: 30px; text-transform: uppercase; letter-spacing: .02em; color: #fff !important; line-height: 1; }
   .sf-tag { margin: 12px 0 14px; line-height: 1.55; color: #9fb2ad; }
   .sf-sites { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
@@ -93,7 +99,7 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
   .sf-ct a:hover { color: #5ef0a0; }
   .d { flex: none; width: 8px; height: 8px; border-radius: 50%; } .d.wa { background: #25d366; } .d.wc { background: #07c160; box-shadow: 0 0 0 2px rgba(7,193,96,.25); } .d.em { background: var(--charge); }
   .sf-ct .sf-quote { margin-top: 4px; color: var(--charge); font-weight: 700; }
-  .sf-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+  .sf-cols { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 28px; }
   .sf-col h2 { margin: 0 0 12px; font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: #fff; }
   .sf-col h2.mt { margin-top: 22px; }
   .sf-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
@@ -107,7 +113,8 @@ const company = [['about/', L.about], ['cases/', CS[lang].nav], ['about/#factory
   .sf-langs a { padding: 4px 10px; border-radius: 6px; color: #b9c8c4; } .sf-langs a:hover { background: rgba(255,255,255,.06); }
   .sf-langs a[aria-current] { background: rgba(255,255,255,.1); color: #fff; font-weight: 600; }
   .sf-top:hover { color: #fff; }
-  @media (max-width: 1020px) { .sf-main { grid-template-columns: minmax(0, 1fr); gap: 32px; } .sf-brand { max-width: 560px; } }
-  @media (max-width: 720px) { .sf-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 18px; } .sf-main { padding-block: 36px 28px; } }
+  @media (max-width: 1280px) { .sf-main { grid-template-columns: minmax(0, 1fr); gap: 36px; } .sf-brand { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; align-items: start; } .sf-brand > .sf-reach { grid-column: 2; grid-row: 1 / span 4; } }
+  @media (max-width: 900px) { .sf-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 20px; } .sf-brand { display: block; max-width: 560px; } }
+  @media (max-width: 600px) { .sf-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 18px; } .sf-main { padding-block: 36px 28px; } }
   @media (max-width: 420px) { .sf-bar-in { justify-content: center; text-align: center; } }
 </style>
