@@ -19,6 +19,15 @@ const SER = ['agm', 'hr', 'deep', 'gel', 'front'];
 const list = all.filter(isVrla12).map((p) => ({ p, b: vrlaModule(p) })).sort((a, b) => a.b.rate - b.b.rate || a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
 const RATES = [10, 20].filter((r) => list.some((x) => x.b.rate === r));
 const SERS = SER.filter((s) => list.some((x) => x.b.series === s));
+// 首屏系列卡：AGM 按容量率分（10HR / 20HR），胶体（型号末尾 J）单独一张；点击后型号表按该组筛选
+const nonGel = list.filter((x) => x.b.series !== 'gel'), gels = list.filter((x) => x.b.series === 'gel');
+const GRP = [
+  ...RATES.filter((r) => nonGel.some((x) => x.b.rate === r)).map((r) => {
+    const items = nonGel.filter((x) => x.b.rate === r), ss = [...new Set(items.map((x) => x.b.series))];
+    return { k: `${r}hr`, rt: String(r), sr: gels.length && ss.length === 1 ? ss[0] : 'all', label: (gels.length ? T.agmRate : T.rateSeries).replace('{r}', r), items };
+  }),
+  ...(gels.length ? [{ k: 'gel', rt: 'all', sr: 'gel', label: T.gelSeries, items: gels }] : []),
+];
 const ahs = list.map((x) => x.b.ah).filter(Boolean);
 const ahTxt = ahs.length ? `${Math.min(...ahs)}–${Math.max(...ahs)} Ah` : '17–250 Ah';
 const rateTxt = RATES.length ? RATES.map((r) => `${r}HR`).join(' / ') : '10HR / 20HR';
@@ -59,11 +68,11 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
           <a class="btn primary" href="#calc">{T.ctaFinder}</a>
           {list.length > 0 && <a class="btn ghost" href="#models">{T.ctaModels}</a>}
         </div>
-        {RATES.length > 1 && (
-          <div class="rate-cards">
-            {RATES.map((r) => {
-              const a = list.filter((x) => x.b.rate === r).map((x) => x.b.ah);
-              return <a href={`#models-${r}hr`} data-gort={r}><b>{T.rateSeries.replace('{r}', r)}</b><span>{Math.min(...a)}–{Math.max(...a)} Ah · {a.length} {T.modelsN}</span></a>;
+        {GRP.length > 1 && (
+          <div class:list={['rate-cards', { g3: GRP.length > 2 }]}>
+            {GRP.map((g) => {
+              const a = g.items.map((x) => x.b.ah);
+              return <a href={`#models-${g.k}`} data-gogrp={g.k} data-grt={g.rt} data-gsr={g.sr}><b>{g.label}</b><span>{Math.min(...a)}–{Math.max(...a)} Ah · {a.length} {T.modelsN}</span></a>;
             })}
           </div>
         )}
@@ -102,7 +111,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
             <article class="pcard" data-r={b.rate} data-s={b.series}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <span class="nob"><i></i><i></i></span>}
-                <span class="tags"><span class="tag pb">VRLA</span><span class="tag u">{b.rate}HR</span></span>
+                <span class="tags"><span class="tag pb">VRLA</span><span class="tag u">{b.rate}HR</span>{b.series === 'gel' && <span class="tag gel">Gel</span>}</span>
               </a>
               <div class="pbody">
                 <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
@@ -188,11 +197,11 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
     box.querySelectorAll('[data-rt]').forEach((b: any) => b.addEventListener('click', () => pick('rt', b.dataset.rt)));
     box.querySelectorAll('[data-sr]').forEach((b: any) => b.addEventListener('click', () => pick('sr', b.dataset.sr)));
     document.querySelectorAll('[data-goser]').forEach((a: any) => a.addEventListener('click', () => pick('sr', a.dataset.goser)));
-    // 10HR / 20HR 两个系列：首屏卡片或链接 #models-10hr / #models-20hr 直接打开对应系列
-    const goRate = (r: string) => { pick('rt', r); pick('sr', 'all'); box.scrollIntoView({ behavior: 'smooth' }); };
-    document.querySelectorAll('[data-gort]').forEach((a: any) => a.addEventListener('click', (e: Event) => { e.preventDefault(); history.replaceState(null, '', `#models-${a.dataset.gort}hr`); goRate(a.dataset.gort); }));
-    const h = location.hash.match(/^#models-(10|20)hr$/);
-    if (h) goRate(h[1]);
+    // 首屏系列卡（AGM 10HR / AGM 20HR / 胶体）：点卡片或打开链接 #models-10hr / #models-20hr / #models-gel 直接筛选对应一组
+    const goGrp = (k: string) => { const a = document.querySelector(`[data-gogrp="${k}"]`) as HTMLElement | null; pick('rt', a ? a.dataset.grt! : k.replace('hr', '')); pick('sr', a ? a.dataset.gsr! : 'all'); box.scrollIntoView({ behavior: 'smooth' }); };
+    document.querySelectorAll('[data-gogrp]').forEach((a: any) => a.addEventListener('click', (e: Event) => { e.preventDefault(); history.replaceState(null, '', `#models-${a.dataset.gogrp}`); goGrp(a.dataset.gogrp); }));
+    const h = location.hash.match(/^#models-(10hr|20hr|gel)$/);
+    if (h) goGrp(h[1]);
   }
 </script>
 
@@ -221,6 +230,8 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   .hero p { margin: 0; color: #c9d4d1; font-size: 17px; max-width: 580px; }
   .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
   .rate-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; max-width: 520px; }
+  .rate-cards.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 640px; }
+  @media (max-width: 520px) { .rate-cards.g3 { grid-template-columns: minmax(0, 1fr); } }
   .rate-cards a { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(245,184,61,.45); background: rgba(245,184,61,.08); color: #fff; text-decoration: none; }
   .rate-cards a:hover { background: rgba(245,184,61,.18); }
   .rate-cards b { font: 700 18px var(--display); color: #f5b83d; }
@@ -243,6 +254,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--charge-soft); color: #7a5a00; }
   .tag.k { background: var(--ok-soft); color: var(--ok); }
   .tag.pb { background: #ece7df; color: #5b4636; }
+  .tag.gel { background: #1f6f8b; color: #fff; }
   .tag.u { background: var(--ink); color: #fff; }
   .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
   .pbody h3 { font-size: 24px; }

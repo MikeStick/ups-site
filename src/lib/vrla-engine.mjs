@@ -73,6 +73,15 @@ const SK_SPECS = {
   'SK150-12V': { dims: [483, 171, 240, 245], kg: 39.6, terminal: 'Φ18×M8', life: 8 },
   'SK200-12V': { dims: [522, 239, 216, 221], kg: 54.3, terminal: 'Φ20×M8', life: 8 },
   'SK250-12V': { dims: [520, 267.5, 220, 225], kg: 68.5, terminal: 'Φ20×M8', life: 8 },
+  // 胶体 20HR（型号 SK…-12vJ；规格书没写设计寿命，不显示）
+  'SK24-12VJ': { dims: [165, 127, 173.5, 173.5], kg: 7.3, terminal: 'Φ14×M6', res: 13, imax: 7.2 },
+  'SK38-12VJ': { dims: [197, 166, 170, 170], kg: 10.2, terminal: 'Φ14×M6', res: 10.5, imax: 11.4 },
+  'SK65-12VJ': { dims: [330, 172, 180, 185], kg: 18.1, terminal: 'Φ16×M6', res: 7.0, imax: 19.5 },
+  'SK100-12VJ': { dims: [329, 172, 216, 221], kg: 27.2, terminal: 'Φ18×M8', res: 6.0, imax: 30 },
+  'SK120-12VJ': { dims: [404, 174.5, 210, 235], kg: 30.8, terminal: 'Φ18×M8', res: 5.6, imax: 36 },
+  'SK150-12VJ': { dims: [483, 171, 240, 245], kg: 39.6, terminal: 'Φ18×M8', res: 5.2, imax: 45 },
+  'SK200-12VJ': { dims: [522, 239, 216, 221], kg: 54.3, terminal: 'Φ20×M8', res: 4.3, imax: 60 },
+  'SK250-12VJ': { dims: [520, 267.5, 220, 225], kg: 68.5, terminal: 'Φ20×M8', res: 4.0, imax: 75 },
   // 2V 单体（型号 SK100-2v … SK3000-2v，都是 10HR；这里的 v 是"伏"，不表示 20HR）
   'SK100-2V': { dims: [170, 72, 210, 223], kg: 5.7, terminal: 'B5 (M8)', life: 15, res: 2.0, imax: 25 },
   'SK200-2V': { dims: [171, 111, 335, 365], kg: 12.5, terminal: 'B6 (M10)', life: 15, res: 0.7, imax: 50 },
@@ -96,7 +105,7 @@ export function vrlaModule(p) {
   const mm = String(p.model || '').match(/(\d{2,4})\s*-\s*(\d{1,2})(?:v\b|\b)/i); // SK250-12 → 250 Ah, 12 V；SK1000-2v → 1000 Ah, 2 V
   // SK 系列命名：SK100-12 = 10HR、SK100-12v = 20HR，型号里的数字就是该容量率下的额定 Ah（规格书同时列了 20HR / 10HR 等多个容量，导入时容易填错）
   // 2V 单体 SK100-2v … SK3000-2v 全是 10HR
-  const sk = skModel(p.model).match(/^SK(\d{2,4})-(12|2)(v?)$/i);
+  const sk = skModel(p.model).match(/^SK(\d{2,4})-(12|2)(v?)(j?)$/i); // 末尾 J = 胶体（SK100-12vJ）
   const v = sk ? +sk[2] : num(p.moduleVoltage || p.batteryVoltage || spec(p, /额定电压|nominal\s*voltage/i)) || (mm ? +mm[2] : 12);
   const ah = sk ? +sk[1] : num(p.moduleCapacity || spec(p, /额定容量|rated\s*capacity/i)) || (mm ? +mm[1] : 0);
   const rateTxt = spec(p, /容量率|小时率|rate/i) + ' ' + p.model;
@@ -106,8 +115,10 @@ export function vrlaModule(p) {
   const kg = num(p.moduleWeight || p.netWeight || spec(p, /重量|weight/i));
   const cells = Math.max(1, Math.round(v / 2));
   const fix = SK_SPECS[skModel(p.model).toUpperCase()];
-  if (fix) return { ...vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }), dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: `${fix.life}年以上`, ...(fix.res ? { res: fix.res, imax: fix.imax } : {}) };
-  return vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells });
+  const raw = vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells });
+  if (sk && sk[4]) raw.series = 'gel';
+  if (fix) return { ...raw, dims: fix.dims, kg: fix.kg, terminal: fix.terminal, life: fix.life ? `${fix.life}年以上` : raw.life, ...(fix.res ? { res: fix.res, imax: fix.imax } : {}) };
+  return raw;
 }
 function vrlaModuleRaw(p, { v, ah, rate, dims, kg, cells }) {
   return { model: p.model, slug: p.slug, v, ah, rate, dims, kg, cells, series: seriesOf(p),

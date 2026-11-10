@@ -9,8 +9,8 @@ export const VR = {
     ctaFinder: 'Calculate backup time', ctaModels: 'See all models',
     facts: { v: 'Nominal voltage', ah: 'Capacity range', models: 'Models', rate: 'Capacity rating', life: 'Design life (float)' },
     lifeVal: '8+ years',
-    modelsEyebrow: 'Models', modelsH: 'All 12V VRLA batteries', tabAll: 'All', allSeries: 'All series', quote: 'Quote', detailsBtn: 'Details', seeModels: 'See models', rateSeries: '{r}HR series', modelsN: 'models',
-    rateNote: '10HR / 20HR = rated capacity at the 10-hour or 20-hour discharge rate. Models ending in “v” (e.g. SK100-12v) are rated at 20HR, the others (e.g. SK100-12) at 10HR.',
+    modelsEyebrow: 'Models', modelsH: 'All 12V VRLA batteries', tabAll: 'All', allSeries: 'All series', quote: 'Quote', detailsBtn: 'Details', seeModels: 'See models', rateSeries: '{r}HR series', agmRate: 'AGM {r}HR', gelSeries: 'Gel 20HR', modelsN: 'models',
+    rateNote: '10HR / 20HR = rated capacity at the 10-hour or 20-hour discharge rate. Models ending in “v” (e.g. SK100-12v) are rated at 20HR, the others (e.g. SK100-12) at 10HR. Models ending in “vJ” (e.g. SK100-12vJ) are gel batteries, rated at 20HR.',
     th: { model: 'Model', rate: 'Rate', ah: 'Capacity', dims: 'L × W × H / TH (mm)', dimsS: 'Size', kg: 'Weight', term: 'Terminal', life: 'Design life', series: 'Series' },
     seriesName: { agm: 'AGM standby', deep: 'Deep cycle', gel: 'Gel', hr: 'High-rate (HR)', front: 'Front terminal' },
     seriesEyebrow: 'Series', seriesH: 'Choose the series for your application',
@@ -62,8 +62,8 @@ export const VR = {
     ctaFinder: 'Calcular autonomía', ctaModels: 'Ver todos los modelos',
     facts: { v: 'Tensión nominal', ah: 'Rango de capacidad', models: 'Modelos', rate: 'Capacidad nominal', life: 'Vida útil de diseño (flotación)' },
     lifeVal: '8+ años',
-    modelsEyebrow: 'Modelos', modelsH: 'Todas las baterías VRLA 12V', tabAll: 'Todas', allSeries: 'Todas las series', quote: 'Cotizar', detailsBtn: 'Detalles', seeModels: 'Ver modelos', rateSeries: 'Serie {r}HR', modelsN: 'modelos',
-    rateNote: '10HR / 20HR = capacidad nominal a la tasa de descarga de 10 o 20 horas. Los modelos terminados en «v» (p. ej. SK100-12v) son 20HR; los demás (p. ej. SK100-12), 10HR.',
+    modelsEyebrow: 'Modelos', modelsH: 'Todas las baterías VRLA 12V', tabAll: 'Todas', allSeries: 'Todas las series', quote: 'Cotizar', detailsBtn: 'Detalles', seeModels: 'Ver modelos', rateSeries: 'Serie {r}HR', agmRate: 'AGM {r}HR', gelSeries: 'Gel 20HR', modelsN: 'modelos',
+    rateNote: '10HR / 20HR = capacidad nominal a la tasa de descarga de 10 o 20 horas. Los modelos terminados en «v» (p. ej. SK100-12v) son 20HR; los demás (p. ej. SK100-12), 10HR. Los terminados en «vJ» (p. ej. SK100-12vJ) son baterías de gel, 20HR.',
     th: { model: 'Modelo', rate: 'Tasa', ah: 'Capacidad', dims: 'L × A × H / HT (mm)', dimsS: 'Medidas', kg: 'Peso', term: 'Terminal', life: 'Vida de diseño', series: 'Serie' },
     seriesName: { agm: 'AGM standby', deep: 'Ciclo profundo', gel: 'Gel', hr: 'Alta descarga (HR)', front: 'Terminal frontal' },
     seriesEyebrow: 'Series', seriesH: 'Elija la serie para su aplicación',
@@ -115,8 +115,8 @@ export const VR = {
     ctaFinder: 'Рассчитать автономию', ctaModels: 'Все модели',
     facts: { v: 'Номинальное напряжение', ah: 'Ёмкость', models: 'Моделей', rate: 'Режим ёмкости', life: 'Срок службы (буфер)' },
     lifeVal: '8+ лет',
-    modelsEyebrow: 'Модели', modelsH: 'Все батареи VRLA 12V', tabAll: 'Все', allSeries: 'Все серии', quote: 'Цена', detailsBtn: 'Подробнее', seeModels: 'Смотреть модели', rateSeries: 'Серия {r}HR', modelsN: 'моделей',
-    rateNote: '10HR / 20HR — номинальная ёмкость при 10- или 20-часовом разряде. Модели с буквой «v» (например, SK100-12v) — 20HR, остальные (например, SK100-12) — 10HR.',
+    modelsEyebrow: 'Модели', modelsH: 'Все батареи VRLA 12V', tabAll: 'Все', allSeries: 'Все серии', quote: 'Цена', detailsBtn: 'Подробнее', seeModels: 'Смотреть модели', rateSeries: 'Серия {r}HR', agmRate: 'AGM {r}HR', gelSeries: 'Гель 20HR', modelsN: 'моделей',
+    rateNote: '10HR / 20HR — номинальная ёмкость при 10- или 20-часовом разряде. Модели с буквой «v» (например, SK100-12v) — 20HR, остальные (например, SK100-12) — 10HR. Модели на «vJ» (например, SK100-12vJ) — гелевые, 20HR.',
     th: { model: 'Модель', rate: 'Режим', ah: 'Ёмкость', dims: 'Д × Ш × В / ПВ (мм)', dimsS: 'Размеры', kg: 'Вес', term: 'Клеммы', life: 'Срок службы', series: 'Серия' },
     seriesName: { agm: 'AGM буферные', deep: 'Циклические', gel: 'Гелевые', hr: 'Высокотоковые (HR)', front: 'Фронтальные клеммы' },
     seriesEyebrow: 'Серии', seriesH: 'Выберите серию под задачу',
@@ -164,9 +164,9 @@ export const VR = {
 
 // 产品详情页：规格表行名 + CRM 里中文 extraSpecs 标签的翻译（网站不显示未翻译的中文标签，所以这里把铅酸常用的几项对上）
 export const VR_P = {
-  en: { volt: 'Nominal voltage', cap: 'Rated capacity', series: 'Series', dims: 'Dimensions L × W × H / TH', kg: 'Weight', cells: 'Cells', dis: 'Discharge data at 25 °C', cp: 'Constant power (W per battery)', cc: 'Constant current (A)', endV: 'End voltage', perCell: 'cell', tech: 'Technology', techV: 'Sealed VRLA (AGM), maintenance-free' },
-  es: { volt: 'Tensión nominal', cap: 'Capacidad nominal', series: 'Serie', dims: 'Dimensiones L × A × H / HT', kg: 'Peso', cells: 'Celdas', dis: 'Datos de descarga a 25 °C', cp: 'Potencia constante (W por batería)', cc: 'Corriente constante (A)', endV: 'Tensión final', perCell: 'celda', tech: 'Tecnología', techV: 'VRLA sellada (AGM), sin mantenimiento' },
-  ru: { volt: 'Номинальное напряжение', cap: 'Номинальная ёмкость', series: 'Серия', dims: 'Размеры Д × Ш × В / ПВ', kg: 'Вес', cells: 'Элементов', dis: 'Разрядные характеристики при 25 °C', cp: 'Постоянная мощность (Вт на батарею)', cc: 'Постоянный ток (А)', endV: 'Конечное напряжение', perCell: 'эл.', tech: 'Технология', techV: 'Герметичная VRLA (AGM), необслуживаемая' },
+  en: { volt: 'Nominal voltage', cap: 'Rated capacity', series: 'Series', dims: 'Dimensions L × W × H / TH', kg: 'Weight', cells: 'Cells', dis: 'Discharge data at 25 °C', cp: 'Constant power (W per battery)', cc: 'Constant current (A)', endV: 'End voltage', perCell: 'cell', tech: 'Technology', techV: 'Sealed VRLA (AGM), maintenance-free', techGel: 'Sealed VRLA (gel), maintenance-free' },
+  es: { volt: 'Tensión nominal', cap: 'Capacidad nominal', series: 'Serie', dims: 'Dimensiones L × A × H / HT', kg: 'Peso', cells: 'Celdas', dis: 'Datos de descarga a 25 °C', cp: 'Potencia constante (W por batería)', cc: 'Corriente constante (A)', endV: 'Tensión final', perCell: 'celda', tech: 'Tecnología', techV: 'VRLA sellada (AGM), sin mantenimiento', techGel: 'VRLA sellada (gel), sin mantenimiento' },
+  ru: { volt: 'Номинальное напряжение', cap: 'Номинальная ёмкость', series: 'Серия', dims: 'Размеры Д × Ш × В / ПВ', kg: 'Вес', cells: 'Элементов', dis: 'Разрядные характеристики при 25 °C', cp: 'Постоянная мощность (Вт на батарею)', cc: 'Постоянный ток (А)', endV: 'Конечное напряжение', perCell: 'эл.', tech: 'Технология', techV: 'Герметичная VRLA (AGM), необслуживаемая', techGel: 'Герметичная VRLA (гель), необслуживаемая' },
 };
 export const VR_LABELS = [
   [/温度对容量/, { en: 'Capacity vs. temperature', es: 'Capacidad según temperatura', ru: 'Ёмкость при температуре' }],
@@ -192,7 +192,7 @@ const VZH = [[/（/g, { en: ' (', es: ' (', ru: ' (' }], [/）/g, { en: ')', es:
 const VR2X = { en: { res: 'Internal resistance', imax: 'Max charge current' }, es: { res: 'Resistencia interna', imax: 'Corriente máx. de carga' }, ru: { res: 'Внутреннее сопротивление', imax: 'Макс. ток заряда' } };
 export function vrlaSpecRows(p, m, lang) {
   const L = VR_P[lang], T = VR[lang];
-  const rows = [[T.th.model, p.model], [L.tech, L.techV], [L.volt, `${m.v} V`], [L.cap, `${m.ah} Ah (${m.rate}HR)`], [L.series, T.seriesName[m.series]]];
+  const rows = [[T.th.model, p.model], [L.tech, m.series === 'gel' ? L.techGel : L.techV], [L.volt, `${m.v} V`], [L.cap, `${m.ah} Ah (${m.rate}HR)`], [L.series, T.seriesName[m.series]]];
   if (m.dims.length) rows.push([L.dims, `${m.dims.slice(0, 3).join(' × ')}${m.dims[3] ? ` / ${m.dims[3]}` : ''} mm`]);
   // 重量后面的公差（如 7.3（1±3%））一起显示
   const tol = (String(p.moduleWeight || '').match(/[（(][^）)]*±[^）)]*[）)]/) || [''])[0].replace('（', '(').replace('）', ')');

@@ -198,7 +198,7 @@ const typeName = term(p.type, lang);
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
 const highlights = vrla ? [
-  `${vm.v} V · ${vm.ah} Ah`, `${vm.rate}HR`, VR[lang].seriesName[vm.series], (vm.life.match(/\d+/) ? `${VR[lang].th.life} ${VR[lang].lifeVal.replace(/\d+/, vm.life.match(/\d+/)[0])}` : 'VRLA · AGM'),
+  `${vm.v} V · ${vm.ah} Ah`, `${vm.rate}HR`, VR[lang].seriesName[vm.series], (vm.life.match(/\d+/) ? `${VR[lang].th.life} ${VR[lang].lifeVal.replace(/\d+/, vm.life.match(/\d+/)[0])}` : (vm.series === 'gel' ? 'VRLA · Gel' : 'VRLA · AGM')),
 ].filter(Boolean) : rbatt ? [
   [bm.v && `${bm.v} V`, bm.ah && `${bm.ah} Ah`].filter(Boolean).join(' · '),
   bm.kwh ? (bm.kwh < 1 ? `${Math.round(bm.kwh * 1000)} Wh` : `${bm.kwh} kWh`) : '',
