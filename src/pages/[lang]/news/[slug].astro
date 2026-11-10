@@ -1,0 +1,221 @@
+---
+// 新闻详情（/news/<slug>/）：顶部阅读进度条 → 全幅封面（标题压在图上）→ 左侧粘性栏（日期、分类、目录、分享）+ 正文块
+// （导语、小标题、单图、双图、横滑图集+灯箱、YouTube 点击加载、引言、数字条、相关产品卡）→ 继续阅读 → 上一篇 / 下一篇。
+import Base from '../../../layouts/Base.astro';
+import { LANGS, SITE } from '../../../config.mjs';
+import { NW, monthYear, tx, readMin, hasVideo } from '../../../lib/news-i18n.mjs';
+import { NEWS_SAMPLE } from '../../../data/news-sample.mjs';
+import { catalog } from '../../../lib/catalog.mjs';
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => NEWS_SAMPLE.map((n) => ({ params: { lang, slug: n.slug } })));
+}
+const { lang, slug } = Astro.params;
+const T = NW[lang];
+const list = [...NEWS_SAMPLE].sort((a, b) => b.date.localeCompare(a.date));
+const i = list.findIndex((n) => n.slug === slug);
+const n = list[i];
+const prev = list[i + 1], next = list[i - 1];
+const related = list.filter((x) => x.slug !== slug && (x.cat === n.cat || x.blocks.some((b) => b.t === 'links' && n.blocks.some((c) => c.t === 'links' && c.items.some((k) => b.items.includes(k)))))).slice(0, 3);
+const href = (x: any) => `/${lang}/news/${x.slug}/`;
+const pages = Object.fromEntries(catalog(lang).flatMap((g) => g.items.map((x) => [x.page, { label: x.label, group: g.h, key: x.key }])));
+const heads = n.blocks.map((b, k) => ({ b, k })).filter((o) => o.b.t === 'h');
+const url = `${(Astro.site ? Astro.site.toString().replace(/\/$/, '') : '')}/${lang}/news/${slug}/`;
+const title = tx(n.title, lang);
+const ICON = '<rect x="6" y="10" width="36" height="28" rx="3"/><path d="M6 18h36M14 26h10M14 31h16"/>';
+---
+<Base lang={lang} title={`${title} · ${SITE.name}`} description={tx(n.excerpt, lang)} path={`news/${slug}/`} full>
+<div class="art" data-art>
+  <div class="prog" aria-hidden="true"><i></i></div>
+
+  <header class="cover">
+    <img src={n.cover} alt="" class:list={{ fit: n.coverFit === 'contain' }} />
+    <div class="wrap cv-in">
+      <nav class="crumbs"><a href={`/${lang}/news/`}>← {T.back}</a></nav>
+      <span class="meta"><i class={`c c-${n.cat}`}>{T.cats[n.cat]}</i><time>{monthYear(n.date, lang)}</time>{n.place && <span>· {n.place}</span>}<span>· {readMin(n, lang)} {T.min}</span>{hasVideo(n) && <span>· ▶ {T.video}</span>}</span>
+      <h1>{title}</h1>
+    </div>
+  </header>
+
+  <div class="wrap body">
+    <aside class="rail">
+      <div class="rail-in">
+        <div class="date"><b class="num">{n.date.slice(0, 4)}</b><span>{monthYear(n.date, lang)}</span></div>
+        {heads.length > 0 && (
+          <nav class="toc"><small>{T.contents}</small>{heads.map((o) => <a href={`#s${o.k}`}>{tx(o.b, lang)}</a>)}</nav>
+        )}
+        <div class="share">
+          <small>{T.share}</small>
+          <a href={`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`} target="_blank" rel="noopener" aria-label="WhatsApp">WA</a>
+          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`} target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noopener" aria-label="Facebook">f</a>
+          <button type="button" data-copy={url} data-done={T.copied}>{T.copy}</button>
+        </div>
+      </div>
+    </aside>
+
+    <article class="prose">
+      <p class="excerpt">{tx(n.excerpt, lang)}</p>
+      {n.blocks.map((b, k) => {
+        if (b.t === 'p') return <p class:list={{ lead: b.lead }}>{tx(b, lang)}</p>;
+        if (b.t === 'h') return <h2 id={`s${k}`}>{tx(b, lang)}</h2>;
+        if (b.t === 'img') return <figure class="fig"><img src={b.src} alt="" loading="lazy" class:list={{ fit: b.fit === 'contain' }} data-zoom />{b.cap && <figcaption>{tx(b.cap, lang)}</figcaption>}</figure>;
+        if (b.t === 'pair') return <div class="pair bleed">{b.items.map((it) => <figure><img src={it.src} alt="" loading="lazy" data-zoom />{it.cap && <figcaption>{tx(it.cap, lang)}</figcaption>}</figure>)}</div>;
+        if (b.t === 'gallery') return (
+          <div class="gal bleed" data-gal>
+            <div class="gal-track">{b.items.map((src, j) => <figure><img src={src} alt="" loading="lazy" data-zoom /><span class="gn num">{j + 1} / {b.items.length}</span></figure>)}</div>
+            <div class="gal-nav"><button type="button" data-g="-1" aria-label="prev">←</button><button type="button" data-g="1" aria-label="next">→</button></div>
+          </div>
+        );
+        if (b.t === 'yt') return (
+          <figure class="yt bleed">
+            <button type="button" class="yt-btn" data-yt={b.id || ''} style={`--p:url(${b.poster})`} aria-label={T.watch}>
+              <span class="play"></span><span class="yt-l">▶ YouTube · {T.watch}</span>
+            </button>
+            {b.cap && <figcaption>{tx(b.cap, lang)}</figcaption>}
+          </figure>
+        );
+        if (b.t === 'quote') return <blockquote><p>{tx(b, lang)}</p>{b.by && <cite>— {b.by}</cite>}</blockquote>;
+        if (b.t === 'stats') return <div class="stats bleed">{b.items.map(([v, l]) => <div><b class="num">{v}</b><span>{l}</span></div>)}</div>;
+        if (b.t === 'links') return (
+          <div class="plinks">
+            <small>{T.related_products}</small>
+            <div>{b.items.filter((p) => pages[p]).map((p) => <a href={`/${lang}/${p}`}><span class="pi"><svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICON} /></span><span><em>{pages[p].group}</em><b>{pages[p].label}</b></span><i>→</i></a>)}</div>
+          </div>
+        );
+        return null;
+      })}
+      <div class="pn">
+        {prev ? <a href={href(prev)}><small>← {T.prev}</small><b>{tx(prev.title, lang)}</b></a> : <span></span>}
+        {next ? <a class="r" href={href(next)}><small>{T.next} →</small><b>{tx(next.title, lang)}</b></a> : <span></span>}
+      </div>
+    </article>
+  </div>
+
+  {related.length > 0 && (
+    <section class="wrap rel">
+      <h2>{T.related}</h2>
+      <div class="rel-g">
+        {related.map((x) => (
+          <a href={href(x)}><span class="ri"><img src={x.cover} alt="" loading="lazy" />{hasVideo(x) && <span class="play sm"></span>}</span>
+            <span class="meta"><i class={`c c-${x.cat}`}>{T.cats[x.cat]}</i><time>{monthYear(x.date, lang)}</time></span><b>{tx(x.title, lang)}</b></a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="wrap"><div class="ncta">
+    <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+    <a class="btn" href={`/${lang}/contact/#inquiry`}>{T.ctaBtn} →</a>
+  </div></section>
+
+  <div class="lb" hidden data-lb><img alt="" /><button type="button" aria-label="close">×</button></div>
+</div>
+</Base>
+
+<script>
+  const root = document.querySelector('[data-art]') as HTMLElement | null;
+  if (root) {
+    // 阅读进度
+    const bar = root.querySelector('.prog i') as HTMLElement, art = root.querySelector('.prose') as HTMLElement;
+    const upd = () => { const r = art.getBoundingClientRect(); const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight))); bar.style.transform = `scaleX(${p})`; };
+    addEventListener('scroll', upd, { passive: true }); upd();
+    // 目录高亮
+    const links = [...root.querySelectorAll('.toc a')] as HTMLAnchorElement[];
+    if (links.length) {
+      const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.hash === '#' + e.target.id)); }), { rootMargin: '0px 0px -70% 0px' });
+      links.forEach((a) => { const h = document.getElementById(a.hash.slice(1)); if (h) io.observe(h); });
+    }
+    // 图集左右翻
+    root.querySelectorAll('[data-gal]').forEach((g: any) => {
+      const t = g.querySelector('.gal-track');
+      g.querySelectorAll('[data-g]').forEach((b: any) => b.addEventListener('click', () => t.scrollBy({ left: +b.dataset.g * t.clientWidth * 0.8, behavior: 'smooth' })));
+    });
+    // YouTube：点击才加载（不拖慢页面）；没填链接时提示
+    root.querySelectorAll('[data-yt]').forEach((b: any) => b.addEventListener('click', () => {
+      const id = b.dataset.yt;
+      if (!id) { b.classList.add('demo'); return; }
+      b.outerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+    }));
+    // 灯箱
+    const lb = root.querySelector('[data-lb]') as HTMLElement, li = lb.querySelector('img') as HTMLImageElement;
+    root.querySelectorAll('[data-zoom]').forEach((im: any) => im.addEventListener('click', () => { li.src = im.src; lb.hidden = false; }));
+    lb.addEventListener('click', () => (lb.hidden = true));
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; });
+    // 复制链接
+    root.querySelectorAll('[data-copy]').forEach((b: any) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = b.dataset.done; } catch {} }));
+  }
+</script>
+
+<style>
+  .prog { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 100; pointer-events: none; }
+  .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--charge), #e2231a); transform-origin: 0 50%; transform: scaleX(0); }
+  .cover { position: relative; min-height: min(72vh, 620px); display: flex; align-items: flex-end; color: #fff; background: #0b1622; overflow: hidden; isolation: isolate; }
+  .cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; animation: kb 18s ease-out both; }
+  .cover > img.fit { object-fit: contain; padding: 40px 40px 200px; background: radial-gradient(120% 90% at 70% 20%, #1b3a5c, #0b1622); animation: none; }
+  @keyframes kb { from { transform: scale(1.08); } }
+  .cover::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(8,18,29,.25) 0%, rgba(8,18,29,0) 30%, rgba(8,18,29,.9) 100%); }
+  .cv-in { width: 100%; padding-block: 28px 40px; display: grid; gap: 14px; }
+  .crumbs a { color: #dfe9e6; text-decoration: none; font-size: 13.5px; } .crumbs a:hover { color: #fff; }
+  .cover h1 { margin: 0; font-size: clamp(30px, 4.2vw, 54px); line-height: 1.04; max-width: 24ch; text-wrap: balance; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+  .c { font-style: normal; padding: 3px 8px; border-radius: 99px; background: #e8f3ef; color: var(--accent); }
+  .c-projects { background: #e2f0fb; color: #1f5f8b; } .c-products { background: #fff1c9; color: #7a5a00; } .c-events { background: #fde4e1; color: #a2271b; }
+  .body { display: grid; grid-template-columns: 220px minmax(0, 720px); gap: 56px; justify-content: center; padding-block: 48px 20px; }
+  @media (max-width: 980px) { .body { grid-template-columns: minmax(0, 1fr); gap: 0; } .rail { display: none; } }
+  .rail-in { position: sticky; top: 24px; display: grid; gap: 26px; }
+  .date b { display: block; font: 700 64px/1 var(--display); color: var(--line); -webkit-text-stroke: 1.5px var(--ink); color: transparent; }
+  .date span { font: 600 12px var(--mono); text-transform: uppercase; color: var(--muted); }
+  .toc { display: grid; gap: 6px; border-left: 2px solid var(--line); padding-left: 12px; } .toc small, .share small { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .toc a { font-size: 13.5px; color: var(--muted); text-decoration: none; line-height: 1.35; margin-left: -14px; padding-left: 12px; border-left: 2px solid transparent; } .toc a.on { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+  .share { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .share small { flex-basis: 100%; }
+  .share a, .share button { display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 12.5px var(--body); text-decoration: none; cursor: pointer; }
+  .share a:hover, .share button:hover { border-color: var(--accent); color: var(--accent); }
+  .prose { min-width: 0; font-size: 17.5px; line-height: 1.75; color: #22312e; }
+  .prose .excerpt { font: 600 21px/1.5 var(--body); color: var(--ink); margin: 0 0 24px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+  .prose p { margin: 0 0 22px; } .prose p.lead::first-letter { float: left; font: 700 64px/.85 var(--display); margin: 6px 10px 0 0; color: #e2231a; }
+  .prose h2 { font-size: clamp(24px, 3vw, 32px); margin: 38px 0 14px; scroll-margin-top: 24px; }
+  .bleed { margin-right: clamp(-140px, -10vw, 0px); }
+  @media (max-width: 980px) { .bleed { margin-right: 0; } }
+  figure { margin-block: 0; } .gal-track figure, .pair figure { margin: 0; } figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .fig { margin: 28px 0; } .fig img, .pair img { width: 100%; border-radius: 12px; cursor: zoom-in; background: #fff; } .fig img.fit { border: 1px solid var(--line); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-block: 28px; } .pair img { aspect-ratio: 4 / 3; object-fit: cover; }
+  @media (max-width: 560px) { .pair { grid-template-columns: 1fr; } }
+  .gal { position: relative; margin-block: 30px; }
+  .gal-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; } .gal-track::-webkit-scrollbar { display: none; }
+  .gal-track figure { flex: 0 0 78%; scroll-snap-align: center; position: relative; } .gal-track img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 12px; cursor: zoom-in; }
+  .gn { position: absolute; right: 10px; bottom: 10px; font: 600 11px var(--mono); padding: 3px 8px; border-radius: 99px; background: rgba(8,18,29,.7); color: #fff; }
+  .gal-nav { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .gal-nav button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 16px; } .gal-nav button:hover { border-color: var(--ink); }
+  .yt { margin-block: 30px; } .yt :global(iframe), .yt-btn { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 14px; display: block; }
+  .yt-btn { position: relative; cursor: pointer; background: linear-gradient(rgba(8,18,29,.25), rgba(8,18,29,.55)), var(--p) center / cover; overflow: hidden; }
+  .yt-l { position: absolute; left: 16px; bottom: 14px; color: #fff; font: 700 13px var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+  .yt-btn.demo::after { content: 'Sample — paste a YouTube link in the CRM to play here'; position: absolute; inset: auto 16px 50px; color: #fff; font: 600 14px var(--body); text-align: center; }
+  .play { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: rgba(255,255,255,.94); box-shadow: 0 12px 34px rgba(0,0,0,.4); transition: transform .2s; }
+  .play::after { content: ''; position: absolute; left: 30px; top: 24px; border-left: 22px solid #e2231a; border-top: 14px solid transparent; border-bottom: 14px solid transparent; }
+  .play.sm { width: 36px; height: 36px; margin: -18px 0 0 -18px; } .play.sm::after { left: 14px; top: 11px; border-left-width: 11px; border-top-width: 7px; border-bottom-width: 7px; }
+  .yt-btn:hover .play { transform: scale(1.08); }
+  blockquote { margin: 34px 0; padding: 6px 0 6px 26px; border-left: 4px solid #e2231a; }
+  blockquote p { font: 700 clamp(22px, 2.6vw, 30px)/1.3 var(--display); text-transform: uppercase; color: var(--ink); margin: 0 !important; }
+  blockquote cite { display: block; margin-top: 10px; font: 600 13px var(--mono); color: var(--muted); font-style: normal; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-block: 30px; }
+  .stats div { background: var(--surface); padding: 18px; display: grid; gap: 4px; } .stats b { font: 700 clamp(26px, 3vw, 36px)/1 var(--display); color: var(--accent); } .stats span { font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+  .plinks { margin: 34px 0; } .plinks small { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .plinks > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
+  .plinks a { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink); transition: border-color .15s, transform .15s; }
+  .plinks a:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .pi { width: 44px; height: 44px; border-radius: 10px; background: #e8f3ef; display: grid; place-items: center; } .pi svg { width: 26px; height: 26px; fill: none; stroke: var(--accent); stroke-width: 2.2; }
+  .plinks em { display: block; font: 600 10.5px var(--mono); text-transform: uppercase; color: var(--muted); font-style: normal; } .plinks b { font-size: 15px; line-height: 1.25; } .plinks i { font-style: normal; color: var(--accent); font-weight: 700; }
+  .pn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .pn a { display: grid; gap: 4px; text-decoration: none; color: var(--ink); padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); } .pn a.r { text-align: right; }
+  .pn a:hover { border-color: var(--accent); } .pn small { font: 600 11.5px var(--mono); text-transform: uppercase; color: var(--muted); } .pn b { font-size: 15px; line-height: 1.3; }
+  .rel { padding-top: 40px; } .rel h2 { font-size: clamp(24px, 3vw, 34px); margin-bottom: 16px; }
+  .rel-g { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } @media (max-width: 760px) { .rel-g { grid-template-columns: minmax(0, 1fr); } }
+  .rel-g a { display: grid; gap: 8px; text-decoration: none; color: var(--ink); } .rel-g .meta { color: var(--muted); } .rel-g b { font-size: 17px; line-height: 1.3; }
+  .ri { position: relative; aspect-ratio: 16 / 10; border-radius: 12px; overflow: hidden; } .ri img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; } .rel-g a:hover .ri img { transform: scale(1.04); }
+  .ncta { margin-block: 56px 64px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 30px; border-radius: 18px; background: #0f1d1b; color: #fff; }
+  .ncta h2, .ncta p { margin: 0; } .ncta p { margin-top: 6px; } .ncta h2 { font-size: clamp(24px, 3vw, 36px); } .ncta p { margin: 6px 0 0; color: #9fb2ad; }
+  .ncta .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 10px; background: var(--charge); color: var(--ink); font-weight: 700; text-decoration: none; }
+  .lb { position: fixed; inset: 0; z-index: 200; background: rgba(5,10,16,.92); display: grid; place-items: center; padding: 30px; cursor: zoom-out; }
+  .lb[hidden] { display: none; } .lb img { max-width: 100%; max-height: 100%; border-radius: 8px; } .lb button { position: absolute; top: 16px; right: 20px; background: none; border: 0; color: #fff; font-size: 34px; cursor: pointer; }
+</style>

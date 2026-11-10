@@ -1,0 +1,188 @@
+---
+// 新闻中心（/news/）：滚动标题条 → 头条（大图 + 右侧 3 条）→ 分类筛选 → 杂志式拼图网格（视频卡深色、图集卡带缩略条）→ 询价。
+// 预览版：数据来自 src/data/news-sample.mjs。
+import Base from '../../../layouts/Base.astro';
+import { LANGS, SITE } from '../../../config.mjs';
+import { NW, monthYear, tx, readMin, hasVideo, photoCount } from '../../../lib/news-i18n.mjs';
+import { NEWS_SAMPLE, NEWS_CATS } from '../../../data/news-sample.mjs';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = NW[lang];
+const list = [...NEWS_SAMPLE].sort((a, b) => b.date.localeCompare(a.date));
+const [lead, ...rest] = list;
+const side = rest.slice(0, 3);
+const grid = list.slice(1);
+const href = (n: any) => `/${lang}/news/${n.slug}/`;
+const gal = (n: any) => n.blocks.flatMap((b: any) => (b.t === 'gallery' ? b.items : b.t === 'pair' ? b.items.map((i: any) => i.src) : b.t === 'img' ? [b.src] : [])).slice(0, 3);
+// 拼图尺寸：每 5 张一组，第 1 张宽（占两列）、第 5 张高（占两行，落在第三列），三列正好铺满
+const size = (i: number) => (i % 5 === 0 ? 'wide' : i % 5 === 4 ? 'tall' : '');
+const used = NEWS_CATS.filter((c) => list.some((n) => n.cat === c));
+---
+<Base lang={lang} title={`${T.title} · ${SITE.name}`} description={T.metaDesc} path="news/" full>
+<div class="nwp" data-news>
+  <div class="ticker" aria-hidden="true">
+    <span class="tk-l">{T.latest}</span>
+    <div class="tk-track"><div class="tk-run">
+      {[...list, ...list].map((n) => <a href={href(n)}><b>{monthYear(n.date, lang)}</b>{tx(n.title, lang)}</a>)}
+    </div></div>
+  </div>
+
+  <header class="wrap nh">
+    <span class="eyebrow">{T.eyebrow}</span>
+    <h1>{T.h1}</h1>
+    <p>{T.lead}</p>
+  </header>
+
+  <section class="wrap ntop">
+    <a class="nlead" href={href(lead)}>
+      <span class="lead-img"><img src={lead.cover} alt="" class:list={{ fit: lead.coverFit === 'contain' }} /></span>
+      <span class="lead-b">
+        <span class="meta"><i class={`c c-${lead.cat}`}>{T.cats[lead.cat]}</i><time>{monthYear(lead.date, lang)}</time>{lead.place && <span>· {lead.place}</span>}</span>
+        <b class="lead-t">{tx(lead.title, lang)}</b>
+        <span class="lead-x">{tx(lead.excerpt, lang)}</span>
+        <span class="go">{T.read} <em>→</em></span>
+      </span>
+    </a>
+    <ol class="nside">
+      {side.map((n, i) => (
+        <li><a href={href(n)}>
+          <span class="sn num">0{i + 2}</span>
+          <span class="sb"><span class="meta"><i class={`c c-${n.cat}`}>{T.cats[n.cat]}</i><time>{monthYear(n.date, lang)}</time></span><b>{tx(n.title, lang)}</b></span>
+          <span class="st"><img src={n.cover} alt="" loading="lazy" />{hasVideo(n) && <span class="play sm" aria-label={T.video}></span>}</span>
+        </a></li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="wrap nfeed">
+    <div class="bar">
+      <h2>{T.more}</h2>
+      <div class="chips">
+        <button type="button" class="on" data-f="all">{T.all} <small>{grid.length}</small></button>
+        {used.map((c) => <button type="button" data-f={c}>{T.cats[c]} <small>{grid.filter((n) => n.cat === c).length}</small></button>)}
+        <button type="button" data-f="video">▶ {T.cats.video} <small>{grid.filter(hasVideo).length}</small></button>
+      </div>
+    </div>
+    <div class="bento">
+      {grid.map((n, i) => {
+        const v = hasVideo(n), g = gal(n), pc = photoCount(n);
+        return (
+          <a class:list={['card', size(i), { vid: v }]} href={href(n)} data-c={n.cat} data-v={v ? '1' : '0'}>
+            <span class="ci"><img src={n.cover} alt="" loading="lazy" class:list={{ fit: n.coverFit === 'contain' }} />
+              {v && <span class="play" aria-label={T.video}></span>}
+              {pc > 1 && <span class="pc">▣ {pc} {T.photos}</span>}
+            </span>
+            <span class="cb">
+              <span class="meta"><i class={`c c-${n.cat}`}>{T.cats[n.cat]}</i><time>{monthYear(n.date, lang)}</time></span>
+              <b>{tx(n.title, lang)}</b>
+              <span class="cx">{tx(n.excerpt, lang)}</span>
+              {g.length >= 2 && size(i) && <span class="strip">{g.map((s: string) => <img src={s} alt="" loading="lazy" />)}</span>}
+              <span class="rt">{n.place ? `${n.place} · ` : ''}{readMin(n, lang)} {T.min}</span>
+            </span>
+          </a>
+        );
+      })}
+    </div>
+    <p class="none" hidden>{T.empty}</p>
+  </section>
+
+  <section class="wrap"><div class="ncta">
+    <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+    <a class="btn" href={`/${lang}/contact/#inquiry`}>{T.ctaBtn} →</a>
+  </div></section>
+</div>
+</Base>
+
+<script>
+  const root = document.querySelector('[data-news]');
+  if (root) {
+    const cards = [...root.querySelectorAll('.bento .card')] as HTMLElement[];
+    const none = root.querySelector('.none') as HTMLElement;
+    root.querySelectorAll('[data-f]').forEach((b: any) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-f]').forEach((x: any) => x.classList.toggle('on', x === b));
+      const f = b.dataset.f; let n = 0;
+      cards.forEach((c) => { const show = f === 'all' || (f === 'video' ? c.dataset.v === '1' : c.dataset.c === f); c.hidden = !show; if (show) n++; });
+      none.hidden = n > 0;
+    }));
+  }
+</script>
+
+<style>
+  .nwp { --ink2: #0f1d1b; }
+  .eyebrow { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+  /* 滚动标题条 */
+  .ticker { display: flex; align-items: stretch; background: var(--ink2); color: #dfe9e6; font-size: 13.5px; overflow: hidden; }
+  .tk-l { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: var(--charge); color: var(--ink); font: 700 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  .tk-l::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #c0392b; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .tk-track { overflow: hidden; flex: 1; mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+  .tk-run { display: flex; gap: 40px; width: max-content; padding: 11px 0; animation: run 60s linear infinite; }
+  .ticker:hover .tk-run { animation-play-state: paused; }
+  @keyframes run { to { transform: translateX(-50%); } }
+  .tk-run a { color: inherit; text-decoration: none; white-space: nowrap; } .tk-run a:hover { color: #5ef0a0; }
+  .tk-run b { font: 600 11px var(--mono); color: #7f938e; margin-right: 10px; text-transform: uppercase; }
+  @media (prefers-reduced-motion: reduce) { .tk-run { animation: none; } }
+  /* 标题 */
+  .nh { padding-block: 40px 28px; display: grid; gap: 12px; } .nh h1, .nh p { margin: 0; }
+  .nh h1 { font-size: clamp(36px, 5vw, 64px); line-height: .98; max-width: 18ch; }
+  .nh p { margin: 0; color: var(--muted); font-size: 17px; max-width: 560px; }
+  /* 头条 */
+  .ntop { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 22px; align-items: stretch; }
+  @media (max-width: 960px) { .ntop { grid-template-columns: minmax(0, 1fr); } }
+  .nlead { position: relative; display: grid; border-radius: 18px; overflow: hidden; text-decoration: none; color: #fff; min-height: 520px; background: #0d1c2c; isolation: isolate; }
+  .lead-img { position: absolute; inset: 0; z-index: -1; } .lead-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
+  .lead-img img.fit { object-fit: contain; padding: 30px 30px 180px; background: radial-gradient(120% 90% at 70% 20%, #1b3a5c, #0b1622); }
+  .nlead:hover .lead-img img { transform: scale(1.03); }
+  .nlead::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(8,18,29,.05) 20%, rgba(8,18,29,.6) 55%, rgba(8,18,29,.95) 100%); }
+  .lead-b { align-self: end; padding: 28px; display: grid; gap: 10px; }
+  .lead-t { font: 700 clamp(26px, 3.2vw, 40px)/1.08 var(--display); text-transform: uppercase; max-width: 22ch; }
+  .lead-x { color: #c9d6e2; font-size: 15.5px; max-width: 60ch; }
+  .go { font-weight: 700; color: var(--charge); } .go em { font-style: normal; display: inline-block; transition: transform .2s; } .nlead:hover .go em { transform: translateX(5px); }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: inherit; opacity: .9; }
+  .c { font-style: normal; padding: 3px 8px; border-radius: 99px; background: #e8f3ef; color: var(--accent); }
+  .c-projects { background: #e2f0fb; color: #1f5f8b; } .c-products { background: #fff1c9; color: #7a5a00; } .c-events { background: #fde4e1; color: #a2271b; } .c-company { background: #e8f3ef; color: var(--accent); }
+  .nside { list-style: none; margin: 0; padding: 0; display: grid; grid-template-rows: repeat(3, 1fr); gap: 12px; }
+  .nside a { height: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) 112px; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink); transition: border-color .15s, transform .15s; }
+  .nside a:hover { border-color: var(--accent); transform: translateX(3px); }
+  .sn { font: 700 28px var(--display); color: #c9d3d0; align-self: start; }
+  .sb { display: grid; gap: 6px; } .sb .meta { color: var(--muted); } .sb b { font-size: 16px; line-height: 1.3; }
+  .st { position: relative; height: 84px; border-radius: 10px; overflow: hidden; } .st img { width: 100%; height: 100%; object-fit: cover; }
+  /* 筛选 + 拼图 */
+  .nfeed { padding-top: 56px; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 12px 0; background: var(--bg); border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .bar h2 { font-size: clamp(24px, 3vw, 34px); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { min-height: 36px; padding: 0 13px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 13.5px var(--body); cursor: pointer; }
+  .chips button small { font: 600 11.5px var(--mono); color: var(--muted); margin-left: 3px; }
+  .chips button.on { background: var(--ink); color: #fff; border-color: var(--ink); } .chips button.on small { color: #c9d4d1; }
+  .bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: dense; gap: 18px; }
+  @media (max-width: 960px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .bento { grid-template-columns: minmax(0, 1fr); } }
+  .card { display: grid; grid-template-rows: auto 1fr; border-radius: 16px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink); transition: transform .2s, box-shadow .2s; }
+  .card[hidden] { display: none; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(15,29,27,.12); }
+  .card.wide { grid-column: span 2; grid-template-columns: 1.15fr 1fr; grid-template-rows: none; }
+  .card.tall { grid-row: span 2; grid-template-rows: 1fr auto; } .card.tall .ci { aspect-ratio: auto; min-height: 320px; }
+  @media (max-width: 600px) { .card.wide { grid-column: auto; grid-template-columns: none; grid-template-rows: auto 1fr; } .card.tall { grid-row: auto; } }
+  .ci { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #0d1c2c; } .card.wide .ci { aspect-ratio: auto; min-height: 280px; } .card.tall .ci { aspect-ratio: 4 / 5; }
+  .ci img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; } .ci img.fit { object-fit: contain; padding: 14px; background: #fff; }
+  .card:hover .ci img { transform: scale(1.04); }
+  .pc { position: absolute; left: 10px; bottom: 10px; font: 600 11px var(--mono); padding: 4px 8px; border-radius: 99px; background: rgba(8,18,29,.72); color: #fff; backdrop-filter: blur(4px); }
+  .play { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: transform .2s; }
+  .play::after { content: ''; position: absolute; left: 26px; top: 20px; border-left: 18px solid #e2231a; border-top: 12px solid transparent; border-bottom: 12px solid transparent; }
+  .play.sm { width: 34px; height: 34px; margin: -17px 0 0 -17px; } .play.sm::after { left: 13px; top: 10px; border-left-width: 11px; border-top-width: 7px; border-bottom-width: 7px; }
+  .card:hover .play { transform: scale(1.1); }
+  .card.vid { background: #0f1d1b; color: #fff; border-color: #0f1d1b; } .card.vid .cx, .card.vid .rt { color: #9fb2ad; }
+  .cb { padding: 16px 18px 18px; display: grid; gap: 8px; align-content: start; } .cb .meta { color: var(--muted); } .card.vid .meta { color: #9fb2ad; }
+  .cb b { font-size: 19px; line-height: 1.25; } .card.wide .cb { padding: 26px; align-content: center; } .card.wide .cb b { font: 700 28px/1.1 var(--display); text-transform: uppercase; }
+  .cx { font-size: 14px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; } .strip img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+  .rt { font: 500 12px var(--mono); color: var(--muted); }
+  .none { color: var(--muted); }
+  .ncta { margin-block: 64px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 30px; border-radius: 18px; background: var(--ink2); color: #fff; }
+  .ncta h2, .ncta p { margin: 0; } .ncta p { margin-top: 6px; } .ncta h2 { font-size: clamp(24px, 3vw, 36px); } .ncta p { margin: 6px 0 0; color: #9fb2ad; }
+  .ncta .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 10px; background: var(--charge); color: var(--ink); font-weight: 700; text-decoration: none; }
+</style>
