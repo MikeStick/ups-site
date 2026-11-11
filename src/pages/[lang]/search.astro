@@ -1,0 +1,248 @@
+---
+// 站内搜索结果页（/search/?q=3kVA&cat=online&pw=1-10）：
+// 左边筛选（栏目、功率、能量、容量、电压、制冷量，只显示当前范围内有数据的那几项），右边结果卡片。
+// 索引在构建时生成并内嵌到页面（src/lib/search-index.mjs），匹配在浏览器里做（src/lib/search-core.mjs），筛选条件写进网址，可以直接分享。
+import Base from '../../layouts/Base.astro';
+import { LANGS } from '../../config.mjs';
+import { ST } from '../../lib/search-i18n.mjs';
+import { searchIndex } from '../../lib/search-index.mjs';
+import products from '../../data/products.json';
+
+export function getStaticPaths() { return LANGS.map((lang) => ({ params: { lang } })); }
+const { lang } = Astro.params;
+const T = ST[lang];
+const index = searchIndex(lang, products);
+---
+<Base lang={lang} path="search/" title={T.title} description={T.sub}>
+  <section class="sr-head">
+    <h1>{T.title}</h1>
+    <p>{T.sub}</p>
+    <form class="sr-box" role="search" data-sr-form>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="search" name="q" placeholder={T.ph} autocomplete="off" data-sr-q aria-label={T.nav} />
+      <button type="button" class="sr-x" data-sr-qx aria-label={T.clear} hidden>×</button>
+    </form>
+    <p class="sr-hint">{T.hint}</p>
+  </section>
+
+  <div class="sr-body">
+    <button type="button" class="sr-ftoggle" data-sr-ft><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{T.filters}<span data-sr-fn></span></button>
+    <aside class="sr-side" data-sr-side>
+      <div class="sr-f">
+        <h3>{T.cat}</h3>
+        <button type="button" class="sr-cat" data-cat="">{T.all} <span>{index.items.length}</span></button>
+        {index.cats.map((g) => (
+          <div class="sr-cg">
+            <button type="button" class="sr-cat sr-cg-h" data-cat={g.k}>{g.h} <span>{g.items.reduce((a, x) => a + x.n, 0)}</span></button>
+            {g.items.map((it) => <button type="button" class="sr-cat sr-sub" data-cat={it.k}>{it.l} <span>{it.n}</span></button>)}
+          </div>
+        ))}
+      </div>
+      {[['pw', T.power, T.powerU], ['e', T.energy, T.energyU], ['ah', T.ah, T.ahU], ['cool', T.cool, T.coolU]].map(([k, h, u]) => (
+        <div class="sr-f" data-facet={k} hidden>
+          <h3>{h} <small>{u}</small></h3>
+          <div class="sr-range">
+            <input type="number" min="0" step="any" inputmode="decimal" placeholder={T.min} data-min={k} aria-label={`${h} ${T.min}`} />
+            <span>–</span>
+            <input type="number" min="0" step="any" inputmode="decimal" placeholder={T.max} data-max={k} aria-label={`${h} ${T.max}`} />
+          </div>
+          <div class="sr-quick" data-quick={k}></div>
+        </div>
+      ))}
+      <div class="sr-f" data-facet="v" hidden>
+        <h3>{T.volt} <small>V</small></h3>
+        <div class="sr-quick" data-volts></div>
+      </div>
+      <button type="button" class="sr-clear" data-sr-clear>{T.clear}</button>
+      <button type="button" class="sr-done" data-sr-done>{T.done}</button>
+    </aside>
+
+    <section class="sr-main">
+      <div class="sr-pages" data-sr-pages hidden><b>{T.pages}</b><div data-sr-pages-list></div></div>
+      <div class="sr-bar">
+        <span data-sr-count></span>
+        <label class="sr-sort">{T.sort}
+          <select data-sr-sort>
+            <option value="rel">{T.sRel}</option>
+            <option value="asc">{T.sAsc}</option>
+            <option value="desc">{T.sDesc}</option>
+          </select>
+        </label>
+      </div>
+      <div class="sr-grid" data-sr-grid></div>
+      <div class="sr-none" data-sr-none hidden>
+        <p>{T.none}</p>
+        <a class="sr-ask" href={`/${lang}/contact/`}>{T.ask} →</a>
+      </div>
+    </section>
+  </div>
+
+  <script type="application/json" id="sr-index" set:html={JSON.stringify(index).replace(/</g, '\\u003c')} />
+  <script type="application/json" id="sr-t" set:html={JSON.stringify(T)} />
+</Base>
+
+<script>
+  import { runSearch, matchPages, fmtNum } from '../../lib/search-core.mjs';
+  const index = JSON.parse(document.getElementById('sr-index').textContent);
+  const T = JSON.parse(document.getElementById('sr-t').textContent);
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => [...document.querySelectorAll(s)];
+  const qIn = $('[data-sr-q]');
+  const state = { q: '', cat: '', v: '', sort: 'rel', r: { pw: ['', ''], e: ['', ''], ah: ['', ''], cool: ['', ''] } };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // 网址 ↔ 状态（?q=&cat=&v=&sort=&pw=1-10&e=&ah=&cool=）
+  function readUrl() {
+    const u = new URLSearchParams(location.search);
+    state.q = u.get('q') || ''; state.cat = u.get('cat') || ''; state.v = u.get('v') || ''; state.sort = u.get('sort') || 'rel';
+    for (const k of Object.keys(state.r)) { const [a = '', b = ''] = (u.get(k) || '').split('-'); state.r[k] = [a, b]; }
+  }
+  function writeUrl() {
+    const u = new URLSearchParams();
+    if (state.q) u.set('q', state.q);
+    if (state.cat) u.set('cat', state.cat);
+    if (state.v) u.set('v', state.v);
+    if (state.sort !== 'rel') u.set('sort', state.sort);
+    for (const [k, [a, b]] of Object.entries(state.r)) if (a !== '' || b !== '') u.set(k, `${a}-${b}`);
+    const s = u.toString();
+    history.replaceState(null, '', location.pathname + (s ? '?' + s : ''));
+  }
+
+  // 筛选项的快捷档位：按当前范围里实际有的数值分几档
+  const QUICK = { pw: [[0, 1], [1, 3], [3, 10], [10, 30], [30, 100], [100, 0]], e: [[0, 2], [2, 5], [5, 10], [10, 30], [30, 100], [100, 0]], ah: [[0, 50], [50, 100], [100, 200], [200, 500], [500, 0]], cool: [[0, 10], [10, 30], [30, 60], [60, 0]] };
+  const qLabel = ([a, b]) => (!a ? `≤ ${b}` : !b ? `≥ ${a}` : `${a}–${b}`);
+
+  function render() {
+    const scope = index.items.filter((it) => !state.cat || it.c.includes(state.cat) || it.g === state.cat);
+    // 只显示当前栏目里有数据的筛选项
+    for (const k of Object.keys(state.r)) {
+      const vals = scope.map((it) => it[k] || 0).filter(Boolean);
+      const box = $(`[data-facet="${k}"]`);
+      box.hidden = !vals.length && state.r[k][0] === '' && state.r[k][1] === '';
+      $(`[data-min="${k}"]`).value = state.r[k][0]; $(`[data-max="${k}"]`).value = state.r[k][1];
+      const lo = Math.min(...vals), hi = Math.max(...vals);
+      $(`[data-quick="${k}"]`).innerHTML = QUICK[k].filter(([a, b]) => vals.some((v) => v >= a && (!b || v <= b)) && !(lo >= a && (!b || hi <= b)))
+        .map(([a, b]) => { const on = String(state.r[k][0]) === String(a || '') && String(state.r[k][1]) === String(b || ''); return `<button type="button" class="${on ? 'on' : ''}" data-q="${k}" data-a="${a || ''}" data-b="${b || ''}">${qLabel([a, b])}</button>`; }).join('');
+    }
+    const volts = [...new Set(scope.map((it) => it.v).filter(Boolean))].sort((a, b) => a - b);
+    $('[data-facet="v"]').hidden = volts.length < 2 && !state.v;
+    $('[data-volts]').innerHTML = volts.map((v) => `<button type="button" class="${String(state.v) === String(v) ? 'on' : ''}" data-volt="${v}">${fmtNum(v)} V</button>`).join('');
+    $$('[data-cat]').forEach((b) => b.classList.toggle('on', b.dataset.cat === state.cat));
+    $('[data-sr-sort]').value = state.sort;
+    $('[data-sr-qx]').hidden = !state.q;
+
+    const res = runSearch(index, { q: state.q, cat: state.cat, r: state.r, v: state.v, sort: state.sort });
+    const n = res.list.length;
+    $('[data-sr-count]').textContent = n === 1 ? T.n1 : T.n.replace('{n}', n);
+    $('[data-sr-grid]').innerHTML = res.list.map((it) => `
+      <a class="sr-card" href="${it.u}">
+        <span class="sr-img">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy">` : '<i></i>'}</span>
+        <span class="sr-cl">${esc(it.cl)}</span>
+        <b>${esc(it.m)}</b>
+        ${it.label ? `<span class="sr-spec">${esc(it.label)}</span>` : ''}
+      </a>`).join('');
+    $('[data-sr-none]').hidden = n > 0;
+    const pages = matchPages(index, state.q).filter((p) => !state.cat || p.k === state.cat || p.g === state.cat);
+    $('[data-sr-pages]').hidden = !pages.length;
+    $('[data-sr-pages-list]').innerHTML = pages.map((p) => `<a href="${p.u}">${esc(p.l)}${p.n ? ` <span>${p.n}</span>` : ''} →</a>`).join('');
+    // 手机上：筛选默认收起，按钮上显示已选几项
+    const nf = (state.cat ? 1 : 0) + (state.v ? 1 : 0) + Object.values(state.r).filter(([a, b]) => a !== '' || b !== '').length;
+    $('[data-sr-fn]').textContent = nf ? ` · ${nf}` : '';
+    writeUrl();
+  }
+
+  readUrl();
+  qIn.value = state.q;
+  let tm;
+  qIn.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { state.q = qIn.value.trim(); render(); }, 120); });
+  $('[data-sr-form]').addEventListener('submit', (e) => { e.preventDefault(); state.q = qIn.value.trim(); render(); });
+  $('[data-sr-qx]').addEventListener('click', () => { qIn.value = ''; state.q = ''; render(); qIn.focus(); });
+  $('[data-sr-sort]').addEventListener('change', (e) => { state.sort = e.target.value; render(); });
+  document.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-cat]');
+    if (c) { state.cat = c.dataset.cat === state.cat ? '' : c.dataset.cat; state.v = ''; render(); return; }
+    const q = e.target.closest('[data-q]');
+    if (q) { const k = q.dataset.q; const same = state.r[k][0] === q.dataset.a && state.r[k][1] === q.dataset.b; state.r[k] = same ? ['', ''] : [q.dataset.a, q.dataset.b]; render(); return; }
+    const v = e.target.closest('[data-volt]');
+    if (v) { state.v = state.v === v.dataset.volt ? '' : v.dataset.volt; render(); return; }
+  });
+  $$('[data-min], [data-max]').forEach((inp) => inp.addEventListener('change', () => {
+    const k = inp.dataset.min || inp.dataset.max;
+    state.r[k][inp.dataset.min ? 0 : 1] = inp.value === '' ? '' : String(Math.max(0, +inp.value));
+    render();
+  }));
+  $('[data-sr-clear]').addEventListener('click', () => {
+    state.cat = ''; state.v = ''; state.sort = 'rel'; for (const k of Object.keys(state.r)) state.r[k] = ['', ''];
+    state.q = ''; qIn.value = ''; render();
+  });
+  $('[data-sr-ft]').addEventListener('click', () => $('[data-sr-side]').classList.toggle('open'));
+  $('[data-sr-done]').addEventListener('click', () => { $('[data-sr-side]').classList.remove('open'); $('[data-sr-grid]').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+  render();
+  if (!state.q) qIn.focus({ preventScroll: true });
+</script>
+
+<style is:global>
+  .sr-head { padding: 36px 0 10px; max-width: 860px; }
+  .sr-head h1 { font: 700 clamp(30px, 4vw, 44px)/1.05 var(--display); text-transform: uppercase; margin: 0 0 6px; }
+  .sr-head > p { color: var(--muted); margin: 0 0 18px; }
+  .sr-box { position: relative; display: flex; align-items: center; background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 0 14px; }
+  .sr-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(15,107,92,.12); }
+  .sr-box svg { width: 22px; height: 22px; color: var(--muted); flex: none; }
+  .sr-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 500 18px var(--body); padding: 15px 10px; color: var(--ink); }
+  .sr-box input::-webkit-search-cancel-button { display: none; }
+  .sr-x { border: 0; background: var(--bg); width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; color: var(--muted); }
+  .sr-hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .sr-body { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; padding: 20px 0 72px; align-items: start; }
+  .sr-side { position: sticky; top: 16px; display: grid; gap: 14px; }
+  .sr-f { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .sr-f[hidden] { display: none; }
+  .sr-f h3 { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .sr-f h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .sr-cat { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 7px; font: 500 14px var(--body); color: var(--ink); cursor: pointer; }
+  .sr-cat span { font: 500 12px var(--mono); color: var(--muted); }
+  .sr-cat:hover { background: var(--bg); }
+  .sr-cat.on { background: var(--ok-soft); font-weight: 700; }
+  .sr-cg { margin-top: 6px; }
+  .sr-cg-h { font-weight: 700; }
+  .sr-sub { padding-left: 18px; font-size: 13.5px; }
+  .sr-range { display: flex; align-items: center; gap: 6px; }
+  .sr-range input { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 9px; font: 500 14px var(--mono); background: var(--bg); color: var(--ink); }
+  .sr-range input:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--surface); }
+  .sr-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .sr-quick:empty { display: none; }
+  .sr-quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 10px; font: 500 12.5px var(--mono); cursor: pointer; color: var(--ink); }
+  .sr-quick button:hover { border-color: var(--ink); }
+  .sr-quick button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .sr-clear { justify-self: start; border: 0; background: none; color: var(--accent); font: 600 13px var(--body); cursor: pointer; padding: 4px 2px; text-decoration: underline; }
+  .sr-pages { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--charge-soft); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+  .sr-pages[hidden] { display: none; }
+  .sr-pages > div { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sr-pages a { background: var(--surface); border-radius: 99px; padding: 5px 12px; color: var(--ink); text-decoration: none; font-weight: 600; }
+  .sr-pages a span { font: 500 12px var(--mono); color: var(--muted); }
+  .sr-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; font-weight: 600; }
+  .sr-sort { display: flex; gap: 8px; align-items: center; font-weight: 400; font-size: 13px; color: var(--muted); }
+  .sr-sort select { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: 500 13px var(--body); background: var(--surface); color: var(--ink); }
+  .sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .sr-card { display: grid; gap: 4px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .sr-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.08); border-color: var(--ink); }
+  .sr-img { aspect-ratio: 4 / 3; border-radius: 8px; background: var(--bg); display: grid; place-items: center; overflow: hidden; margin-bottom: 6px; }
+  .sr-img img { width: 100%; height: 100%; object-fit: contain; }
+  .sr-img i { width: 38%; aspect-ratio: 1; border: 2px dashed var(--line); border-radius: 8px; }
+  .sr-cl { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+  .sr-card b { font: 700 19px/1.15 var(--display); }
+  .sr-spec { font: 500 13px var(--mono); color: var(--muted); }
+  .sr-none { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; }
+  .sr-none[hidden] { display: none; }
+  .sr-ask { display: inline-block; margin-top: 6px; font-weight: 700; color: var(--accent); }
+  .sr-ftoggle, .sr-done { display: none; }
+  @media (max-width: 860px) {
+    .sr-body { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 12px; }
+    .sr-ftoggle { display: inline-flex; align-items: center; gap: 8px; justify-self: start; border: 1px solid var(--ink); background: var(--surface); border-radius: 99px; padding: 8px 16px; font: 600 14px var(--body); color: var(--ink); cursor: pointer; }
+    .sr-ftoggle svg { width: 18px; height: 18px; }
+    .sr-side { display: none; position: static; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .sr-side.open { display: grid; }
+    .sr-done { display: block; grid-column: 1 / -1; border: 0; border-radius: 10px; background: var(--ink); color: #fff; font: 700 15px var(--body); padding: 12px; cursor: pointer; }
+    .sr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .sr-card b { font-size: 16px; }
+  }
+</style>
