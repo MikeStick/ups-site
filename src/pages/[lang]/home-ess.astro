@@ -2,6 +2,8 @@
 // 家庭储能一体机栏目页（/home-ess/，菜单在"光伏"栏）：家庭备电规划器（用电器 + 停电时长 → 型号，房屋剖面示意）→ 型号卡片（按壁挂 / 落地页签筛选）
 // → 卖点 → 一体机 vs 分体逆变器 + 电池 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机 / 高压堆叠式储能一体机 / 低压堆叠式储能一体机（型号名会重复，靠细分品类区分）。
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import EssVisual from '../../components/EssVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -71,6 +73,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models" data-esm>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'e', label: SF[lang].e, unit: 'kWh' }, { k: 'kw', label: SF[lang].kw, unit: 'kW' }]} ex="10kWh" />
       {MOUNTS.length > 1 && (
         <div class="vtabs" role="tablist">
           <button type="button" class="on" data-mt="all">{T.tabAll} <small>{list.length}</small></button>
@@ -81,7 +84,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
         {list.map(({ p, e }) => {
           const img = p.images && p.images[0];
           return (
-            <article class="pcard" data-m={e.mount}>
+            <article class="pcard" data-m={e.mount} data-cs={csData(p, { e: e.kwh, kw: e.kw })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={`${p.model} ${shapeOf(e)}`} loading="lazy" /> : <Fragment set:html={svgOf(e)} />}
                 <span class="tags"><span class="tag k">{T.mount[e.mount]}</span>{e.volt ? <span class="tag u">{T.volt[e.volt]}</span> : <span class="tag u">LiFePO4</span>}</span>

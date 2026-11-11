@@ -2,6 +2,8 @@
 // 2V 单体铅酸电池栏目页（/batteries/vrla-2v/）：首屏 → 电池组计算器（系统电压 + 负载 + 后备时间 → 型号 × 节数 × 串数）→ 型号大卡片 → 规格对照表
 // → 设计特点 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统：铅酸类品类里型号为 SK…-2v（或额定电压 2 V）的产品。参数在 vrla-engine.mjs（vrlaModule / SK_SPECS / cellBank）。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { V2 } from '../../../lib/vrla2-i18n.mjs';
@@ -105,11 +107,12 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models">
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2><p>{T.modelsP}</p></div>
+      <CatSearch lang={lang} facets={[{ k: 'ah', label: SF[lang].ah, unit: 'Ah' }]} ex="1000Ah" />
       <div class="grid">
         {list.map(({ p, b }) => {
           const img = p.images && p.images[0];
           return (
-            <article class="pcard">
+            <article class="pcard" data-cs={csData(p, { ah: b.ah })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <span class="nob"><i></i><i></i></span>}
                 <span class="tags"><span class="tag pb">VRLA</span><span class="tag u">2V</span></span>

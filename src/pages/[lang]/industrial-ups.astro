@@ -1,6 +1,8 @@
 ---
 // 工频机 UPS 栏目页（Industrial UPS）：配置器（供电 / 负载 / 电机启动 / 整流 / 冗余 / 选配 / 电池 + 机柜内部示意）→ 已发布型号 → 卖点 → 工频 vs 高频 → 应用 → 项目报价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 工频UPS。选型计算：src/lib/industrial-engine.mjs
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import IndustrialVisual from '../../components/IndustrialVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -61,6 +63,7 @@ const APP_ICONS = [
   {models.length > 0 && (
     <section class="block" id="models" data-models>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'cap', label: SF[lang].cap, unit: 'kVA' }]} ex="40kVA" />
       {phases.length > 1 && (
         <div class="filters"><div class="fgroup">
           <button type="button" class="chip on" data-f="">{T.fAll}</button>
@@ -72,7 +75,7 @@ const APP_ICONS = [
           const img = p.images && p.images[0];
           const rows = [['outputVoltage', specValue(p, 'outputVoltage', lang)], ['efficiencyAcMode', specValue(p, 'efficiencyAcMode', lang)]].filter(([, v]) => v);
           return (
-            <article class="pcard" data-ph={ph}>
+            <article class="pcard" data-ph={ph} data-cs={csData(p, { cap: c.va / 1000 })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={CAB_SVG} />}
                 <span class="tags"><span class="tag u">{T.phaseTag[ph]}</span></span>

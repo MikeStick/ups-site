@@ -1,5 +1,7 @@
 ---
 // 离线式 / 在线互动式 UPS 栏目页：选型助手 + 型号列表（来自客户档案系统，类型 = 离线式UPS / 在线互动式UPS）+ 插座 + 对比 + 参数表 + OEM。只询价，不显示价格。
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { OT, DEVICES, SPEC_FIELDS, specValue } from '../../lib/offline-i18n.mjs';
@@ -103,6 +105,7 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
 
   <section class="block" id="models">
     <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'cap', label: SF[lang].cap, unit: 'VA' }]} ex="1000VA" />
     {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
       <>
         <div class="filters">
@@ -114,7 +117,7 @@ const cfg = { models: sizerModels, t: { addDevice: T.addDevice, needAtLeast: T.n
             const p = x.p, img = p.images && p.images[0];
             const sock = socketsText(p.sockets);
             return (
-              <article class="pcard" data-t={x.k} data-va={x.va} data-w={x.w}>
+              <article class="pcard" data-t={x.k} data-va={x.va} data-w={x.w} data-cs={csData(p, { cap: x.va })}>
                 <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                   {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={UPS_SVG} />}
                   <span class:list={['tag', x.k]}>{kindLabel(x.k)}</span>

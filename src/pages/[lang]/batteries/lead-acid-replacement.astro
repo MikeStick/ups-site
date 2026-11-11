@@ -2,6 +2,8 @@
 // 锂电替换铅酸电池栏目页（/batteries/lead-acid-replacement/）：替换查找器（换一块电池 / 组一个电池组）→ 型号表（按 12 / 24 / 48 V 页签筛选）
 // → 卖点 → LiFePO4 vs 铅酸 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 锂电替换铅酸电池（型号如 LFP-12V7AH）。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import PbrVisual from '../../../components/PbrVisual.astro';
 import { LANGS, SITE } from '../../../config.mjs';
@@ -67,6 +69,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models" data-pbm>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'v', label: SF[lang].v, unit: 'V' }, { k: 'ah', label: SF[lang].ah, unit: 'Ah' }]} ex="100Ah" />
       <div class="vtabs" role="tablist">
         <button type="button" class="on" data-vt="all">{T.tabAll} <small>{list.length}</small></button>
         {CLS.map((c) => <button type="button" data-vt={c}>{c} V <small>{list.filter((x) => classOf(x.b.v) === c).length}</small></button>)}
@@ -75,7 +78,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
         <thead><tr><th>{T.th.model}</th><th>{T.th.v}</th><th>{T.th.ah}</th><th>{T.th.wh}</th><th>{T.th.a}</th><th>{T.th.dims}</th><th>{T.th.kg}</th><th></th></tr></thead>
         <tbody>
           {list.map(({ p, b }) => (
-            <tr data-c={classOf(b.v)}>
+            <tr data-c={classOf(b.v)} data-cs={csData(p, { v: b.v, ah: b.ah })}>
               <th><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></th>
               <td class="num">{b.v} V</td><td class="num">{b.ah} Ah</td><td class="num">{b.wh} Wh</td>
               <td class="num">{b.maxA ? `${b.maxA} A` : '—'}</td><td class="num">{b.dims.length ? b.dims.join(' × ') : '—'}</td><td class="num">{b.kg ? `${b.kg} kg` : '—'}</td>

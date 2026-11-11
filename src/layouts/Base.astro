@@ -5,7 +5,6 @@ import { CO } from '../lib/contact-i18n.mjs';
 import { CS } from '../lib/cases-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
 import { NW } from '../lib/news-i18n.mjs';
-import { ST } from '../lib/search-i18n.mjs';
 import { OT } from '../lib/offline-i18n.mjs';
 import { catalog } from '../lib/catalog.mjs';
 import SiteFooter from '../components/SiteFooter.astro';
@@ -77,35 +76,6 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
     .brand { color: #fff; text-decoration: none; font-family: var(--display); font-size: 24px; text-transform: uppercase; letter-spacing: .03em; }
     .brand small { display: block; font-family: var(--body); font-size: 12px; text-transform: none; letter-spacing: 0; color: #a9b8b4; }
     .top-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .nav-search { display: flex; align-items: center; gap: 6px; color: #fff; text-decoration: none; font: 600 13px var(--body); padding: 6px 10px; border-radius: 6px; border: 1px solid #4b5f5b; }
-    .nav-search svg { width: 16px; height: 16px; }
-    .nav-search:hover { background: #22302d; }
-    @media (max-width: 1100px) { .nav-search span { display: none; } }
-    /* 搜索浮层：顶部弹出，边输入边出结果 */
-    .qs { position: fixed; inset: 0; z-index: 200; }
-    .qs[hidden] { display: none; }
-    .qs-back { position: absolute; inset: 0; background: rgba(10,18,16,.55); backdrop-filter: blur(2px); }
-    .qs-panel { position: relative; width: min(760px, calc(100% - 24px)); margin: 70px auto 0; background: var(--surface); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.3); overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 100px); }
-    .qs-box { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-    .qs-box svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
-    .qs-box input { flex: 1; min-width: 0; border: 0; outline: 0; font: 500 17px var(--body); padding: 17px 0; background: transparent; color: var(--ink); }
-    .qs-box input::-webkit-search-cancel-button { display: none; }
-    .qs-close { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; font: 600 11px var(--mono); padding: 4px 7px; color: var(--muted); cursor: pointer; }
-    .qs-res { overflow-y: auto; padding: 8px; }
-    .qs-hint { color: var(--muted); font-size: 13px; margin: 8px 10px; }
-    .qs-sec { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 10px 10px 4px; }
-    .qs-pages { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 8px 6px; }
-    .qs-pages a { background: var(--charge-soft); color: var(--ink); text-decoration: none; border-radius: 99px; padding: 5px 12px; font: 600 13px var(--body); }
-    .qs-it { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; color: var(--ink); text-decoration: none; }
-    .qs-it:hover, .qs-it.on { background: var(--bg); }
-    .qs-it .qs-img { width: 56px; height: 44px; border-radius: 6px; background: var(--bg); overflow: hidden; display: grid; place-items: center; }
-    .qs-it img { width: 100%; height: 100%; object-fit: contain; }
-    .qs-it b { display: block; font: 700 16px/1.15 var(--display); }
-    .qs-it small { display: block; font: 500 12px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .qs-it em { font: 500 12.5px var(--mono); font-style: normal; color: var(--ink); white-space: nowrap; }
-    .qs-all { display: block; margin: 6px 8px 4px; padding: 11px; border-radius: 10px; text-align: center; background: var(--ink); color: #fff; text-decoration: none; font-weight: 700; }
-    .qs-none { padding: 14px 10px; color: var(--muted); }
-    @media (max-width: 640px) { .qs-panel { margin-top: 10px; max-height: calc(100vh - 20px); } .qs-it { grid-template-columns: 48px minmax(0, 1fr); } .qs-it em { display: none; } }
     .nav-custom { color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 6px; background: var(--accent); }
     .nav-custom[aria-current="page"] { background: transparent; box-shadow: inset 0 0 0 1px var(--accent); }
     .nav { display: flex; gap: 2px; }
@@ -172,10 +142,6 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
         <a href={`/${lang}/news/`} aria-current={String(path || '').startsWith('news/') ? 'page' : undefined}>{NW[lang].nav}</a>
         <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
       </nav>
-      <a class="nav-search" href={`/${lang}/search/`} data-qs-open aria-label={ST[lang].open} title={ST[lang].nav}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>{ST[lang].nav}</span>
-      </a>
       <a class="nav-custom" href={`/${lang}/contact/`} aria-current={path === 'contact/' ? 'page' : undefined}>{CO[lang].nav}</a>
       <details class="lang-menu" data-lang-menu>
         <summary aria-label="Language">
@@ -189,76 +155,11 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
       </div>
     </div>
   </header>
-  <div class="qs" data-qs hidden data-t={JSON.stringify(ST[lang])}>
-    <div class="qs-back" data-qs-close></div>
-    <div class="qs-panel" role="dialog" aria-modal="true" aria-label={ST[lang].nav}>
-      <form class="qs-box" role="search" action={`/${lang}/search/`} data-qs-form>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input type="search" name="q" placeholder={ST[lang].ph} autocomplete="off" data-qs-q aria-label={ST[lang].nav} />
-        <button type="button" class="qs-close" data-qs-close aria-label={ST[lang].close}>Esc</button>
-      </form>
-      <div class="qs-res" data-qs-res><p class="qs-hint">{ST[lang].hint}</p></div>
-    </div>
-  </div>
   <main class:list={[{ wrap: !full }]}>
     <slot />
   </main>
   <SiteFooter lang={lang} altHref={altHref} />
   <ChatWidget lang={lang} />
-  <script>
-    // 顶部搜索浮层：点放大镜 / 按 "/" 或 Ctrl+K 打开；索引第一次打开时下载（/[lang]/search.json）
-    import { runSearch, matchPages } from '../lib/search-core.mjs';
-    const qs = document.querySelector('[data-qs]');
-    const qIn = document.querySelector('[data-qs-q]');
-    const res = document.querySelector('[data-qs-res]');
-    const lang = document.documentElement.lang || 'en';
-    const T = JSON.parse(qs.dataset.t || '{}');
-    let index = null, loading = null, sel = -1;
-    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const load = () => loading || (loading = fetch(`/${lang}/search.json`).then((r) => r.json()).then((j) => { index = j; return j; }));
-    function draw() {
-      const q = qIn.value.trim();
-      if (!q || !index) { res.innerHTML = `<p class="qs-hint">${esc(T.hint || '')}</p>`; return; }
-      const { list } = runSearch(index, { q });
-      const pages = matchPages(index, q).slice(0, 6);
-      const url = `/${lang}/search/?q=${encodeURIComponent(q)}`;
-      let h = '';
-      if (pages.length) h += `<div class="qs-sec">${esc(T.pages)}</div><div class="qs-pages">${pages.map((p) => `<a href="${p.u}">${esc(p.l)} →</a>`).join('')}</div>`;
-      if (list.length) {
-        h += list.slice(0, 7).map((it, i) => `<a class="qs-it${i === sel ? ' on' : ''}" href="${it.u}"><span class="qs-img">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy">` : ''}</span><span><b>${esc(it.m)}</b><small>${esc(it.cl)}</small></span>${it.label ? `<em>${esc(it.label)}</em>` : ''}</a>`).join('');
-        h += `<a class="qs-all" href="${url}">${esc((T.seeAll || '').replace('{n}', list.length))} →</a>`;
-      } else if (!pages.length) h += `<p class="qs-none">${esc(T.none)}</p><a class="qs-all" href="/${lang}/contact/">${esc(T.ask)} →</a>`;
-      res.innerHTML = h;
-    }
-    function open(e) {
-      if (e) e.preventDefault();
-      const own = document.querySelector('[data-sr-q]'); // 已经在搜索页：直接用页面上的搜索框
-      if (own) { own.focus(); own.select(); own.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-      qs.hidden = false; document.body.style.overflow = 'hidden';
-      qIn.focus(); qIn.select();
-      load().then(draw).catch(() => { location.href = `/${lang}/search/`; });
-    }
-    function close() { qs.hidden = true; document.body.style.overflow = ''; }
-    document.querySelectorAll('[data-qs-open]').forEach((a) => a.addEventListener('click', open));
-    document.querySelectorAll('[data-qs-close]').forEach((a) => a.addEventListener('click', close));
-    let tm;
-    qIn.addEventListener('input', () => { sel = -1; clearTimeout(tm); tm = setTimeout(draw, 80); });
-    qIn.addEventListener('keydown', (e) => {
-      const its = [...res.querySelectorAll('.qs-it')];
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault(); if (!its.length) return;
-        sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length;
-        its.forEach((a, i) => a.classList.toggle('on', i === sel)); its[sel].scrollIntoView({ block: 'nearest' });
-      } else if (e.key === 'Enter' && sel >= 0 && its[sel]) { e.preventDefault(); location.href = its[sel].href; }
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !qs.hidden) { close(); return; }
-      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName) || (document.activeElement && document.activeElement.isContentEditable);
-      if (qs.hidden && !typing && (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'))) {
-        open(e);
-      }
-    });
-  </script>
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）

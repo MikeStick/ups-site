@@ -1,0 +1,128 @@
+---
+// 栏目页"已发布型号"上方的搜索 + 筛选条（Mini DC UPS 栏目不用：那里已经有按输出口 / 容量选型的筛选）。
+// 用法：放在 <section> 里型号列表前面；列表里每个型号（卡片 / 表格行）加 data-cs={csData(p, { va: 30, mod: 10 })}。
+// facets：[{ k: 'mod', label: '功率模块', unit: 'kVA' }]——每项一个下拉框，选项是这一栏目里实际有的数值；选了只显示数值相等的型号。
+// 搜索框：按型号、品类名匹配；输入 "300kVA" "100Ah" "48V" "10kWh" 这类数值时，按单位对应的筛选项找最接近的型号（±25%）。
+// 和页面原有的筛选（类型、相数等按钮）同时生效：原筛选用 hidden 隐藏，这里用 .cs-out 隐藏。
+import { ST } from '../lib/search-i18n.mjs';
+const { lang, facets = [], ex = '' } = Astro.props;
+const T = ST[lang];
+---
+<div class="cs" data-cs-bar data-t={JSON.stringify(T)} data-facets={JSON.stringify(facets)}>
+  <label class="cs-q">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input type="search" placeholder={T.ph.replace('{ex}', ex)} autocomplete="off" data-cs-q aria-label={T.ph.replace('{ex}', ex)} />
+    <button type="button" class="cs-x" data-cs-x aria-label={T.clear} hidden>×</button>
+  </label>
+  {facets.map((f) => (
+    <label class="cs-f" data-cs-fw={f.k}>
+      <span>{f.label}</span>
+      <select data-cs-f={f.k}><option value="">{T.any}</option></select>
+    </label>
+  ))}
+  {facets.length > 0 && (
+    <label class="cs-f">
+      <span>{T.sort}</span>
+      <select data-cs-sort>
+        <option value="">{T.sDef}</option>
+        {facets.map((f) => <><option value={`${f.k}:1`}>{T.sAsc.replace('{f}', f.label)}</option><option value={`${f.k}:-1`}>{T.sDesc.replace('{f}', f.label)}</option></>)}
+      </select>
+    </label>
+  )}
+  <div class="cs-foot"><span data-cs-n></span><button type="button" class="cs-clear" data-cs-clear hidden>{T.clear}</button></div>
+  <p class="cs-none" data-cs-none hidden>{T.none}</p>
+</div>
+
+<script>
+  import { parseQuery } from '../lib/search-core.mjs';
+  const norm = (s) => String(s || '').normalize('NFKC').toLowerCase();
+  const flat = (s) => norm(s).replace(/[^a-z0-9Ѐ-ӿ]+/g, '');
+  const UNIT_GROUP = { kVA: 'pw', VA: 'pw', kW: 'pw', W: 'pw', kWh: 'e', Ah: 'ah', V: 'v' };
+  const fmt = (v, u) => `${+(+v).toFixed(2)} ${u}`;
+  // 只在状态真的变了时才改 hidden：下面的 MutationObserver 在监听 hidden，重复赋值会触发死循环
+  const setHidden = (el, h) => { if (el && el.hidden !== !!h) el.hidden = !!h; };
+  document.querySelectorAll('[data-cs-bar]').forEach((bar) => {
+    const T = JSON.parse(bar.dataset.t), facets = JSON.parse(bar.dataset.facets);
+    const root = bar.closest('section') || document;
+    const els = [...root.querySelectorAll('[data-cs]')];
+    if (!els.length) { setHidden(bar, true); return; }
+    const items = els.map((el, i) => ({ el, i, d: JSON.parse(el.dataset.cs || '{}') }));
+    const q = bar.querySelector('[data-cs-q]'), sortSel = bar.querySelector('[data-cs-sort]');
+    // 下拉选项：这一栏目里实际出现的数值（只有一种数值的筛选项没意义，隐藏）
+    for (const f of facets) {
+      const vals = [...new Set(items.map((x) => x.d[f.k]).filter((v) => v > 0))].sort((a, b) => a - b);
+      const sel = bar.querySelector(`[data-cs-f="${f.k}"]`);
+      sel.insertAdjacentHTML('beforeend', vals.map((v) => `<option value="${v}">${fmt(v, f.unit)}</option>`).join(''));
+      if (vals.length < 2) setHidden(bar.querySelector(`[data-cs-fw="${f.k}"]`), true);
+    }
+    // 数值单位 → 对应的筛选项（"300kVA" 找功率类的第一个筛选项，优先整机容量）
+    const facetFor = (g) => facets.find((f) => UNIT_GROUP[f.unit] === g && !f.part) || facets.find((f) => UNIT_GROUP[f.unit] === g);
+    function apply() {
+      const { words, targets } = parseQuery(q.value);
+      const sel = Object.fromEntries(facets.map((f) => [f.k, bar.querySelector(`[data-cs-f="${f.k}"]`).value]));
+      const near = new Map();
+      for (const x of items) {
+        let ok = true, d = 0;
+        for (const [k, v] of Object.entries(sel)) if (v !== '' && Math.abs((x.d[k] || 0) - +v) > 1e-6) { ok = false; break; }
+        if (ok) for (const w of words) {
+          if (!(norm(x.d.h).includes(w) || (flat(w).length >= 2 && flat(x.d.h).includes(flat(w))))) { ok = false; break; }
+        }
+        if (ok) for (const [g, t] of Object.entries(targets)) {
+          let target = t;
+          const f = facetFor(g);
+          if (!f) { ok = false; break; }
+          if (f.unit === 'W' || f.unit === 'VA') target = t * 1000;
+          const v = x.d[f.k] || 0;
+          if (!v || Math.abs(Math.log(v / target)) > Math.log(1.25)) { ok = false; break; }
+          d += Math.abs(Math.log(v / target));
+        }
+        x.el.classList.toggle('cs-out', !ok);
+        near.set(x, d);
+      }
+      // 排序：选了排序按该数值；搜了数值时最接近的在前；否则恢复原顺序
+      const [sk, dir] = (sortSel && sortSel.value ? sortSel.value.split(':') : ['', '1']);
+      const byNum = Object.keys(targets).length > 0;
+      const order = [...items].sort((a, b) => sk ? ((a.d[sk] || 0) - (b.d[sk] || 0)) * +dir || a.i - b.i
+        : byNum ? near.get(a) - near.get(b) || a.i - b.i : a.i - b.i);
+      order.forEach((x) => x.el.parentNode.appendChild(x.el));
+      count();
+      setHidden(bar.querySelector('[data-cs-x]'), !q.value);
+      setHidden(bar.querySelector('[data-cs-clear]'), !q.value && !(sortSel && sortSel.value) && Object.values(sel).every((v) => v === ''));
+    }
+    function count() {
+      const n = items.filter((x) => !x.el.hidden && !x.el.classList.contains('cs-out')).length;
+      bar.querySelector('[data-cs-n]').textContent = n === 1 ? T.n1 : T.n.replace('{n}', n);
+      setHidden(bar.querySelector('[data-cs-none]'), n > 0);
+    }
+    let tm;
+    q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(apply, 100); });
+    bar.querySelectorAll('select').forEach((s) => s.addEventListener('change', apply));
+    bar.querySelector('[data-cs-x]').addEventListener('click', () => { q.value = ''; apply(); q.focus(); });
+    bar.querySelector('[data-cs-clear]').addEventListener('click', () => { q.value = ''; bar.querySelectorAll('select').forEach((s) => { s.value = ''; }); apply(); });
+    // 页面原有的筛选按钮改了显示状态时，数量跟着更新
+    new MutationObserver((ms) => { if (ms.some((m) => !bar.contains(m.target))) count(); }).observe(root, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    apply();
+  });
+</script>
+
+<style is:global>
+  .cs { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 12px; margin: -6px 0 18px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .cs[hidden] { display: none; }
+  .cs-q { flex: 1 1 300px; display: flex; align-items: center; gap: 8px; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 12px; background: var(--bg); }
+  .cs-q:focus-within { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(15,107,92,.12); }
+  .cs-q svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+  .cs-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 500 15px var(--body); padding: 11px 0; color: var(--ink); }
+  .cs-q input::-webkit-search-cancel-button { display: none; }
+  .cs-x { border: 0; background: var(--line); width: 22px; height: 22px; border-radius: 50%; line-height: 1; cursor: pointer; color: var(--ink); font-size: 15px; }
+  .cs-f { display: grid; gap: 4px; flex: 0 1 200px; min-width: 140px; }
+  .cs-f[hidden] { display: none; }
+  .cs-f span { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .cs-f select { width: 100%; min-width: 0; text-overflow: ellipsis; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 10px; font: 500 14px var(--body); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .cs-f select:focus { outline: 0; border-color: var(--accent); }
+  .cs-foot { flex: 1 1 100%; display: flex; gap: 12px; align-items: center; font: 600 13px var(--body); color: var(--muted); }
+  .cs-clear { border: 0; background: none; color: var(--accent); font: 600 13px var(--body); cursor: pointer; text-decoration: underline; padding: 0; }
+  .cs-none { flex: 1 1 100%; margin: 0; padding: 14px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; color: var(--muted); }
+  .cs-none[hidden] { display: none; }
+  .cs-out { display: none !important; }
+  @media (max-width: 640px) { .cs { padding: 12px; } .cs-f { flex: 1 1 calc(50% - 6px); min-width: 0; } }
+</style>

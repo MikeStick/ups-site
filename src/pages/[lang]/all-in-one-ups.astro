@@ -1,6 +1,8 @@
 ---
 // 一体式锂电 UPS 栏目页（/all-in-one-ups/）：备电配置器（负载 + 备电小时 → 型号 + 电池节数，塔式 UPS 剖面示意）→ 型号列表 → 卖点 → 一体式 vs 外接电池 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 一体式锂电UPS（例如 C1K-Pro / C2K-Pro / C3K-Pro，一个型号一条，电池节数写成"2/4/6节"）。
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import AioVisual from '../../components/AioVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -75,12 +77,13 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models">
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'cap', label: SF[lang].cap, unit: 'kVA' }]} ex="3kVA" />
       <div class="grid">
         {list.map(({ p, c, o }) => {
           const img = p.images && p.images[0];
           const inp = specValue(p, 'inputVoltageRange', lang);
           return (
-            <article class="pcard">
+            <article class="pcard" data-cs={csData(p, { cap: c.va / 1000 })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={UPS_SVG} />}
                 <span class="tags"><span class="tag k">LiFePO4</span><span class="tag u">Online</span></span>

@@ -2,6 +2,8 @@
 // 12V 铅酸（VRLA）电池栏目页（/batteries/vrla/）：选型计算器（UPS 后备时间 / 光伏电池组 / 按 Ah 找）→ 型号表（按 10HR / 20HR 和系列筛选）
 // → 系列介绍（AGM 备用 / 高倍率 / 深循环·胶体 / 前置端子）→ 铅酸还是锂电 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 铅酸电池（型号如 SK250-12 = 10HR，SK250-12v = 20HR）。参数解析在 src/lib/vrla-engine.mjs。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import VrlaVisual from '../../../components/VrlaVisual.astro';
 import { LANGS, SITE } from '../../../config.mjs';
@@ -94,6 +96,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models" data-vrm>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2><p>{T.rateNote}</p></div>
+      <CatSearch lang={lang} facets={[{ k: 'ah', label: SF[lang].ah, unit: 'Ah' }]} ex="100Ah" />
       <div class="filters">
         {RATES.length > 1 && <div class="vtabs" role="tablist">
           <button type="button" class="on" data-rt="all">{T.tabAll} <small>{list.length}</small></button>
@@ -108,7 +111,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
         {list.map(({ p, b }) => {
           const img = p.images && p.images[0];
           return (
-            <article class="pcard" data-r={b.rate} data-s={b.series}>
+            <article class="pcard" data-r={b.rate} data-s={b.series} data-cs={csData(p, { ah: b.ah })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <span class="nob"><i></i><i></i></span>}
                 <span class="tags"><span class="tag pb">VRLA</span><span class="tag u">{b.rate}HR</span>{b.series === 'gel' && <span class="tag gel">Gel</span>}</span>

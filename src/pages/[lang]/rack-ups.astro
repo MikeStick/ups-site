@@ -1,6 +1,8 @@
 ---
 // 机架式 UPS 栏目页（真双变换在线式）：机柜负载规划（含长机外接电池估算）+ 型号列表 + 工作原理图 + 卖点 + 类型对比 + 参数表 + 应用 + OEM。只询价，不显示价格。
 // 产品来自客户档案系统，类型 = 机架式UPS。
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE } from '../../config.mjs';
 import { RT, RACK_DEVICES, RUNTIMES, BATT_AH } from '../../lib/rack-i18n.mjs';
@@ -116,6 +118,7 @@ const B = T.blocks;
 
   <section class="block" id="models">
     <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'cap', label: SF[lang].cap, unit: 'kVA' }]} ex="3kVA" />
     {list.length === 0 ? <p class="empty">{T.noModels}</p> : (
       <>
         <div class="filters">
@@ -127,7 +130,7 @@ const B = T.blocks;
             const p = x.p, img = p.images && p.images[0];
             const eff = specValue(p, 'efficiencyAcMode', lang), bat = specValue(p, 'batterySpec', lang);
             return (
-              <article class="pcard" data-t={x.k} data-va={x.va} data-w={x.w}>
+              <article class="pcard" data-t={x.k} data-va={x.va} data-w={x.w} data-cs={csData(p, { cap: x.va / 1000 })}>
                 <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                   {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={RACK_SVG} />}
                   <span class="tags"><span class:list={['tag', x.k]}>{kindLabel(x.k)}</span>{x.u > 0 && <span class="tag u">{x.u}U</span>}</span>

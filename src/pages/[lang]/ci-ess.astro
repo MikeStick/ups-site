@@ -2,6 +2,8 @@
 // 工商业户外储能柜栏目页（/ci-ess/，菜单"光伏与储能"栏）：储能柜配置器（用途 + 功率 + 小时 + 冷却 → 型号 × 柜数，厂区示意）→ 型号卡片（风冷 / 液冷页签）
 // → 卖点 → 风冷 vs 液冷 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 风冷工商业储能柜 / 液冷工商业储能柜（例如 DZ105215B、DZ105233L2）。
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import CieVisual from '../../components/CieVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -67,6 +69,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models" data-esm>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'e', label: SF[lang].e, unit: 'kWh' }, { k: 'kw', label: SF[lang].pw, unit: 'kW' }]} ex="215kWh" />
       {COOLS.length > 1 && (
         <div class="vtabs" role="tablist">
           <button type="button" class="on" data-mt="all">{T.tabAll} <small>{list.length}</small></button>
@@ -77,7 +80,7 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
         {list.map(({ p, e }) => {
           const img = p.images && p.images[0];
           return (
-            <article class="pcard" data-m={e.cool}>
+            <article class="pcard" data-m={e.cool} data-cs={csData(p, { e: e.kwh, kw: e.kw })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={`${p.model} ${T.cool[e.cool]}`} loading="lazy" /> : <Fragment set:html={CAB_SVG(e.cool === 'liquid')} />}
                 <span class="tags"><span class="tag k">{T.cool[e.cool]}</span><span class="tag u">IP54</span></span>

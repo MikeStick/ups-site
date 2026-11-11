@@ -1,6 +1,8 @@
 ---
 // 光伏逆变器栏目页：系统选型器（目标 / 用电器 / 地区日照 / 电网电压 + 白天·夜间·停电实景）→ 型号列表（按类型 / 相数筛选）→ 卖点 → 混网·并网·离网对比 → 参数对比 → 应用 → 询价。只询价，不显示价格。
 // 产品来自客户档案系统，大类 = 光伏逆变器（细分：太阳能混网逆变器、并网/离网逆变器）。选型计算：src/lib/solar-engine.mjs
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import SolarVisual from '../../components/SolarVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -66,6 +68,7 @@ const APP_ICONS = [
   {list.length > 0 && (
     <section class="block" id="models" data-models>
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'pw', label: SF[lang].pw, unit: 'kW' }]} ex="5kW" />
       {(kinds.length > 1 || phases.length > 1) && (
         <div class="filters">
           {kinds.length > 1 && <div class="fgroup" data-f="kind"><span>{T.fType}</span><button type="button" class="chip on" data-v="">{T.fAll}</button>{kinds.map((k) => <button type="button" class="chip" data-v={k}>{T.kind[k]}</button>)}</div>}
@@ -77,7 +80,7 @@ const APP_ICONS = [
           const p = x.p, img = p.images && p.images[0];
           const pv = specValue(p, 'maxDcInputPower', lang), mppt = specValue(p, 'mpptNumber', lang), bat = specValue(p, 'batteryVoltage', lang), eff = specValue(p, 'efficiencyMax', lang);
           return (
-            <article class="pcard" data-kind={x.kind} data-ph={x.ph}>
+            <article class="pcard" data-kind={x.kind} data-ph={x.ph} data-cs={csData(p, { pw: x.kw })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={INV_SVG} />}
                 <span class="tags"><span class:list={['tag', `k-${x.kind}`]}>{T.kind[x.kind]}</span><span class="tag u">{T.phase[x.ph]}</span></span>

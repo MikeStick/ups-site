@@ -2,6 +2,8 @@
 // 高压磷酸铁锂电池柜栏目页（/batteries/hv-cabinet/）：电池柜配置器（UPS / 高压逆变器 + 电压 + 负载 + 备电时间，机房示意）→ 电池柜列表（按 204.8 V / 409.6 V 分组排序）
 // → 卖点 → 锂电柜 vs 铅酸电池组 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 磷酸铁锂储能柜（或 高压锂电池柜 / 高压磷酸铁锂电池柜），例如 R204.8V100AH。参数表标签用 RB[lang].spec。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import HvCabVisual from '../../../components/HvCabVisual.astro';
 import { LANGS, SITE } from '../../../config.mjs';
@@ -75,12 +77,13 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models">
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'e', label: SF[lang].e, unit: 'kWh' }, { k: 'v', label: SF[lang].v, unit: 'V' }, { k: 'ah', label: SF[lang].ah, unit: 'Ah' }]} ex="100kWh" />
       <div class="grid">
         {list.map(({ p, b }) => {
           const img = p.images && p.images[0];
           const dis = specValue(p, 'maxDischargeCurrent', lang) || (b.maxA ? `${b.maxA} A` : ''), kg0 = specValue(p, 'netWeight', lang) || specValue(p, 'moduleWeight', lang), kg = kg0 && !/kg/i.test(kg0) ? `${kg0} kg` : kg0;
           return (
-            <article class="pcard">
+            <article class="pcard" data-cs={csData(p, { e: b.kwh, v: b.v, ah: b.ah })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={BATT_SVG} />}
                 <span class="tags"><span class="tag k">LiFePO4</span>{b.v > 0 && <span class="tag u">{b.v} V</span>}</span>

@@ -1,6 +1,8 @@
 ---
 // 壁挂式锂电池栏目页（/batteries/wall-lithium/）：家用电池配置器（按能量 / 按负载 + 墙面示意）→ 电池列表 → 卖点 → 壁挂 vs 机架 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 壁挂式锂电池（或 壁挂式磷酸铁锂电池）。参数表标签和机架式共用 RB[lang].spec。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import WallBattVisual from '../../../components/WallBattVisual.astro';
 import { LANGS, SITE } from '../../../config.mjs';
@@ -70,12 +72,13 @@ const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', i
   {list.length > 0 && (
     <section class="block" id="models">
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'e', label: SF[lang].e, unit: 'kWh' }, { k: 'v', label: SF[lang].v, unit: 'V' }, { k: 'ah', label: SF[lang].ah, unit: 'Ah' }]} ex="10kWh" />
       <div class="grid">
         {list.map(({ p, b }) => {
           const img = p.images && p.images[0];
           const cyc = specValue(p, 'cycleLife', lang), dis = specValue(p, 'maxDischargeCurrent', lang), comm = specValue(p, 'commInterface', lang);
           return (
-            <article class="pcard">
+            <article class="pcard" data-cs={csData(p, { e: b.kwh, v: b.v, ah: b.ah })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={BATT_SVG} />}
                 <span class="tags"><span class="tag k">LiFePO4</span>{b.v > 0 && <span class="tag u">{b.v} V</span>}</span>

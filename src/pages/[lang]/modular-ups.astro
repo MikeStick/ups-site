@@ -1,6 +1,8 @@
 ---
 // 模块化 UPS 栏目页：可视化选型（机框 + 模块）→ 电池选型（负载、备电时间、铅酸 / 锂电）→ 已发布型号 → 项目报价
 // 电池计算：src/lib/modular-engine.mjs 的 batteryPlan（测试：node scripts/test-modular-engine.mjs）
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
 import Base from '../../layouts/Base.astro';
 import ModularVisual from '../../components/ModularVisual.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -53,11 +55,12 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
   {models.length > 0 && (
     <section class="block" id="models">
       <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{MODELS_H}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'sys', label: SF[lang].sys, unit: 'kVA' }, { k: 'mod', label: SF[lang].mod, unit: 'kVA', part: true }]} ex="300kVA" />
       <div class="grid">
         {models.map(({ p, c, m }) => {
           const img = p.images && p.images[0];
           return (
-            <article class="pcard">
+            <article class="pcard" data-cs={csData(p, { sys: c.va / 1000, mod: m.va / 1000 })}>
               <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
                 {img ? <img src={img.thumb || img.src} alt={p.model} loading="lazy" /> : <Fragment set:html={CAB_SVG} />}
                 <span class="tags"><span class="tag u">{isRackModular(p) ? X.kRack.replace(/\s*\(.*\)/, '') : X.kCab.replace(/\s*\(.*\)/, '')}</span></span>

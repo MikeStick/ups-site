@@ -4,6 +4,8 @@
 // 产品来自客户档案系统：型号 C-1 … C-40（或品类名带"电池柜 / 电池箱"）。参数按型号查 cab-specs.mjs（由画册抄录）。
 // 联动：选型用 vrla-engine 的 upsBackup（12V 电池放电表）挑电池，再用 cab-engine 的 cabFor 配柜子；
 // 12V 电池产品页的横幅链到本页 #planner?dc=…&ah=…（打开时自动切到"按电池"并带入容量）。
+import CatSearch from '../../../components/CatSearch.astro';
+import { SF, csData } from '../../../lib/search-i18n.mjs';
 import Base from '../../../layouts/Base.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { CAB } from '../../../lib/cab-i18n.mjs';
@@ -109,6 +111,7 @@ const first = CAB_LIST.find((c) => c.model === 'C-16') || CAB_LIST[0];
 
   <section class="block" id="models" data-cabm>
     <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'dcv', label: SF[lang].dcv, unit: 'V' }]} ex="192V" />
     <div class="filters">
       <div class="vtabs">
         <button type="button" class="on" data-tr="all">{T.tabAll} <small>{CAB_LIST.length}</small></button>
@@ -120,7 +123,7 @@ const first = CAB_LIST.find((c) => c.model === 'C-16') || CAB_LIST[0];
         const slug = slugOf[c.model];
         const href = slug ? `/${lang}/p/${slug}/` : '';
         return (
-          <article class="pcard" data-t={tier(c)}>
+          <article class="pcard" data-t={tier(c)} data-cs={csData(c, { dcv: c.dcv })}>
             {href ? <a class="pimg" href={href}><img src={pic(c.model)} alt={c.model} loading="lazy" /><span class="tags"><span class="tag pb">{c.dcv} {U.v} DC</span></span></a>
               : <div class="pimg"><img src={pic(c.model)} alt={c.model} loading="lazy" /><span class="tags"><span class="tag pb">{c.dcv} {U.v} DC</span></span></div>}
             <div class="pbody">
