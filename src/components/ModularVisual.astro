@@ -5,12 +5,13 @@
 import { SITE } from '../config.mjs';
 import { catalog } from '../data/modular-catalog.mjs';
 import ModularBattery from './ModularBattery.astro';
+import { addAr } from '../lib/ar.mjs';
 interface Props { lang: string }
 const { lang } = Astro.props;
 const FRAMES = [2, 3, 4, 6, 8, 10];
 // 选配卡：插在机柜顶部的智能卡槽（最多 4 张），温湿度传感器是外接配件（通过 SNMP 卡接入）
 const SLOTS = 4;
-const CARDS = [
+const CARDS = addAr([
   { id: 'snmp', tag: 'SNMP', ports: 'rj', en: ['SNMP card', 'Web / SNMP monitoring over Ethernet, e-mail and trap alarms'], es: ['Tarjeta SNMP', 'Monitoreo web / SNMP por Ethernet, alarmas por correo y trap'], ru: ['Карта SNMP', 'Мониторинг через веб / SNMP по Ethernet, оповещения по e-mail и trap'] },
   { id: 'modbus', tag: 'MODBUS', ports: 'tb3', en: ['Modbus card', 'Modbus RTU / TCP to BMS, DCIM or SCADA'], es: ['Tarjeta Modbus', 'Modbus RTU / TCP hacia BMS, DCIM o SCADA'], ru: ['Карта Modbus', 'Modbus RTU / TCP в BMS, DCIM или SCADA'] },
   { id: 'dry', tag: 'RELAY', ports: 'tb6', en: ['Dry contact card', 'Relay outputs: mains failure, low battery, bypass, alarm'], es: ['Tarjeta de contactos secos', 'Salidas de relé: falla de red, batería baja, bypass, alarma'], ru: ['Карта сухих контактов', 'Релейные выходы: пропадание сети, разряд батарей, байпас, авария'] },
@@ -19,10 +20,10 @@ const CARDS = [
   { id: 'lbs', tag: 'LBS', ports: 'rj2', en: ['LBS card', 'Load bus synchronization: keeps two systems in phase (2N)'], es: ['Tarjeta LBS', 'Sincroniza los buses de carga de dos sistemas (2N)'], ru: ['Карта LBS', 'Синхронизация шин нагрузки двух систем (2N)'] },
   { id: 'bms', tag: 'BMS', ports: 'tb3', en: ['Battery monitoring card', 'Voltage, internal resistance and temperature of every block'], es: ['Tarjeta de monitoreo de baterías', 'Voltaje, resistencia interna y temperatura de cada bloque'], ru: ['Карта мониторинга батарей', 'Напряжение, внутреннее сопротивление и температура каждого блока'] },
   { id: 'emd', tag: 'T/H', ext: true, en: ['Temperature & humidity sensor', 'Probe for the UPS / battery room, connects to the SNMP card'], es: ['Sensor de temperatura y humedad', 'Sonda para la sala de UPS / baterías, se conecta a la tarjeta SNMP'], ru: ['Датчик температуры и влажности', 'Датчик для помещения ИБП / батарей, подключается к карте SNMP'] },
-];
+]);
 const cards = CARDS.map((c) => ({ id: c.id, tag: c.tag, ports: c.ports || '', ext: !!c.ext, name: (c[lang] || c.en)[0], desc: (c[lang] || c.en)[1] }));
 const MODS = [10, 15, 20, 30, 50, 60, 100];
-const V = {
+const V = addAr({
   en: {
     eyebrow: 'Visual builder', h: 'Build your system, slot by slot', p: 'Pick a frame and a power-module rating — modules slide in in real time, one rating per frame. Then size the batteries and send the whole configuration.',
     s1: 'Frame', s1n: 'Up to {n} power modules', slots: '{n} slots', s2: 'Power module', s2n: 'All modules in a frame have the same rating', s3: 'Modules installed', s4: 'Redundancy',
@@ -50,7 +51,7 @@ const V = {
     hint: 'Нажмите на модуль, чтобы извлечь его и увидеть, как остальные делят нагрузку.',
     popH: 'Отправить конфигурацию', popP: 'Выберите способ отправки. Конфигурация ниже уже заполнена.', viaWa: 'Сообщение в WhatsApp', viaMail: 'Электронная почта', subj: 'Конфигурация модульного ИБП', close: 'Закрыть',
   },
-}[lang] || {};
+})[lang] || {};
 // 规格书里有的组合：槽位数 + 模块规格 → 型号名（取同组合里第一个，Plus 优先于 PI / Mini 的顺序按目录）
 const models: Record<string, string> = {};
 for (const c of catalog()) { const k = `${c.slots}|${c.moduleKva}`; if (!models[k]) models[k] = c.model; }

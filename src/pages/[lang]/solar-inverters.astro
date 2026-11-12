@@ -10,6 +10,7 @@ import { SL } from '../../lib/solar-i18n.mjs';
 import { isInverter, invKind, invKw, invPhase, invBattV, seriesName } from '../../lib/category.mjs';
 import { specValue } from '../../lib/offline-i18n.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -24,7 +25,7 @@ const phases = [...new Set(list.map((x) => x.ph))];
 const kws = list.map((x) => x.kw).filter(Boolean);
 const rangeTxt = kws.length > 1 && Math.min(...kws) !== Math.max(...kws) ? `${Math.min(...kws)}–${Math.max(...kws)} kW` : kws.length ? `${kws[0]} kW` : '';
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const INV_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="52" y="22" width="96" height="150" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="3"/><rect x="68" y="40" width="64" height="30" rx="4" fill="#0c1a10"/><path d="M76 56h20" stroke="#5ef0a0" stroke-width="4"/><circle cx="76" cy="90" r="4" fill="#22c55e"/><circle cx="90" cy="90" r="4" fill="#3b82f6"/><path d="M70 120h60M70 132h60M70 144h60" stroke="#cbd5e1" stroke-width="4"/></svg>';
 // 对比表：至少一个型号有值的参数才显示
 const CMP = ['offGridRatedApparentPower', 'onGridMaxApparentPower', 'outputVoltage', 'maxDcInputPower', 'maxDcInputVoltage', 'mpptVoltageRange', 'mpptNumber', 'batteryType', 'batteryVoltage', 'maxChargeDischargeCurrent', 'efficiencyMax', 'protectionClass', 'dimensions', 'netWeight']

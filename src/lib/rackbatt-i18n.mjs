@@ -1,5 +1,6 @@
 // 机架式磷酸铁锂电池栏目（/batteries/rack-lithium/）：页面文字、电池组配置器、常见问题、询价、参数表标签（三语）
 // 产品来自客户档案系统，细分品类 = 机架式磷酸铁锂电池。
+import { addAr } from './ar.mjs';
 
 export const RB_SPEC_FIELDS = ['moduleVoltage', 'moduleCapacity', 'moduleMaxEnergy', 'cellType', 'cellConfiguration', 'moduleType', 'cycleLife',
   'recommendedChargingVoltage', 'maxChargingCurrent', 'maxDischargeCurrent', 'recommendedDischargeCurrent', 'maxChargeDischargeCurrent', 'dischargeCutoffVoltage',
@@ -185,3 +186,8 @@ export const RB = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(RB_SPEC_FIELDS);
+addAr(SPEC);
+addAr(RB);

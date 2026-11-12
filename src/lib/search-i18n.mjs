@@ -1,6 +1,7 @@
 import { LANGS } from '../config.mjs';
 import { term } from '../i18n.mjs';
 import { typesOf } from './category.mjs';
+import { addAr } from './ar.mjs';
 // 栏目页"已发布型号"上方的搜索 + 筛选条（src/components/CatSearch.astro）的界面文字
 export const ST = {
   en: { ph: 'Search model or rating, e.g. {ex}', any: 'Any', sort: 'Sort', sDef: 'Default', sAsc: '{f}: low → high', sDesc: '{f}: high → low',
@@ -25,3 +26,7 @@ export function csData(p, nums = {}, extra = '') {
   for (const [k, v] of Object.entries(nums)) if (+v > 0) d[k] = Math.round(+v * 100) / 100;
   return JSON.stringify(d);
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(ST);
+addAr(SF);

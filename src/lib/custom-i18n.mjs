@@ -5,6 +5,7 @@
 //         样品开发费 2000 美元，量产订单中全额抵扣
 //  - 额定输出功率 = 同时使用时所有输出口加起来的上限；单个输出口的功率（V×A）不能超过它，
 //    但所有输出口的功率加起来可以超过它（输出口共享这个功率，不能全部同时满载）
+import { addAr } from './ar.mjs';
 
 export const MAX_RATED_W = 200;
 export const SAMPLE_FEE = 2000;
@@ -208,3 +209,15 @@ export const CT = {
     emptyCta: 'Не нашли? Сделаем под ваш запрос',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(MAX_RATED_W);
+addAr(SAMPLE_FEE);
+addAr(OEM_MOQ);
+addAr(MAX_PORTS);
+addAr(CERTS);
+addAr(PORT_TYPES);
+addAr(CHEM);
+addAr(CAP_PRESETS);
+addAr(POWER_PRESETS);
+addAr(CT);

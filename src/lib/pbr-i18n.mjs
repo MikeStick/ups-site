@@ -1,5 +1,6 @@
 // 锂电替换铅酸电池栏目（/batteries/lead-acid-replacement/）：页面文字、替换查找器（换一块电池 / 组一个电池组）、常见问题、询价（三语）。
 // 产品来自客户档案系统，细分品类 = 锂电替换铅酸电池（型号如 LFP-12V7AH）。参数表标签用 RB[lang].spec。
+import { addAr } from './ar.mjs';
 export const PB = {
   en: {
     nav: 'Lead-acid replacement (LiFePO4)', title: 'LiFePO4 lead-acid replacement batteries', crumbs: 'Products', crumbBatt: 'Batteries',
@@ -173,3 +174,6 @@ export const PB = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(PB);

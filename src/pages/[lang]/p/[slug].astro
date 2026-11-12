@@ -42,6 +42,7 @@ import { DEMT } from '../../../lib/dem-i18n.mjs';
 import { DEM } from '../../../lib/dem-data.mjs';
 import { cabSpec } from '../../../lib/cab-engine.mjs';
 import products from '../../../data/products.json';
+import { addAr } from '../../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.flatMap((lang) => products.map((p) => ({ params: { lang, slug: p.slug }, props: { p } })));
@@ -51,11 +52,11 @@ const { lang } = Astro.params;
 const { p } = Astro.props;
 const t = UI[lang];
 // 多语言原版彩页（CRM 产品档案里上传的）：按页面语言取，没有这种语言就用英文版
-const BRT = {
+const BRT = addAr({
   en: { h: 'Datasheet', open: 'Open full size / print', dl: 'Download' },
   es: { h: 'Ficha técnica', open: 'Abrir a tamaño completo / imprimir', dl: 'Descargar' },
   ru: { h: 'Технический паспорт', open: 'Открыть полностью / печать', dl: 'Скачать' },
-};
+});
 const brochure = p.brochures && (p.brochures[lang] || p.brochures.en);
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
 // 机架式 UPS 也走询价面板（选输出电压，不选插座）+ 机架式专用参数表
@@ -184,7 +185,7 @@ const series = dem
   : vrla
   ? products.filter(isVrla).map((x) => ({ x, m: vrlaModule(x) })).filter((o) => o.m.v === vm.v && o.m.rate === vm.rate && o.m.series === vm.series).sort((a, b) => a.m.ah - b.m.ah).map((o) => o.x)
   : tSeries ? (tSeries.length >= 2 ? tSeries : []) : seriesOf(p, products);
-const seriesLabel = { en: 'Same series', es: 'Misma serie', ru: 'Та же серия' }[lang];
+const seriesLabel = addAr({ en: 'Same series', es: 'Misma serie', ru: 'Та же серия' })[lang];
 const idmTr = (x) => (x && typeof x === 'object' ? x[lang] ?? x.en : x);
 const demTr = (x) => (x && typeof x === 'object' ? x[lang] ?? x.en : x);
 const rows = dem

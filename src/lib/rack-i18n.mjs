@@ -1,5 +1,6 @@
 // 机架式 UPS（真双变换在线式）栏目：页面文字、询价面板、参数表标签（三语）
 // OEM：起订 50 台，定制费 US$2,000
+import { addAr } from './ar.mjs';
 
 // 选型助手里机柜常见设备（W，典型满载功耗的保守值）
 export const RACK_DEVICES = [
@@ -208,3 +209,11 @@ export const RT = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(RACK_DEVICES);
+addAr(BATT_AH);
+addAr(RUNTIMES);
+addAr(RACK_SPEC_FIELDS);
+addAr(SPEC_EN);
+addAr(RT);

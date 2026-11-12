@@ -3,13 +3,14 @@
 // 对话通过 CRM 服务器（config.mjs 的 CHAT.api）收发；服务器关闭或连不上时，窗口里只显示 WhatsApp / 邮箱。
 // 会话保存在浏览器 localStorage，换页面不会断；关闭窗口后有新回复会显示红点。
 import { SITE, CHAT } from '../config.mjs';
+import { addAr } from '../lib/ar.mjs';
 interface Props { lang: string }
 const { lang } = Astro.props;
-const T = {
+const T = addAr({
   en: { open: 'Chat with us', title: 'SKE Sales', sub: 'Usually replies within a minute', subHuman: 'Sales Manager', ph: 'Type your message…', send: 'Send', note: 'AI-assisted · our sales team can join anytime', connecting: 'Connecting…', offline: 'Chat is not available right now. Please contact us on WhatsApp or by email:', teaser: 'Need help choosing a model? Ask us here.', min: 'Minimize', wa: 'WhatsApp', err: 'Message not sent — please try again.' },
   es: { open: 'Chatee con nosotros', title: 'SKE Sales', sub: 'Normalmente responde en un minuto', subHuman: 'Gerente de ventas', ph: 'Escriba su mensaje…', send: 'Enviar', note: 'Asistido por IA · nuestro equipo de ventas puede unirse en cualquier momento', connecting: 'Conectando…', offline: 'El chat no está disponible ahora. Contáctenos por WhatsApp o correo:', teaser: '¿Necesita ayuda para elegir un modelo? Pregúntenos aquí.', min: 'Minimizar', wa: 'WhatsApp', err: 'No se envió el mensaje; inténtelo de nuevo.' },
   ru: { open: 'Написать нам', title: 'SKE Sales', sub: 'Обычно отвечаем в течение минуты', subHuman: 'Менеджер по продажам', ph: 'Введите сообщение…', send: 'Отправить', note: 'С помощью ИИ · наш отдел продаж может подключиться в любой момент', connecting: 'Подключение…', offline: 'Чат сейчас недоступен. Свяжитесь с нами в WhatsApp или по e-mail:', teaser: 'Нужна помощь с выбором модели? Спросите здесь.', min: 'Свернуть', wa: 'WhatsApp', err: 'Сообщение не отправлено — попробуйте ещё раз.' },
-}[lang] || {};
+})[lang] || {};
 const cfg = { api: CHAT.api, lang, t: T, wa: SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}` : '', email: SITE.email };
 ---
 {CHAT.api && (

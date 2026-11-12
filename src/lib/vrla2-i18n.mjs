@@ -1,4 +1,5 @@
 // 2V 单体铅酸电池栏目页（/batteries/vrla-2v/）的文字。型号 SK100-2v … SK3000-2v，全部 10HR，设计浮充寿命 15 年以上。
+import { addAr } from './ar.mjs';
 export const V2 = {
   en: {
     nav: '2V lead-acid cells', title: '2V VRLA lead-acid cells', crumbs: 'Products', crumbBatt: 'Batteries',
@@ -130,3 +131,6 @@ export const V2 = {
     banner: 'Рассчитайте батарею 2V для системы оперативного тока или ИБП', bannerCta: 'Калькулятор батареи',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(V2);

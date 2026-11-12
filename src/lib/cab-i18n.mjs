@@ -1,4 +1,5 @@
 // 铅酸电池柜栏目页（/batteries/battery-cabinet/）和产品页的文字。数据见 cab-specs.mjs / cab-engine.mjs。
+import { addAr } from './ar.mjs';
 const EN = {
   nav: 'Battery cabinets (lead-acid)', title: 'Lead-acid battery cabinets', crumbs: 'Products', crumbBatt: 'Batteries',
   metaDesc: 'Battery cabinets for UPS external battery banks: C-1 to C-40, 1–40 × 12 V VRLA batteries, 12–480 V DC, for AGM and gel batteries up to 120 Ah. Battery switch and cables configured to the UPS. Free planner: load + backup time → batteries + cabinets.',
@@ -151,3 +152,11 @@ export function cabSpecRows(p, c, lang) {
     [T.wire, T.wireV], [T.sw, c.neutral ? T.sw2 : T.sw1],
   ];
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(EN);
+addAr(ES);
+addAr(RU);
+addAr(CAB);
+addAr(dec);
+addAr(dm);

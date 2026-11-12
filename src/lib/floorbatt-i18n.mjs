@@ -1,6 +1,7 @@
 // 落地式锂电池栏目（/batteries/floor-lithium/）：在壁挂式文字基础上覆盖不同的部分（三语）。
 // 产品来自客户档案系统，细分品类 = 落地式锂电池（或 落地式磷酸铁锂电池），例如 SK-FM 系列。
 import { WB } from './wallbatt-i18n.mjs';
+import { addAr } from './ar.mjs';
 
 const OV = {
   en: {
@@ -126,3 +127,7 @@ const OV = {
 };
 
 export const FB = Object.fromEntries(Object.entries(OV).map(([l, o]) => [l, { ...WB[l], ...o }]));
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(OV);
+addAr(FB);

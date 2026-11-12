@@ -1,5 +1,6 @@
 // 首页动画（"如果这个时候停电"）：六个场景 + UPS 的文字（三语）
 // 场景图片 / 短视频在客户档案系统「网站管理 → 首页动画」上传，图片位 id = hp_<场景>；没上传时显示占位插画
+import { addAr } from './ar.mjs';
 export const HP_SCENES = ['hospital', 'school', 'fab', 'airport', 'esports', 'family'];
 
 export const HT = {
@@ -52,3 +53,7 @@ export const HT = {
     skip: 'Пропустить', replay: 'Повторить', cta1: 'Наша продукция', cta2: 'Стоечные онлайн-ИБП',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(HP_SCENES);
+addAr(HT);

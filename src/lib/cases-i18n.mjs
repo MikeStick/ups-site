@@ -2,6 +2,7 @@
 // 图片在 public/img/cases/<slug>-<n>.jpg（大图）和 -s.jpg（小图），清单见 src/data/cases-images.json。
 // tags：sol 光伏储能 / dc 数据中心与微模块 / gov 政府与重大活动 / med 医疗 / tel 通信与广电
 // links：相关产品栏目（页面路径）
+import { addAr } from './ar.mjs';
 export const CASES = [
   { slug: 'indonesia-2', year: 2025, cc: 'ID', tags: ['sol'], feature: true, links: ['ci-ess/', 'solar-inverters/'],
     en: { t: 'Indonesia PV + storage project — Phase 2', place: 'Indonesia', when: 'June 2025', kpi: '2 MW', s: 'Second 2 MW phase of a solar-plus-storage project in Indonesia, delivered and commissioned by the SKE team on site one year after Phase 1.', d: ['Rooftop PV array combined with SKE energy-storage system', 'On-site installation, commissioning and handover by SKE engineers', 'Follows the successful Phase 1 delivery in 2024'] },
@@ -80,3 +81,7 @@ export const CS = {
     ctaH: 'Планируете проект?', ctaP: 'Пришлите перечень нагрузок, время автономии или данные объекта — инженеры ответят готовым решением и заводской ценой.', ctaBtn: 'Обсудить проект', ctaWa: 'Написать в WhatsApp',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(CASES);
+addAr(CS);

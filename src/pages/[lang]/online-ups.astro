@@ -11,6 +11,7 @@ import { specValue } from '../../lib/offline-i18n.mjs';
 import { isOnline, isLongRun, rackKind, phaseOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import { batteryWh } from '../../lib/power.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -31,7 +32,7 @@ const pfMax = Math.max(0, ...list.map((x) => x.pf));
 const phases = [...new Set(list.map((x) => x.ph))].sort();
 const phTxt = '1/1 · 3/3';
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const hasStd = list.some((x) => x.k === 'std'), hasLr = list.some((x) => x.k === 'lr'), hasLi = list.some((x) => x.k === 'li');
 const kinds = [hasStd, hasLr, hasLi].filter(Boolean).length;
 const kindLabel = (k) => (k === 'li' ? T.li : k === 'lr' ? T.lr : T.std);

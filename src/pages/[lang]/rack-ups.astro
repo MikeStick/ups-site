@@ -10,6 +10,7 @@ import { specValue } from '../../lib/offline-i18n.mjs';
 import { isRack, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import { batteryWh } from '../../lib/power.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -29,7 +30,7 @@ const pfMax = Math.max(0, ...list.map((x) => x.pf));
 const us = [...new Set(list.map((x) => x.u).filter(Boolean))].sort((a, b) => a - b);
 const uTxt = us.length ? (us.length === 1 ? `${us[0]}U` : `${us[0]}–${us[us.length - 1]}U`) : '19"';
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const hasStd = list.some((x) => x.k === 'std'), hasLr = list.some((x) => x.k === 'lr'), hasLi = list.some((x) => x.k === 'li');
 const kinds = [hasStd, hasLr, hasLi].filter(Boolean).length;
 const kindLabel = (k) => (k === 'li' ? T.li : k === 'lr' ? T.lr : T.std);

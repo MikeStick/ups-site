@@ -1,5 +1,6 @@
 // 高压磷酸铁锂电池柜栏目（/batteries/hv-cabinet/）：页面文字、电池柜配置器、常见问题、询价（三语）。
 // 定位：给在线式 / 工频 UPS 替代铅酸电池组，以及给高压混合逆变器做储能。参数表标签用 RB[lang].spec。
+import { addAr } from './ar.mjs';
 export const HV = {
   en: {
     nav: 'High-voltage battery cabinets', title: 'High-voltage LiFePO4 battery cabinets', crumbs: 'Products', crumbBatt: 'Batteries',
@@ -167,3 +168,6 @@ export const HV = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(HV);

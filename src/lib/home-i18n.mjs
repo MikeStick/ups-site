@@ -1,5 +1,6 @@
 // 首页（/）文字：产品总览（三组栏目）、按场景找产品、在线选型工具、Mini UPS 在线订购、为什么选择 SKE（三语）。
 // 栏目清单本身在 src/lib/catalog.mjs；这里只放首页上每个栏目的一句话介绍和备用的规格范围（没有已发布产品时显示）。
+import { addAr } from './ar.mjs';
 export const HM = {
   en: {
     strip: { ups: ['UPS', 'From mini DC UPS to 1200 kVA modular systems'], solar: ['Solar & storage', 'Hybrid inverters, home and C&I energy storage'], batt: ['Batteries', 'LiFePO4 and 12 V VRLA for UPS, telecom and solar'], dc: ['Cooling and Datacenter', 'Precision AC, micro data centres and monitoring'] },
@@ -152,3 +153,6 @@ export const HM = {
     stats: { years: 'Лет в энергетике', area: 'Завод', countries: 'Стран' },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(HM);

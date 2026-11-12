@@ -1,4 +1,5 @@
 // 模块化 UPS 工程选型器：界面文字（三语）。{x} 是占位符。
+import { addAr } from './ar.mjs';
 export const MX = {
   en: {
     freqFix: '40–70 Hz', freqNote: 'Input frequency range, 50 / 60 Hz detected automatically', futNote: 'Future load may increase', tOther: 'Other — type here', indNote: 'For factories and other industrial applications, please choose a low-frequency (transformer-based) UPS.',
@@ -166,3 +167,6 @@ export const MX = {
     print: 'Печать / PDF', link: 'Скопировать ссылку', linkOk: 'Ссылка скопирована', send: 'Отправить в SKE', msgHead: 'Конфигурация модульного ИБП {id}',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(MX);

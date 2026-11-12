@@ -1,6 +1,7 @@
 // About Us 页面三语内容（B 版）。数字、认证、文化、动态来自 skepower.com 官网。
 // 照片和近期动态：在客户档案系统「网站管理」里上传和编辑（图片位 id 与那边的清单一致）。
 // 下面的 NEWS 是网站管理里还没有任何动态时显示的默认 3 条（来自官网新闻）。
+import { addAr } from './ar.mjs';
 
 export const STATS = [
   { n: '20', u: '+', k: 'years' }, { n: '30,000', u: 'm²', k: 'area' }, { n: '500', u: '+', k: 'staff' },
@@ -207,3 +208,10 @@ export const AT = {
     ctaH: 'Обсудим ваш проект', ctaP: 'Расскажите о рынке, устройствах и количестве — мини-ИБП, промышленные ИБП, инверторы или системы хранения.',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(STATS);
+addAr(FAMILIES);
+addAr(SERIES);
+addAr(NEWS);
+addAr(AT);

@@ -1,4 +1,5 @@
 // 微模块数据中心栏目页（/micro-data-center/）界面文字。画册正文和配置表在 idm-data.mjs。
+import { addAr } from './ar.mjs';
 const EN = {
   nav: 'Micro data centre (IDM)', title: 'Micro-module data centres', crumbs: 'Products',
   metaDesc: 'SKE IDM Ⅱ micro-module data centres: all-in-one single cabinet (≤10 kW), single-row module (2–10 cabinets, 10–60 kW) and dual-row contained-aisle module (up to 48 cabinets, UPS 20–600 kVA). Free configurator: racks + kW → cooling, UPS, batteries and layout.',
@@ -144,3 +145,9 @@ const RU = {
   catalogue: 'Каталог (PDF)',
 };
 export const IDMT = { en: EN, es: ES, ru: RU };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(EN);
+addAr(ES);
+addAr(RU);
+addAr(IDMT);

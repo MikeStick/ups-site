@@ -1,5 +1,6 @@
 // 家庭储能一体机栏目（/home-ess/）：页面文字、家庭备电规划器、常见问题、询价（三语）。
 // 产品来自客户档案系统，细分品类 = 壁挂式储能一体机 / 落地式储能一体机 / 高压堆叠式储能一体机 / 低压堆叠式储能一体机。用电器名称用光伏选型器的 SL[lang].c.ap。
+import { addAr } from './ar.mjs';
 export const HE = {
   en: {
     nav: 'Home ESS all-in-one', title: 'All-in-one home energy storage systems', crumbs: 'Products', crumbSolar: 'Solar & storage',
@@ -164,3 +165,6 @@ export const HE = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(HE);

@@ -1,5 +1,6 @@
 // 光伏逆变器栏目（混网 / 并网 / 离网）：页面文字、系统选型器、询价面板、参数表标签（三语）
 // 产品来自客户档案系统，大类 = 光伏逆变器。
+import { addAr } from './ar.mjs';
 
 // 产品页参数表的字段顺序（没填的不显示）
 export const INV_SPEC_FIELDS = ['offGridRatedApparentPower', 'offGridMaxApparentPower', 'onGridMaxApparentPower', 'outputPower', 'outputVoltage', 'ratedOutputFrequency',
@@ -197,3 +198,8 @@ export const SL = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(INV_SPEC_FIELDS);
+addAr(SPEC);
+addAr(SL);

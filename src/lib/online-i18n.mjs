@@ -1,6 +1,7 @@
 // 在线式高频 UPS 栏目（塔式，真双变换在线式）：在机架式 UPS 的文字（RT）基础上覆盖本栏目自己的内容（三语）
 // 产品来自客户档案系统，细分品类 = 在线式高频UPS。
 import { RT } from './rack-i18n.mjs';
+import { addAr } from './ar.mjs';
 
 // 选型助手里的常见设备（W，典型满载功耗的保守值）
 export const ONLINE_DEVICES = [
@@ -117,3 +118,10 @@ const RU = {
 };
 
 export const OL = { en: { ...RT.en, ...EN }, es: { ...RT.es, ...ES }, ru: { ...RT.ru, ...RU } };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(ONLINE_DEVICES);
+addAr(EN);
+addAr(ES);
+addAr(RU);
+addAr(OL);

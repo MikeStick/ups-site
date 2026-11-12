@@ -1,4 +1,5 @@
 // 离线式 UPS 的输出插座：6 种标准，每台最多 10 个（工厂出厂装好）
+import { addAr } from './ar.mjs';
 const F = 'fill="#f3f5f4" stroke="#5d6b68" stroke-width="2"', P = 'fill="#15211f"';
 const sq = `<rect x="4" y="4" width="48" height="48" rx="9" ${F}/>`;
 const svg = (inner) => `<svg viewBox="0 0 56 56" aria-hidden="true">${inner}</svg>`;
@@ -19,3 +20,14 @@ export const SOCKET_WHERE = {
   ru: { SCHUKO: 'Европа, Россия, СНГ', NEMA: 'Америка, вкл. Венесуэлу', UK: 'Великобритания, Персидский залив', UNIVERSAL: 'Мультистандартные рынки', IEC: 'Серверы, стойки, ИТ', AU: 'Австралия, Аргентина, Китай' },
 };
 export const socketsText = (list) => (Array.isArray(list) ? list : []).filter((s) => SOCKET_NAME[s.type] && s.count > 0).map((s) => `${s.count} × ${SOCKET_NAME[s.type]}`).join(' + ');
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(F);
+addAr(sq);
+addAr(svg);
+addAr(SOCKET_ICON);
+addAr(SOCKET_IDS);
+addAr(SOCKET_MAX);
+addAr(SOCKET_NAME);
+addAr(SOCKET_WHERE);
+addAr(socketsText);

@@ -1,5 +1,6 @@
 // 一体式锂电 UPS 栏目（/all-in-one-ups/）：页面文字、备电配置器、常见问题、询价（三语）。
 // 产品来自客户档案系统，细分品类 = 一体式锂电UPS（例如 C1K-Pro / C2K-Pro / C3K-Pro）。参数表标签用在线式 UPS 的 OL[lang].spec。
+import { addAr } from './ar.mjs';
 export const AO = {
   en: {
     nav: 'All-in-one lithium UPS', title: 'All-in-one lithium UPS', crumbs: 'Products', crumbUps: 'UPS',
@@ -164,3 +165,6 @@ export const AO = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(AO);

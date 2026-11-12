@@ -1,5 +1,6 @@
 // 从客户档案系统的规格字段里推算：电池能量（Wh）、输出功率（W）、输出口标签。
 // 用于产品列表筛选和"能撑多久"计算器。都是估算值，页面上会注明。
+import { addAr } from './ar.mjs';
 
 // 电池能量：支持 "5000mAh*4"、"2600mAh×3"、"12V4.5AH*1"、"12V 9AH x2" 这几种常见写法
 export function batteryWh(p) {
@@ -93,3 +94,10 @@ export const CALC_T = {
     canPower: 'Только модели, которые потянут мои устройства', runs: '≈ {t} работы',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(CAP_BUCKETS);
+addAr(capBucket);
+addAr(EFFICIENCY);
+addAr(DEVICES);
+addAr(CALC_T);

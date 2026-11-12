@@ -1,4 +1,5 @@
 // 离线式 / 在线互动式 UPS 栏目：页面文字、询价面板、参数表标签（三语）
+import { addAr } from './ar.mjs';
 export const OEM_MOQ_OFFLINE = 1000;
 export const OEM_SAMPLE_FEE_OFFLINE = 3000;
 
@@ -158,3 +159,11 @@ export function specValue(p, field, lang) {
   const t = p.specI18n && p.specI18n[field];
   return (t && (t[lang] || t.en)) || '';
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(OEM_MOQ_OFFLINE);
+addAr(OEM_SAMPLE_FEE_OFFLINE);
+addAr(DEVICES);
+addAr(SPEC_FIELDS);
+addAr(OT);
+addAr(hasZh);

@@ -11,6 +11,7 @@ import { pacSpec, PAC_SERIES, PAC_SCENE } from '../../lib/pac-engine.mjs';
 import { PAC_SPECS } from '../../lib/pac-specs.mjs';
 import { isPac } from '../../lib/category.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -31,7 +32,7 @@ const dec = (x: number | string) => (lang === 'en' ? String(x) : String(x).repla
 const kwU = lang === 'ru' ? 'кВт' : 'kW', m3U = lang === 'ru' ? 'м³/ч' : 'm³/h', kgU = lang === 'ru' ? 'кг' : 'kg';
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const nSer = (s: string) => Object.values(PAC_SPECS).filter((x) => x.series === s).length;
-const CAT = { en: '/docs/SKE_Precision_AC_Catalogue_EN.pdf', es: '/docs/SKE_Precision_AC_Catalogue_ES.pdf', ru: '/docs/SKE_Precision_AC_Catalogue_RU.pdf' }[lang];
+const CAT = addAr({ en: '/docs/SKE_Precision_AC_Catalogue_EN.pdf', es: '/docs/SKE_Precision_AC_Catalogue_ES.pdf', ru: '/docs/SKE_Precision_AC_Catalogue_RU.pdf' })[lang];
 const WHY_ICONS = [
   '<path d="M15 4v14M10 22a5 5 0 1 0 10 0 5 5 0 0 0-3-4.6V4a2 2 0 0 0-4 0v13.4A5 5 0 0 0 10 22z"/>',
   '<path d="M4 15h22M15 4v22M7 7l16 16M23 7L7 23"/>',

@@ -1,5 +1,6 @@
 // 联系我们页面（/contact/）的三语文字。
 // 联系方式本身（WhatsApp、邮箱、工作时间、地址、微信）在 src/config.mjs 的 SITE / CONTACT 里改。
+import { addAr } from './ar.mjs';
 export const CO = {
   en: {
     nav: 'Contact',
@@ -119,3 +120,6 @@ export const CO = {
     visitH: 'Посетите наш завод', visitP: 'Наш завод находится в Дунгуане (провинция Гуандун). Пройдите 360° тур или посмотрите на спутниковой карте — будем рады визиту, договоритесь за несколько дней.', map: 'Открыть в Google Maps', dir: 'Маршрут', zhAddr: 'Адрес на китайском — покажите водителю', photo: 'Наш завод', mapNote: 'Карта не загружается? Откройте в Google Maps.',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(CO);

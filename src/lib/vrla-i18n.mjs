@@ -1,5 +1,6 @@
 // 12V 铅酸（VRLA）电池栏目（/batteries/vrla/）：页面文字、三个选型工具（UPS 后备 / 光伏电池组 / 按 Ah 找）、系列介绍、常见问题（三语）。
 // 产品来自客户档案系统，细分品类 = 铅酸电池（型号如 SK250-12 / SK250-12v）。系列、容量率、放电表在产品的 extraSpecs 里。
+import { addAr } from './ar.mjs';
 export const VR = {
   en: {
     nav: '12V lead-acid (VRLA)', title: '12V VRLA lead-acid batteries', crumbs: 'Products', crumbBatt: 'Batteries',
@@ -232,3 +233,10 @@ export function vrlaTables(m, lang) {
     }) };
   }).filter(Boolean);
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(VR);
+addAr(VR_P);
+addAr(VR_LABELS);
+addAr(VZH);
+addAr(VR2X);

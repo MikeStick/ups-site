@@ -10,6 +10,7 @@ import { RB } from '../../../lib/rackbatt-i18n.mjs';
 import { isRackBattery, battModule, seriesName } from '../../../lib/category.mjs';
 import { specValue } from '../../../lib/offline-i18n.mjs';
 import all from '../../../data/products.json';
+import { addAr } from '../../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -22,7 +23,7 @@ const vTxt = vs.length ? vs.map((v) => `${v} V`).join(' / ') : '48 V / 51.2 V';
 const us = [...new Set(list.map((x) => x.b.u).filter(Boolean))].sort((a, b) => a - b);
 const uTxt = us.length ? `19" · ${us.map((u) => `${u}U`).join(' / ')}` : '19"';
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const BATT_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="20" y="70" width="160" height="60" rx="6" fill="#e9eef0" stroke="#8b979a" stroke-width="3"/><rect x="26" y="80" width="8" height="40" rx="2" fill="#6b7678"/><rect x="166" y="80" width="8" height="40" rx="2" fill="#6b7678"/><circle cx="52" cy="100" r="7" fill="#1f2937" stroke="#22c55e" stroke-width="3"/><path d="M70 96h6v8h-6zM80 96h6v8h-6zM90 96h6v8h-6zM100 96h6v8h-6z" fill="#22c55e"/><path d="M130 94h10v10h-10zM144 94h10v10h-10z" fill="#111"/></svg>';
 const CMP = ['moduleVoltage', 'moduleCapacity', 'moduleMaxEnergy', 'cycleLife', 'maxChargingCurrent', 'maxDischargeCurrent', 'commInterface', 'moduleDimensions', 'moduleWeight']
   .filter((f) => list.some((x) => specValue(x.p, f, lang)));

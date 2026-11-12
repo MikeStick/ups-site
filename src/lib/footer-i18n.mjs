@@ -1,4 +1,5 @@
 // 页脚三语文字（链接本身在 components/SiteFooter.astro）
+import { addAr } from './ar.mjs';
 export const FT = {
   en: {
     tagline: 'Factory-direct UPS, solar inverters, energy storage and LiFePO4 batteries — from a mini DC UPS to 1200 kVA modular systems.',
@@ -25,3 +26,6 @@ export const FT = {
     rights: 'Все права защищены.', top: 'Наверх', lang: 'Язык',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(FT);

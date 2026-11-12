@@ -1,5 +1,5 @@
 ---
-import { SITE, LANGS, DEFAULT_LANG } from '../config.mjs';
+import { SITE, LANGS, DEFAULT_LANG , RTL_LANGS } from '../config.mjs';
 import { UI } from '../i18n.mjs';
 import { CO } from '../lib/contact-i18n.mjs';
 import { CS } from '../lib/cases-i18n.mjs';
@@ -35,7 +35,7 @@ const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.flatMap((x) => [[
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 ---
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} dir={RTL_LANGS.includes(lang) ? 'rtl' : 'ltr'}>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -50,6 +50,7 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+  {RTL_LANGS.includes(lang) && <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />}
   <style is:global>
     :root {
       --bg: #f3f5f4; --surface: #ffffff; --ink: #15211f; --muted: #5d6b68; --line: #d6dedb;
@@ -60,6 +61,14 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
       --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
       color-scheme: light;
     }
+    /* 阿拉伯语：阿拉伯文字用 IBM Plex Sans Arabic（拉丁字母和数字仍用原字体）；阿拉伯文是连写的，不能加字间距 */
+    [dir="rtl"] {
+      --display: "Barlow Condensed", "IBM Plex Sans Arabic", "Arial Narrow", sans-serif;
+      --body: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, Menlo, Consolas, monospace;
+    }
+    [dir="rtl"] *, [dir="rtl"] *::before, [dir="rtl"] *::after { letter-spacing: 0 !important; }
+    [dir="rtl"] h1, [dir="rtl"] h2 { line-height: 1.25; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
@@ -168,5 +177,60 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ms.forEach(function (m) { m.open = false; }); });
     })();
   </script>
+  {RTL_LANGS.includes(lang) && (
+    <script is:inline>
+    // 阿拉伯语（从右往左）：只有数字和拉丁字母的文字（"1–30 kVA"、"0 ms"、"3/3 · 1/1"）按从左往右显示，
+    // 否则浏览器会排成 "kVA 30–1"。用 <bdi dir="ltr"> 包起来；计算器等脚本后来改写的文字也会自动处理。
+    (function () {
+      var AR = /[\u0600-\u06FF]/, DIG = /\d/, PURE = /^\s*\d+\s*$/;
+      // 数值 + 拉丁单位 / 数值范围，例如 0 ms、1–30 kVA、220 V、3/3、12V 100Ah
+      var VSRC = '[~≈≥≤<>+]?\\d[\\d.,]*(?:\\s?[–\\-\\/×·:]\\s?\\d[\\d.,]*)*(?:\\s?[A-Za-zΩ°%µ][A-Za-z0-9Ω°%²³µ\\/.·-]*)?';
+      var VAL = new RegExp('\\d[\\d.,]*\\s?[A-Za-zΩ°%–\\-\\/×]'), VALG = new RegExp(VSRC, 'g');
+      function fix(root) {
+        var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), list = [], mixed = [], n;
+        while ((n = w.nextNode())) {
+          var t = n.nodeValue, p = n.parentNode;
+          if (!t || !DIG.test(t) || PURE.test(t) || !p || /^(SCRIPT|STYLE|BDI|TEXTAREA|OPTION|TITLE)$/.test(p.nodeName) || p.isContentEditable) continue;
+          if (p.closest && p.closest('svg, [dir="ltr"], input, select')) continue;
+          if (!AR.test(t)) list.push(n);
+          else if (VAL.test(t)) mixed.push(n);
+        }
+        list.forEach(function (n) { var b = document.createElement('bdi'); b.setAttribute('dir', 'ltr'); n.parentNode.insertBefore(b, n); b.appendChild(n); });
+        // 阿拉伯语句子里夹着的"数值 + 单位"（"زمن التحويل 0 ms"）：只把这一段包起来
+        mixed.forEach(function (n) {
+          var t = n.nodeValue, frag = document.createDocumentFragment(), last = 0, m;
+          VALG.lastIndex = 0;
+          while ((m = VALG.exec(t))) {
+            if (m.index > last) frag.appendChild(document.createTextNode(t.slice(last, m.index)));
+            var b = document.createElement('bdi'); b.setAttribute('dir', 'ltr'); b.textContent = m[0]; frag.appendChild(b);
+            last = m.index + m[0].length;
+          }
+          if (last < t.length) frag.appendChild(document.createTextNode(t.slice(last)));
+          n.parentNode.replaceChild(frag, n);
+        });
+        // 数字和单位分在两个标签里的（<b>0</b><small>W</small>）：整个元素的内容一起包起来
+        var els = root.nodeType === 1 ? [root].concat([].slice.call(root.querySelectorAll('*'))) : [];
+        els.forEach(function (el) {
+          if (el.nodeName === 'BDI' || el.closest('svg, [dir="ltr"], script, style, select, textarea')) return;
+          var kids = el.childNodes;
+          if (kids.length < 2 || kids.length > 4) return;
+          for (var i = 0; i < kids.length; i++) { var k = kids[i]; if (k.nodeType === 1 && !/^(B|SMALL|SPAN|SUP|SUB|I|EM|STRONG|BDI|OUTPUT|DATA|ABBR|CODE)$/.test(k.nodeName)) return; if (k.nodeType === 1 && k.children.length) return; }
+          var t = el.textContent;
+          if (t.length > 40 || !DIG.test(t) || AR.test(t) || !/[A-Za-z°%Ω³²·\/–-]/.test(t)) return;
+          var b = document.createElement('bdi'); b.setAttribute('dir', 'ltr');
+          while (el.firstChild) b.appendChild(el.firstChild);
+          el.appendChild(b);
+        });
+      }
+      fix(document.body);
+      new MutationObserver(function (ms) {
+        ms.forEach(function (m) {
+          if (m.type === 'characterData') { var p = m.target.parentNode; if (p && p.nodeName !== 'BDI') fix(p); }
+          else m.addedNodes.forEach(function (x) { if (x.nodeType === 1 && x.nodeName !== 'BDI') fix(x); else if (x.nodeType === 3 && x.parentNode && x.parentNode.nodeName !== 'BDI') fix(x.parentNode); });
+        });
+      }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    })();
+    </script>
+  )}
 </body>
 </html>

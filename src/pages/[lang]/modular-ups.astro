@@ -10,6 +10,7 @@ import { MT, MW } from '../../lib/modular-i18n.mjs';
 import { MX } from '../../lib/modular-cfg-i18n.mjs';
 import { isModular, isRackModular, moduleOf, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -22,8 +23,8 @@ const links = Object.fromEntries(all.filter(isModular).map((p) => [norm(p.model)
 const cfg = { lang, wa: SITE.whatsapp, links, x: X };
 // 已发布的模块化产品（含"同时属于"模块化的产品，比如主品类是机架式UPS、同时勾了模块化UPS）
 const models = all.filter(isModular).map((p) => ({ p, c: capacityOf(p), m: moduleOf(p), s: seriesName(p) })).sort((a, b) => a.s.localeCompare(b.s) || a.c.va - b.c.va);
-const MODELS_H = { en: 'Published models', es: 'Modelos publicados', ru: 'Модели в каталоге' }[lang];
-const DETAILS = { en: 'Details', es: 'Detalles', ru: 'Подробнее' }[lang];
+const MODELS_H = addAr({ en: 'Published models', es: 'Modelos publicados', ru: 'Модели в каталоге' })[lang];
+const DETAILS = addAr({ en: 'Details', es: 'Detalles', ru: 'Подробнее' })[lang];
 const CAB_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="176" rx="6" fill="#23292a"/><rect x="70" y="26" width="60" height="22" rx="3" fill="#7dd3fc" opacity=".85"/></svg>';
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v) === String(on) }));
@@ -44,7 +45,7 @@ const chips = (key, list, on) => list.map(([v, l]) => ({ key, v, l, on: String(v
         <div><b class="num">{W.range}</b><span>{T.facts.range}</span></div>
         <div><b class="num">{W.modules}</b><span>{T.facts.module}</span></div>
         <div><b class="num">N+X</b><span>{T.facts.red}</span></div>
-        <div><b class="num">Hot-swap</b><span>{T.facts.swap}</span></div>
+        <div><b class="num">{lang === 'ar' ? 'استبدال فوري' : 'Hot-swap'}</b><span>{T.facts.swap}</span></div>
       </div>
     </div>
   </section>

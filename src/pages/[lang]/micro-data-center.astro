@@ -12,6 +12,7 @@ import { cabSpec } from '../../lib/cab-engine.mjs';
 import { vrlaModule } from '../../lib/vrla-engine.mjs';
 import { isIdm, isPac, isBattCab, isVrla12, isDem } from '../../lib/category.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -31,7 +32,7 @@ for (const p of all.filter(isDem)) links['SK-DEM'] = p.slug;
 const batts = all.filter(isVrla12).map((p) => vrlaModule(p)).filter((m) => m.v === 12 && m.ah)
   .map((m) => ({ model: m.model, slug: m.slug || '', v: m.v, ah: m.ah, rate: m.rate, kg: m.kg || 0, series: m.series, tables: m.tables }));
 const cfg = { lang, wa: SITE.whatsapp, t: T, links, batts, forms: Object.fromEntries(IDM_MODELS.map((m) => [m, tr(T.forms[m][0])])) };
-const CAT = { en: '/docs/SKE_IDM2_Catalogue_EN.pdf', es: '/docs/SKE_IDM2_Catalogue_ES.pdf', ru: '/docs/SKE_IDM2_Catalogue_RU.pdf' }[lang];
+const CAT = addAr({ en: '/docs/SKE_IDM2_Catalogue_EN.pdf', es: '/docs/SKE_IDM2_Catalogue_ES.pdf', ru: '/docs/SKE_IDM2_Catalogue_RU.pdf' })[lang];
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const dec = (x: number | string) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
 const kwU = lang === 'ru' ? 'кВт' : 'kW';

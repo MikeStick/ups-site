@@ -1,5 +1,6 @@
 // 箱单：客户档案系统里填的箱规 { per 每箱数量, nw 每箱净重, gw 每箱毛重, l/w/h 外箱 mm }，按数量算箱数、重量、体积。
 // 所有品类通用（以后新加的品类也一样），没填全就不显示。
+import { addAr } from './ar.mjs';
 const num = (x) => parseFloat(String(x ?? '').replace(',', '.')) || 0;
 
 export function packOf(p) {
@@ -55,3 +56,8 @@ export const PK = {
 
 // 集装箱：按体积和载重两个条件算（取更紧的那个）。可用容积 / 载重取常用的保守值。
 export const CONTAINERS = { '20GP': { v: 28, kg: 21000 }, '40HQ': { v: 68, kg: 26000 } };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(num);
+addAr(PK);
+addAr(CONTAINERS);

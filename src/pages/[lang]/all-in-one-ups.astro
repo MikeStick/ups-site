@@ -12,6 +12,7 @@ import { aioOptions } from '../../lib/aio-engine.mjs';
 import { isAio, capacityOf, fmtCap, seriesName } from '../../lib/category.mjs';
 import { specValue } from '../../lib/offline-i18n.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -28,7 +29,7 @@ const inTxt = (list.map((x) => specValue(x.p, 'inputVoltageRange', lang)).find(B
 const bn = (n) => T.battN.replace('{n}', n);
 const optTxt = (o) => (o.n ? `${bn(o.n)} · ${o.wh} Wh` : `${o.wh} Wh`);
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const UPS_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="14" width="84" height="172" rx="8" fill="#2f3739"/><rect x="70" y="26" width="60" height="24" rx="3" fill="#0b1a17"/><path d="M80 38h40" stroke="#5ef0a0" stroke-width="4"/><rect x="70" y="62" width="60" height="110" rx="4" fill="#1a2022"/><g fill="#dfe6e7"><rect x="74" y="66" width="25" height="32" rx="2"/><rect x="101" y="66" width="25" height="32" rx="2"/><rect x="74" y="101" width="25" height="32" rx="2"/><rect x="101" y="101" width="25" height="32" rx="2"/><rect x="74" y="136" width="25" height="32" rx="2"/><rect x="101" y="136" width="25" height="32" rx="2"/></g></svg>';
 const CMP = ['outputPower', 'phase', 'inputVoltageRange', 'inputFrequency', 'outputVoltage', 'waveform', 'transferTimeAcToBattery', 'batteryVoltage', 'batterySpec', 'chargeCurrent', 'interfacePort', 'dimensions', 'netWeight']
   .filter((f) => list.some((x) => specValue(x.p, f, lang)));

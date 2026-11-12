@@ -1,5 +1,6 @@
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）：页面文字、家用电池配置器、常见问题、询价（三语）
 // 参数表标签和机架式电池共用（rackbatt-i18n.mjs 的 RB[lang].spec）。产品来自客户档案系统，细分品类 = 壁挂式锂电池。
+import { addAr } from './ar.mjs';
 
 export const WB = {
   en: {
@@ -159,3 +160,6 @@ export const WB = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(WB);

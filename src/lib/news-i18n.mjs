@@ -1,4 +1,5 @@
 // News（新闻中心）界面文字 + 日期格式。稿件数据见 src/data/news-sample.mjs（预览）/ 以后来自 CRM。
+import { addAr } from './ar.mjs';
 export const NW = {
   en: { nav: 'News', title: 'Newsroom', crumbs: 'Home', eyebrow: 'SKE Newsroom', h1: 'Projects, products and people', lead: 'What we shipped, built and launched — with photos and video from site.',
     latest: 'Latest', all: 'All', cats: { projects: 'Projects', products: 'Products', events: 'Events', company: 'Company', video: 'Video' },
@@ -19,7 +20,7 @@ export const NW = {
     empty: 'В этой категории пока нет новостей.',
     metaDesc: 'Новости SKE Power: сданные проекты, новые продукты, события и новости компании — с фото и видео.' },
 };
-const MON = { en: 'en-GB', es: 'es-ES', ru: 'ru-RU' };
+const MON = { en: 'en-GB', es: 'es-ES', ru: 'ru-RU', ar: 'ar-u-nu-latn' };
 export const monthYear = (d, lang) => new Date(d + 'T00:00:00Z').toLocaleDateString(MON[lang], { month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const fullDate = (d, lang) => new Date(d + 'T00:00:00Z').toLocaleDateString(MON[lang], { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const tx = (x, lang) => (x && typeof x === 'object' && !Array.isArray(x) ? x[lang] || x.en || '' : x || '');
@@ -30,3 +31,13 @@ export const readMin = (n, lang) => {
 };
 export const hasVideo = (n) => n.blocks.some((b) => b.t === 'yt');
 export const photoCount = (n) => n.blocks.reduce((s, b) => s + (b.t === 'img' ? 1 : b.t === 'pair' ? b.items.length : b.t === 'gallery' ? b.items.length : 0), 0);
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(NW);
+addAr(MON);
+addAr(monthYear);
+addAr(fullDate);
+addAr(tx);
+addAr(readMin);
+addAr(hasVideo);
+addAr(photoCount);

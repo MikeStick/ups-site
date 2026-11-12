@@ -3,6 +3,7 @@
 // 单价公式与客户档案系统 App.jsx 的 webTiers() 一致：起订量单价到1000台单价之间按数量线性插值。
 import { SITE } from '../config.mjs';
 import { PLUGS, PLUG_ICON } from '../lib/plugs.mjs';
+import { addAr } from '../lib/ar.mjs';
 
 const { p, lang } = Astro.props;
 const sale = p.sale || {};
@@ -16,7 +17,7 @@ const stockRaw = String(sale.stock ?? '').trim();
 const stock = stockRaw === '' ? null : Math.max(0, Number(stockRaw) || 0);
 const priceAt = (q) => (MAX === moq ? pMin : Math.round((pMin + (pMax - pMin) * (q - moq) / (MAX - moq)) * 100) / 100);
 
-const T = {
+const T = addAr({
   es: {
     range: 'Precio por unidad', perPc: '/ ud', save: 'Ahorra {p}% frente a {m} uds', scale: '{m} uds {a} → 1000 uds {b}', qty: 'Cantidad', required: 'obligatorio',
     hint: `Mínimo ${moq} uds, en múltiplos de ${step}, hasta ${MAX}.`,
@@ -71,7 +72,7 @@ const T = {
     where: { US: 'Венесуэла, Колумбия, Эквадор, Мексика, США', EU: 'Европа, Россия, СНГ, Ближний Восток', UK: 'Великобритания, Нигерия, ОАЭ, Малайзия', AU: 'Австралия, Аргентина, Китай', IN: 'Индия, Непал, Шри-Ланка' },
     typeWord: 'Тип',
   },
-}[lang];
+})[lang];
 
 // 插头列表和正面示意图在 src/lib/plugs.mjs（定制页也用）
 const ICON = PLUG_ICON;

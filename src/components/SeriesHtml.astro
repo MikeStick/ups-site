@@ -1,15 +1,16 @@
 ---
 // HTML 详情模板（系列参数表等）：内容块由 lib/tpl-html.mjs 解析，统一用网站样式渲染；当前型号整列高亮
 import { tplHtmlBlocks, modelKey } from '../lib/tpl-html.mjs';
+import { addAr } from '../lib/ar.mjs';
 interface Props { html: string; model: string; lang: string }
 const { html, model, lang } = Astro.props;
 const blocks = tplHtmlBlocks(html);
 const me = modelKey(model);
-const L = {
+const L = addAr({
   en: { series: 'Series specifications', swipe: '← Swipe to see all models →' },
   es: { series: 'Especificaciones de la serie', swipe: '← Deslice para ver todos los modelos →' },
   ru: { series: 'Характеристики серии', swipe: '← Проведите, чтобы увидеть все модели →' },
-}[lang] || { series: 'Series specifications', swipe: '' };
+})[lang] || { series: 'Series specifications', swipe: '' };
 const hasTable = blocks.some((b) => b.t === 'table' || b.t === 'grid');
 const firstTitle = blocks.find((b) => b.t === 'title');
 const heading = hasTable ? L.series : (firstTitle ? firstTitle.text : L.series);

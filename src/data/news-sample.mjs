@@ -2,6 +2,7 @@
 // 每篇：slug, date, cat（projects / products / company / events）, cover, place?, title{}, excerpt{}, blocks[]
 // blocks 类型：p 段落 · h 小标题 · img 单图(+cap) · pair 两图并排 · gallery 横滑图集 · yt YouTube（id + 封面）· quote 引言 · stats 数字 · links 相关产品卡片
 // 文字只写了英文（预览），es / ru 暂时回退英文。内容取自案例页和本周新上的产品类目。
+import { addAr } from '../lib/ar.mjs';
 const C = (n) => `/img/cases/${n}.jpg`;
 export const NEWS_SAMPLE = [
   {
@@ -89,3 +90,8 @@ export const NEWS_SAMPLE = [
   },
 ];
 export const NEWS_CATS = ['projects', 'products', 'events', 'company'];
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(C);
+addAr(NEWS_SAMPLE);
+addAr(NEWS_CATS);

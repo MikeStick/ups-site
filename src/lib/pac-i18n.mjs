@@ -1,4 +1,5 @@
 // 精密空调栏目页（/precision-ac/）和产品页的文字。数据见 pac-specs.mjs / pac-engine.mjs。
+import { addAr } from './ar.mjs';
 export const PAC = {
   en: {
     nav: 'Precision air conditioning', title: 'Precision air conditioning', crumbs: 'Products',
@@ -206,3 +207,12 @@ export function pacSpecRows(p, s, lang) {
     [T.hmax, `${s.hmax.replace(' m', '')} ${U.m} (${T.ext})`], [T.up, `${s.up.replace(' m', '')} ${U.m}`], [T.down, `${s.down.replace(' m', '')} ${U.m}`]);
   return rows;
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(PAC);
+addAr(PAC_V);
+addAr(PAC_SER);
+addAr(dec);
+addAr(pw);
+addAr(dm);
+addAr(u);

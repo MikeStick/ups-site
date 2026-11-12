@@ -1,4 +1,5 @@
 // 模块化 UPS 栏目：页面文字、系统配置器、询价面板、参数表标签（三语）
+import { addAr } from './ar.mjs';
 
 // 产品页参数表：字段 → 标签（没填的不显示）
 export const MOD_SPEC_FIELDS = ['outputPower', 'upsModuleCapacity', 'upsModuleCount', 'upsModuleDimensions', 'upsModuleWeight', 'phase',
@@ -238,3 +239,10 @@ export const MW = {
   },
 };
 export const MOD_RUNTIMES = [0, 5, 10, 15, 30, 60];
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(MOD_SPEC_FIELDS);
+addAr(REDUNDANCY);
+addAr(MT);
+addAr(MW);
+addAr(MOD_RUNTIMES);

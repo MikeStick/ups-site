@@ -1,5 +1,6 @@
 // 工商业户外储能柜栏目（/ci-ess/，菜单"光伏与储能"栏）：页面文字、储能柜配置器、常见问题、询价（三语）。
 // 产品来自客户档案系统，细分品类 = 风冷工商业储能柜 / 液冷工商业储能柜（例如 DZ105215B、DZ105233L2）。
+import { addAr } from './ar.mjs';
 export const CI = {
   en: {
     nav: 'C&I ESS cabinets', title: 'C&I outdoor energy storage cabinets', crumbs: 'Products', crumbSolar: 'Solar & storage',
@@ -164,3 +165,6 @@ export const CI = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(CI);

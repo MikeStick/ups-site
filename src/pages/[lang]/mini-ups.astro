@@ -8,6 +8,7 @@ import { CT } from '../../lib/custom-i18n.mjs';
 import allProducts from '../../data/products.json';
 import { isMini } from '../../lib/category.mjs';
 import { OT } from '../../lib/offline-i18n.mjs';
+import { addAr } from '../../lib/ar.mjs';
 // Mini UPS 栏目（/mini-ups/，以前是首页）：筛选 + 在线下单 / 拼单。首页改成全部产品总览（index.astro）。离线式 / 在线互动式 UPS 在 /offline-ups/
 const products = allProducts.filter(isMini);
 
@@ -29,11 +30,11 @@ const caps = [...new Set(items.map((x) => x.mah).filter((v) => v > 0))].sort((a,
 const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
 const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
 // Mini UPS 定制入口（OEM 贴牌 / ODM 完全定制）——以前在顶部菜单，现在放在 Mini DC UPS 栏目里
-const CB = {
+const CB = addAr({
   en: ['Custom Mini UPS — OEM & ODM', 'Your outputs, battery and brand. OEM from 1000 pcs; ODM sample fee US$2,000, refunded in your mass-production order.', 'Design yours'],
   es: ['Mini UPS a medida — OEM y ODM', 'Sus salidas, su batería y su marca. OEM desde 1000 uds; muestra ODM US$2.000, descontada del pedido de producción.', 'Diseñe el suyo'],
   ru: ['Mini UPS на заказ — OEM и ODM', 'Ваши выходы, батарея и бренд. OEM от 1000 шт.; образец ODM 2000 $, засчитывается в серийный заказ.', 'Создать свой'],
-};
+});
 const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count, count1: C.count1 };
 ---
 <Base lang={lang} title={`${OT[lang].navMini} · ${SITE.name}`} description={SITE.tagline[lang]} path="mini-ups/">

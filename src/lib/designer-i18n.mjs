@@ -1,6 +1,7 @@
 // 光伏系统选型器独立页（/solar-designer/）：光伏系列菜单的第二项。选型器本身是 SolarVisual（和光伏逆变器页面共用）。
 // 现在：首屏 → 选型器 → 系统由哪几部分组成（链接到逆变器和各类电池页面）→ 三步说明 → 常见问题 → 询价。
 // 以后光伏系列产品齐全（光伏板、汇流箱等）再把选型结果直接对应到具体型号。
+import { addAr } from './ar.mjs';
 export const SD = {
   en: {
     nav: 'Solar system designer', title: 'Solar system designer', crumbs: 'Products', crumbSolar: 'Solar & storage',
@@ -85,3 +86,7 @@ export const NAV_GROUPS = {
   es: { ups: 'UPS', solar: 'Solar y almacenamiento', batt: 'Baterías', dc: 'Climatización y centro de datos' },
   ru: { ups: 'ИБП', solar: 'Солнце и накопители', batt: 'Аккумуляторы', dc: 'Охлаждение и ЦОД' },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(SD);
+addAr(NAV_GROUPS);

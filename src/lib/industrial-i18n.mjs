@@ -1,5 +1,6 @@
 // 工频机 UPS 栏目（Industrial UPS）：页面文字、配置器、询价面板、参数表标签（三语）
 // 产品来自客户档案系统，细分品类 = 工频UPS。
+import { addAr } from './ar.mjs';
 
 export const IND_SPEC_FIELDS = ['outputPower', 'phase', 'acInputVoltage', 'inputVoltageRange', 'inputFrequency', 'inputPowerFactor',
   'outputVoltage', 'outputVoltageRange', 'outputPowerFactor', 'waveform', 'harmonicDistortion', 'currentCrestRatio',
@@ -215,3 +216,7 @@ export const IT = {
     },
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(IND_SPEC_FIELDS);
+addAr(IT);

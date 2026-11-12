@@ -10,6 +10,7 @@ import { LANGS, SITE } from '../../config.mjs';
 import { CI } from '../../lib/cie-i18n.mjs';
 import { isCiEss, ciSpec, seriesName } from '../../lib/category.mjs';
 import all from '../../data/products.json';
+import { addAr } from '../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -23,7 +24,7 @@ const kwhTxt = rng(list.map((x) => x.e.kwh), 'kWh') || '107–233 kWh';
 const kwTxt = rng(list.map((x) => x.e.kw), 'kW') || '62.5–105 kW';
 const optTxt = (e) => [e.pv ? T.optPv : '', e.sts ? T.optSts : ''].filter(Boolean).join(' · ') || T.optNone;
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const CAB_SVG = (liq) => `<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="40" y="18" width="120" height="170" rx="6" fill="#eef1f0" stroke="#1e6e5a" stroke-width="4"/><path d="M100 26v154" stroke="#c9d2cf" stroke-width="3"/><rect x="52" y="32" width="30" height="16" rx="2" fill="#0b1a17"/>${liq ? '<path d="M118 40v120M130 40v120" stroke="#3b82f6" stroke-width="6" stroke-linecap="round"/>' : '<circle cx="70" cy="150" r="18" fill="#d7dedb" stroke="#6b7280" stroke-width="3"/><circle cx="130" cy="150" r="18" fill="#d7dedb" stroke="#6b7280" stroke-width="3"/>'}<rect x="30" y="186" width="140" height="8" fill="#9a978e"/></svg>`;
 const APP_ICONS = [
   '<path d="M3 26V13l6 4v-4l6 4v-4l6 4V5h6v21z"/>',

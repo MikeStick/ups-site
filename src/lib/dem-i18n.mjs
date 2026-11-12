@@ -1,4 +1,5 @@
 // 动环监控系统栏目页（/dcim-monitoring/）界面文字。产品文字在 dem-data.mjs。
+import { addAr } from './ar.mjs';
 const EN = {
   nav: 'Power & environment monitoring', title: 'Power & environment monitoring', crumbs: 'Products',
   metaDesc: 'SKE SK-DEM power & environment monitoring host for server rooms and micro data centres: 8 serial ports, 8 digital inputs, infrared, Wiegand access and dual Ethernet. Monitors UPS, precision AC, distribution, batteries, PDUs, sensors, access and video. Free monitoring-point planner.',
@@ -90,3 +91,9 @@ const RU = {
   details: 'Подробнее', quote: 'Запрос', qMsg: 'Здравствуйте, прошу цену на контроллер мониторинга SK-DEM.',
 };
 export const DEMT = { en: EN, es: ES, ru: RU };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(EN);
+addAr(ES);
+addAr(RU);
+addAr(DEMT);

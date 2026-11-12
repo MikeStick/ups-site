@@ -1,5 +1,6 @@
 // 网站界面文字 + 规格名称的三语对照。
 // 客户档案系统里 type / machineVariant 存的是中文，这里负责翻译；规格的数值本身不翻译。
+import { addAr } from './lib/ar.mjs';
 
 export const UI = {
   es: {
@@ -208,3 +209,10 @@ export function tiersOf(p) {
     .filter((t) => t.qty > 0 && t.price > 0)
     .sort((a, b) => a.qty - b.qty);
 }
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(UI);
+UI.ar.langName = 'العربية';
+addAr(SPEC);
+addAr(TERMS);
+addAr(hasChinese);

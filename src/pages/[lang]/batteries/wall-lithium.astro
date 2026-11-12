@@ -11,6 +11,7 @@ import { WB } from '../../../lib/wallbatt-i18n.mjs';
 import { isWallBattery, battModule, seriesName } from '../../../lib/category.mjs';
 import { specValue } from '../../../lib/offline-i18n.mjs';
 import all from '../../../data/products.json';
+import { addAr } from '../../../lib/ar.mjs';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -23,7 +24,7 @@ const kTxt = ks.length ? (Math.min(...ks) === Math.max(...ks) ? `${ks[0]} kWh` :
 const pars = list.map((x) => x.b.par).filter(Boolean);
 const parTxt = pars.length ? `≤ ${Math.max(...pars)}` : T.parV;
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
-const qMsg = { en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' }[lang];
+const qMsg = addAr({ en: 'Hello, I would like a quote for the {m}:', es: 'Hola, quisiera una cotización del {m}:', ru: 'Здравствуйте, прошу цену на {m}:' })[lang];
 const BATT_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><rect x="58" y="20" width="84" height="160" rx="12" fill="#f4f4f2" stroke="#9a978e" stroke-width="3"/><rect x="86" y="38" width="28" height="5" rx="2.5" fill="#1e6e5a"/><path d="M90 84h20v6H90zM90 96h20v6H90zM90 108h20v6H90zM90 120h20v6H90z" fill="#22c55e"/><rect x="96" y="180" width="8" height="12" fill="#3d3a33"/></svg>';
 const CMP = ['moduleVoltage', 'moduleCapacity', 'moduleMaxEnergy', 'cycleLife', 'maxChargingCurrent', 'maxDischargeCurrent', 'commInterface', 'moduleDimensions', 'moduleWeight']
   .filter((f) => list.some((x) => specValue(x.p, f, lang)));

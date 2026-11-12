@@ -1,4 +1,5 @@
 // 网站基本信息——上线前把这里改成真实信息
+import { addAr } from './lib/ar.mjs';
 export const SITE = {
   name: 'SKE Power',
   tagline: { es: 'Fabricante directo de UPS', en: 'Direct UPS manufacturer', ru: 'Прямой производитель ИБП' },
@@ -32,5 +33,14 @@ export const CONTACT = {
   languages: ['English', 'Español', 'Русский', '中文'],
 };
 
-export const LANGS = ['en', 'es', 'ru'];
+export const LANGS = ['en', 'es', 'ru', 'ar'];
+// 从右往左书写的语言（页面加 dir="rtl"）
+export const RTL_LANGS = ['ar'];
 export const DEFAULT_LANG = 'en';
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(SITE);
+addAr(CHAT);
+addAr(CONTACT);
+addAr(LANGS);
+addAr(DEFAULT_LANG);

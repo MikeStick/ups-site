@@ -1,4 +1,5 @@
 // About 页"北京公司"一栏（北京金亿达博瑞科技发展有限公司）的三语文字
+import { addAr } from './ar.mjs';
 export const BJ = {
   en: {
     toc: 'Beijing office',
@@ -43,3 +44,6 @@ export const BJ = {
     tour: '360° тур по офису', visit: 'Контакты и адрес',
   },
 };
+
+// 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）
+addAr(BJ);

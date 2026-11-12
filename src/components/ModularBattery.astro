@@ -3,10 +3,11 @@
 // 计算在 src/lib/modular-engine.mjs 的 batteryPlan（恒功率法；锂电按 512 V 高压簇 + 3C 放电能力）
 // 右侧实时画出电池组：铅酸 = 每串 40 节 12 V；锂电 = 每簇 10 个电池模块 + BMS
 import { SITE } from '../config.mjs';
+import { addAr } from '../lib/ar.mjs';
 interface Props { lang: string }
 const { lang } = Astro.props;
 const TIMES = [5, 10, 15, 30, 60, 120];
-const B = {
+const B = addAr({
   en: {
     sys: 'Modular system', sysN: '{t} kW · {u} × {m} kW · {r}', change: 'Change ↑', ratio: 'Load ratio', band: 'Recommended {a}–{b}%', lt: 'Load', ltIt: 'IT / data center', ltInd: 'Industrial / surge loads',
     over: 'Not allowed: long-term load may not exceed 80% of the system capacity — max. {max} kW for {t} kW. Please choose a larger capacity above.',
@@ -76,7 +77,7 @@ const B = {
     msg: 'Здравствуйте, прошу предложение на батареи для модульного ИБП:\n• Реальная нагрузка: {k} кВт\n• Время автономии: {t} мин\n• Тип батарей: {b}\n• Предложено: {s}',
     subj: 'Расчёт батарей для модульного ИБП',
   },
-}[lang] || {};
+})[lang] || {};
 const cfg = { t: B };
 ---
 <div class="mb-ctl" id="battery" data-mb>
