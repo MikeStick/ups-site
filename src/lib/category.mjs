@@ -1,20 +1,24 @@
 // 产品品类：客户档案系统里的细分品类决定产品出现在哪个栏目。
 // 一个产品可以同时属于多个品类：type（主品类，决定参数表 / 询价面板）+ extraTypes（同时属于，只影响出现在哪些栏目）
 export const typesOf = (p) => [p.type, ...(Array.isArray(p.extraTypes) ? p.extraTypes : [])].filter(Boolean);
+// 模板管理里给模板选了"网站类目"的：用这个模板的产品直接放进那些栏目（webPages，网站接口按模板算好），不再按品类名判断。
+// 没选的照旧按品类名 / 型号判断。key 和 catalog.mjs 里的栏目 key 一致。
+const pinsOf = (p) => (Array.isArray(p.webPages) && p.webPages.length ? p.webPages : null);
+const pin = (keys, fn) => { const ks = [].concat(keys); return (p) => { const w = pinsOf(p); return w ? ks.some((k) => w.includes(k)) : fn(p); }; };
 // 品类名比较时忽略空格和大小写（CRM 里偶尔写成"一体式锂电 UPS"、"在线式ups"）
 const tnorm = (t) => String(t || '').replace(/\s+/g, '').toUpperCase();
 const has = (p, list) => typesOf(p).some((t) => list.some((x) => tnorm(x) === tnorm(t)));
 // 只看主品类（产品页用：决定显示哪套参数表、哪种询价面板、面包屑回到哪个栏目）
 export const primary = (p) => ({ ...p, extraTypes: [] });
 export const OFFLINE_TYPES = ['离线式UPS', '离线式锂电UPS', '在线互动式UPS'];
-export const isOffline = (p) => has(p, OFFLINE_TYPES);
+export const isOffline = pin('offline', (p) => has(p, OFFLINE_TYPES));
 export const isLineInteractive = (p) => (isOffline(p) && OFFLINE_TYPES.includes(p.type) ? p.type === '在线互动式UPS' : has(p, ['在线互动式UPS']));
 export const isLithiumOffline = (p) => (isOffline(p) && OFFLINE_TYPES.includes(p.type) ? p.type === '离线式锂电UPS' : has(p, ['离线式锂电UPS']));
 // 列表筛选 / 标签用：off = 离线式，lion = 离线式锂电，li = 在线互动式
 export const offKind = (p) => (isLineInteractive(p) ? 'li' : isLithiumOffline(p) ? 'lion' : 'off');
 // 机架式 UPS 栏目（真双变换在线式，机架安装）
 export const RACK_TYPES = ['机架式UPS', '机架式锂电UPS'];
-export const isRack = (p) => has(p, RACK_TYPES);
+export const isRack = pin('rack', (p) => has(p, RACK_TYPES));
 export const isRackLithium = (p) => has(p, ['机架式锂电UPS']);
 // 列表筛选 / 标签用：li = 锂电，lr = 长机（外接电池），std = 标机（内置铅酸）
 export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 'std');
@@ -22,12 +26,12 @@ export const rackKind = (p) => (isRackLithium(p) ? 'li' : isLongRun(p) ? 'lr' : 
 export const isLongRun = (p) => (p.machineVariant ? /长/.test(p.machineVariant) : /\d\s*K?L\b/i.test(String(p.model || '')));
 // 模块化 UPS 栏目
 export const MODULAR_TYPES = ['模块化UPS', '机架式模块化UPS'];
-export const isModular = (p) => has(p, MODULAR_TYPES);
+export const isModular = pin('modular', (p) => has(p, MODULAR_TYPES));
 export const isRackModular = (p) => has(p, ['机架式模块化UPS']);
 // 光伏逆变器栏目：大类 = 光伏逆变器，或细分品类是混网 / 并网离网逆变器
 export const INVERTER_TYPES = ['太阳能混网逆变器', '并网/离网逆变器'];
 // CRM 里产品的大类存的是大类 id（ups / inverter / battery，自建大类是随机 id），旧数据可能是中文名，两种都认
-export const isInverter = (p) => p.category === 'inverter' || p.category === '光伏逆变器' || has(p, INVERTER_TYPES);
+export const isInverter = pin('inverter', (p) => p.category === 'inverter' || p.category === '光伏逆变器' || has(p, INVERTER_TYPES));
 // 类型：hybrid 混网（光伏 + 电池 + 电网）；并网/离网逆变器里有电池参数的算离网（off），没有的算并网（grid）
 export function invKind(p) {
   if (has(p, ['太阳能混网逆变器'])) return 'hybrid';
@@ -57,20 +61,20 @@ export function invBattV(p) {
 }
 // 储能电池：大类 = 储能电池。已有栏目：机架式磷酸铁锂电池（/batteries/rack-lithium/）、壁挂式锂电池（/batteries/wall-lithium/）、落地式锂电池（/batteries/floor-lithium/）；
 // 铅酸、家庭储能系统的栏目还没做：不进任何列表，产品页照常生成
-export const isBattery = (p) => p.category === 'battery' || p.category === '储能电池';
+export const isBattery = pin(['wall', 'floor', 'rackbatt', 'hvcab', 'pbr', 'vrla', 'vrla2', 'cab'], (p) => p.category === 'battery' || p.category === '储能电池');
 export const isUpsCat = (p) => p.category === 'ups' || p.category === 'UPS不间断电源';
 export const RACK_BATT_TYPES = ['机架式磷酸铁锂电池', '机架式锂电池'];
-export const isRackBattery = (p) => has(p, RACK_BATT_TYPES);
+export const isRackBattery = pin('rackbatt', (p) => has(p, RACK_BATT_TYPES));
 // 壁挂式锂电池栏目（/batteries/wall-lithium/）
 export const WALL_BATT_TYPES = ['壁挂式锂电池', '壁挂式磷酸铁锂电池'];
-export const isWallBattery = (p) => has(p, WALL_BATT_TYPES);
+export const isWallBattery = pin('wall', (p) => has(p, WALL_BATT_TYPES));
 // 家庭储能一体机（电池 + 逆变器一体）：壁挂式 / 落地式两个细分品类，合在一个栏目 /home-ess/
 export const ESS_WALL_TYPES = ['壁挂式储能一体机'];
 export const ESS_FLOOR_TYPES = ['落地式储能一体机'];
 // 堆叠式（逆变器主机 + 一层层电池模块，每层约 5 kWh）：高压 / 低压两个细分品类，型号名会重复（都有 15kWh、20kWh），靠细分品类区分
 export const ESS_STACK_HV_TYPES = ['高压堆叠式储能一体机'];
 export const ESS_STACK_LV_TYPES = ['低压堆叠式储能一体机'];
-export const isHomeEss = (p) => has(p, [...ESS_WALL_TYPES, ...ESS_FLOOR_TYPES, ...ESS_STACK_HV_TYPES, ...ESS_STACK_LV_TYPES]);
+export const isHomeEss = pin('homeess', (p) => has(p, [...ESS_WALL_TYPES, ...ESS_FLOOR_TYPES, ...ESS_STACK_HV_TYPES, ...ESS_STACK_LV_TYPES]));
 export const essMount = (p) => (has(p, [...ESS_STACK_HV_TYPES, ...ESS_STACK_LV_TYPES]) ? 'stack' : has(p, ESS_FLOOR_TYPES) ? 'floor' : 'wall');
 export const essVolt = (p) => (has(p, ESS_STACK_HV_TYPES) ? 'hv' : has(p, ESS_STACK_LV_TYPES) ? 'lv' : '');
 // 参数：电池 kWh、逆变器 kW（型号名就是"2.5kWh + 3kW"这种写法，字段没填时从型号里读）、电池电压 / Ah、尺寸、重量
@@ -96,7 +100,7 @@ export function essSpec(p) {
 // 工商业户外储能柜（电池 + PCS 一体，IP54）：风冷 / 液冷两个细分品类，栏目 /ci-ess/（菜单"光伏与储能"栏）
 export const CI_AIR_TYPES = ['风冷工商业储能柜'];
 export const CI_LIQ_TYPES = ['液冷工商业储能柜'];
-export const isCiEss = (p) => has(p, [...CI_AIR_TYPES, ...CI_LIQ_TYPES]);
+export const isCiEss = pin('ciess', (p) => has(p, [...CI_AIR_TYPES, ...CI_LIQ_TYPES]));
 // 选配（光伏 DC-DC / STS）：参数里有对应条目且值不是"/"就算支持
 function ciOption(p, re) {
   const ex = Array.isArray(p.extraSpecs) ? p.extraSpecs : [];
@@ -117,7 +121,7 @@ export function ciSpec(p) {
 }
 // 锂电替换铅酸电池（LiFePO4 drop-in，12.8 / 25.6 / 51.2 V，型号如 LFP-12V7AH）：栏目 /batteries/lead-acid-replacement/
 export const PBR_TYPES = ['锂电替换铅酸电池'];
-export const isPbReplace = (p) => has(p, PBR_TYPES);
+export const isPbReplace = pin('pbr', (p) => has(p, PBR_TYPES));
 // 参数：电压（没填时按型号 12V / 24V / 48V 换成 12.8 / 25.6 / 51.2）、Ah、Wh（= V × Ah）、最大放电电流、尺寸 [长, 宽, 高]、重量
 export function pbModule(p) {
   const mm = String(p.model || '').match(/(\d{2})\s*V\s*(\d+(?:\.\d+)?)\s*AH/i);
@@ -137,16 +141,16 @@ export const VRLA_TYPES = ['铅酸电池', '阀控式铅酸电池', '胶体电�
 export const skModel = (m) => String(m || '').replace(/[（(].*$/, '').trim().split(/\s+/)[0];
 // 品类名不含铅酸字样时，SK…-12 / SK…-12v / SK…-12vJ / SK…-2v 型号也算（锂电品类除外）
 // 铅酸电池柜（电池箱）C-1 … C-40：型号 C-数字，或品类名带"电池柜 / 电池箱"（不含锂电、高压电池柜）。栏目 /batteries/battery-cabinet/，参数在 cab-engine.mjs
-export const isBattCab = (p) => /^\s*C\s*-?\s*\d{1,2}(?=$|[\s(（\u4e00-\u9fff])/i.test(String(p.model || '').normalize('NFKC'))
-  || typesOf(p).some((t) => /电池柜|电池箱|battery\s*cabinet/i.test(t) && !/锂|磷酸铁|高压|储能柜/.test(t));
-export const isVrla = (p) => !isBattCab(p) && (has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t))));
+export const isBattCab = pin('cab', (p) => /^\s*C\s*-?\s*\d{1,2}(?=$|[\s(（\u4e00-\u9fff])/i.test(String(p.model || '').normalize('NFKC'))
+  || typesOf(p).some((t) => /电池柜|电池箱|battery\s*cabinet/i.test(t) && !/锂|磷酸铁|高压|储能柜/.test(t)));
+export const isVrla = pin(['vrla', 'vrla2'], (p) => !isBattCab(p) && (has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t)))));
 // 2V 单体（SK100-2v … SK3000-2v，或额定电压 2 V）单独一个栏目 /batteries/vrla-2v/；12V 栏目只放 12V 的
 export const isCell2v = (p) => /^SK\d{2,4}-2v?$/i.test(skModel(p.model)) || /^2(?:\.0+)?\s*V?$/i.test(String(p.moduleVoltage || p.batteryVoltage || '').trim());
-export const isVrla12 = (p) => isVrla(p) && !isCell2v(p);
-export const isVrla2 = (p) => isVrla(p) && isCell2v(p);
+export const isVrla12 = pin('vrla', (p) => isVrla(p) && !isCell2v(p));
+export const isVrla2 = pin('vrla2', (p) => isVrla(p) && isCell2v(p));
 // 高压磷酸铁锂电池柜（R204.8V / R409.6V 系列，给 UPS 和高压逆变器用，室内机柜式）：栏目 /batteries/hv-cabinet/
 export const HV_CAB_TYPES = ['磷酸铁锂储能柜', '高压锂电池柜', '高压磷酸铁锂电池柜'];
-export const isHvCab = (p) => has(p, HV_CAB_TYPES);
+export const isHvCab = pin('hvcab', (p) => has(p, HV_CAB_TYPES));
 // 电池柜参数：在 battModule 基础上，从型号名（R204.8V100AH）补电压 / 容量，从各字段里找"≤ 27U"这种两位数 U 高
 export function hvModule(p) {
   const b = battModule(p);
@@ -159,7 +163,7 @@ export function hvModule(p) {
   return b;
 }
 export const FLOOR_BATT_TYPES = ['落地式锂电池', '落地式磷酸铁锂电池'];
-export const isFloorBattery = (p) => has(p, FLOOR_BATT_TYPES);
+export const isFloorBattery = pin('floor', (p) => has(p, FLOOR_BATT_TYPES));
 const num1 = (v) => { const m = String(v || '').replace(',', '.').match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; };
 // 机架式电池模块：电压 V、容量 Ah、能量 kWh（优先填的"模块最大能量"，没有就 V × Ah）、最大放电电流 A、高度 U、重量 kg、最多并联数
 export function battModule(p) {
@@ -179,14 +183,14 @@ export function battModule(p) {
 }
 // 在线式高频 UPS 栏目（塔式，真双变换在线式，1–30 kVA；单相 / 三进单出 / 三进三出）
 export const ONLINE_TYPES = ['在线式高频UPS', '高频塔式UPS', '在线式UPS'];
-export const isOnline = (p) => has(p, ONLINE_TYPES);
+export const isOnline = pin('online', (p) => has(p, ONLINE_TYPES));
 // 一体式锂电 UPS（All-in-One Lithium UPS，内置锂电池、电池节数可选，例如 C1K-Pro）：栏目 /all-in-one-ups/
 export const AIO_TYPES = ['一体式锂电UPS', '锂电一体式UPS'];
 // 品类名写法不固定（一体式锂电UPS / 锂电一体式UPS / 一体机锂电UPS / 锂电一体UPS / All-in-one…）：名字里同时有"一体"和"锂"且是 UPS 的都算
-export const isAio = (p) => has(p, AIO_TYPES) || typesOf(p).some((t) => (/一体/.test(t) && /锂/.test(t) && /UPS/i.test(t)) || /all[\s-]*in[\s-]*one.*(lithium|li-?ion).*ups/i.test(t));
+export const isAio = pin('aio', (p) => has(p, AIO_TYPES) || typesOf(p).some((t) => (/一体/.test(t) && /锂/.test(t) && /UPS/i.test(t)) || /all[\s-]*in[\s-]*one.*(lithium|li-?ion).*ups/i.test(t)));
 // 工频机 UPS 栏目（Industrial UPS）：带输出隔离变压器的工频在线式
 export const INDUSTRIAL_TYPES = ['工频UPS'];
-export const isIndustrial = (p) => has(p, INDUSTRIAL_TYPES);
+export const isIndustrial = pin('industrial', (p) => has(p, INDUSTRIAL_TYPES));
 // 工频机的相数：'11' 单进单出 / '31' 三进单出 / '33' 三进三出。先看"相数"字段（3/3、3进3出、三进三出、Three phase in/out…），
 // 没填时看电压：输出是 380/400/415 V 的算三进三出，输入三相、输出 220–240 V 的算三进单出
 export function phaseOf(p) {
@@ -203,8 +207,8 @@ export function phaseOf(p) {
 // Mini DC UPS 栏目：品类是「迷你UPS」，或者属于 UPS 大类但不在其他任何 UPS 栏目里。
 // 以前是「不属于任何栏目的产品都算 Mini」，CRM 里新加的品类（比如新的逆变器型号）会混进 Mini 页面，现在只兜底「UPS 大类、没填品类」的产品。
 // 不属于任何栏目的产品，构建时会在日志里列出来（见首页 index.astro）
-export const isMini = (p) => has(p, ['迷你UPS']) || (isUpsCat(p) && !p.type && !isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
-  && !isHomeEss(p) && !isCiEss(p) && !isWallBattery(p) && !isFloorBattery(p) && !isRackBattery(p) && !isHvCab(p) && !isPbReplace(p));
+export const isMini = pin('mini', (p) => has(p, ['迷你UPS']) || (isUpsCat(p) && !p.type && !isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
+  && !isHomeEss(p) && !isCiEss(p) && !isWallBattery(p) && !isFloorBattery(p) && !isRackBattery(p) && !isHvCab(p) && !isPbReplace(p)));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
   const t = String(p.upsModuleCapacity || '');
@@ -287,6 +291,6 @@ export function seriesName(p) {
 // 精密空调（机房空调）：型号 SK-FAJ… / SK-LAJ… / SK-RMJ…，或品类名带"精密空调 / 机房空调 / 基站空调 / 列间 / 机架式空调"。栏目 /precision-ac/，参数在 pac-engine.mjs
 // 微模块数据中心（IDM Ⅱ）：型号 IDM-S / IDM-R / IDM2-D，或品类名带"微模块 / 模块化数据中心"。栏目 /micro-data-center/，数据在 idm-engine / idm-data
 // 动环监控系统：型号 SK-DEM，或品类名带"动环"。栏目 /dcim-monitoring/
-export const isDem = (p) => /^SK-?DEM\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /动环|动力环境监控/.test(t));
-export const isIdm = (p) => /^IDM(2|Ⅱ|II)?\s*-?\s*[SRD]\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /微模块|模块化数据中心|一体化机柜/.test(t));
-export const isPac = (p) => /^SK-?(FAJ|LAJ|RMJ)\d{3}/i.test(String(p.model || '').trim()) || typesOf(p).some((t) => /精密空调|机房空调|基站空调|列间空调|机架式空调|房间级空调/.test(t));
+export const isDem = pin('dem', (p) => /^SK-?DEM\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /动环|动力环境监控/.test(t)));
+export const isIdm = pin('idm', (p) => /^IDM(2|Ⅱ|II)?\s*-?\s*[SRD]\b/i.test(String(p.model || '').normalize('NFKC').trim()) || typesOf(p).some((t) => /微模块|模块化数据中心|一体化机柜/.test(t)));
+export const isPac = pin('pac', (p) => /^SK-?(FAJ|LAJ|RMJ)\d{3}/i.test(String(p.model || '').trim()) || typesOf(p).some((t) => /精密空调|机房空调|基站空调|列间空调|机架式空调|房间级空调/.test(t)));
