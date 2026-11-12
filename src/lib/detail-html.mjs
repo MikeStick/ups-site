@@ -10,9 +10,9 @@ const HH_SCRIPT = '<script>(function(){function s(){try{parent.postMessage({skeH
 
 // 完整网页形式的片段（自带 <html>，常见于从别处导出的彩页）：页面本身的灰底、外边距，
 // 以及整页外面那层"卡片"（最大宽度、阴影、圆角、边框、左右内边距）去掉，让内容铺满产品页的详情区。
-// 只在 body 里只有一个外层 div 时才处理那层卡片（最后一个子元素是下面注入的高度脚本）。
+// 只在 body 里只有一个外层 div 时才处理那层卡片。
 const FULL_CSS = '<style>html,body{background:#fff!important;margin:0!important;padding:0!important;min-height:0!important}' +
-  'body>div:first-child:nth-last-child(2){max-width:none!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:0!important;padding-left:0!important;padding-right:0!important;padding-top:4px!important}</style>';
+  'body>div:only-of-type{max-width:none!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:0!important;padding-left:0!important;padding-right:0!important;padding-top:4px!important}</style>';
 
 export function htmlDoc(h) {
   const base = '<base target="_blank">';

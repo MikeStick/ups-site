@@ -224,6 +224,22 @@ const tplSeq = Array.isArray(p.templateDetail) && p.templateDetail.length
   ? p.templateDetail.map((x) => (x.img ? { im: x.img } : { html: (x.html && (x.html[lang] || x.html.en)) || '' })).filter((x) => x.im || x.html)
   : (Array.isArray(p.templateImages) ? p.templateImages : []).map((im) => ({ im }));
 const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []).map((im) => ({ im })), ...tplSeq];
+// 下载参数表（PDF）：内容 = 所在模板的详情图片 / 详情 HTML（按顺序）+ HTML 内容（系列参数表）；在访客浏览器里生成
+// 文件名：英文类目 + 型号 + Datasheet + (页面语言)，型号里的 "/" 换成外观相同的 "∕"（文件名里不能有 /）
+const catTitleIn = (lg) => {
+  const RBx = cie ? { ...RB[lg], ...CI[lg] } : hess ? { ...RB[lg], ...HE[lg] } : pbr ? { ...RB[lg], ...PB[lg] } : hvcab ? { ...RB[lg], ...HV[lg] } : fbatt ? { ...RB[lg], ...FB[lg] } : wbatt ? { ...RB[lg], ...WB[lg] } : RB[lg];
+  return dem ? DEMT[lg].title : idm ? IDMT[lg].title : cab ? CAB[lg].title : pac ? PAC[lg].title : vrla ? (cell2 ? V2[lg].title : VR[lg].title) : rbatt ? RBx.title
+    : inverter ? SL[lg].title : aio ? AO[lg].title : online ? OL[lg].title : industrial ? IT[lg].title : modular ? MT[lg].title : rack ? RT[lg].title : offline ? OT[lg].title : OT[lg].navMini;
+};
+const dsItems = tplSeq.map((x) => (x.im ? { img: x.im.src } : { html: htmlUrl(x.html) }));
+const dsSeries = Array.isArray(p.templateHtml) && p.templateHtml.length > 0;
+const dsName = `${String(catTitleIn('en') || '').trim()} ${String(p.model).trim()} Datasheet (${lang}).pdf`.replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+const DST = addAr({
+  en: { btn: 'Download datasheet (PDF)', busy: 'Preparing PDF…', fail: 'Could not create the PDF, please try again.' },
+  es: { btn: 'Descargar ficha técnica (PDF)', busy: 'Preparando PDF…', fail: 'No se pudo crear el PDF, inténtelo de nuevo.' },
+  ru: { btn: 'Скачать техническое описание (PDF)', busy: 'Готовим PDF…', fail: 'Не удалось создать PDF, попробуйте ещё раз.' },
+  ar: { btn: 'تنزيل ورقة البيانات (PDF)', busy: 'جارٍ تجهيز ملف PDF…', fail: 'تعذّر إنشاء ملف PDF، يرجى المحاولة مرة أخرى.' },
+})[lang];
 // HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面。
 // 片段是独立文件 /h/<内容哈希>.html，多个型号共用同一个片段时只下载一次（见 lib/detail-html.mjs）
 const group = p.sale && p.sale.mode === 'group';
@@ -290,7 +306,15 @@ const jsonLd = {
   <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
-    <div class="gallery-col"><Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} /></div>
+    <div class="gallery-col">
+      <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} />
+      {(dsItems.length > 0 || dsSeries) && (
+        <button type="button" class="ds-btn" data-ds={JSON.stringify({ items: dsItems, series: dsSeries, name: dsName, title: `${p.model} Datasheet`, busy: DST.busy, fail: DST.fail })}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6m-3-3 3 3 3-3"/></svg>
+          <span>{DST.btn}</span>
+        </button>
+      )}
+    </div>
 
     <section class="summary">
       {typeName && <span class="type">{typeName}</span>}
@@ -450,6 +474,10 @@ const jsonLd = {
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script>
+    import { initDatasheet } from '../../../lib/datasheet-pdf.mjs';
+    initDatasheet();
+  </script>
   <script is:inline>
   // 详情里的 HTML 片段：按片段内容自动调整 iframe 高度
   (function () {
@@ -521,6 +549,9 @@ const jsonLd = {
   /* 详情图：按顺序上下拼接，不留缝（详情图通常是一整张长图切成几段） */
   .detail-stack { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; }
   .detail-stack img { width: 100%; height: auto; display: block; }
+  .ds-btn { margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: 600 15px var(--body); cursor: pointer; transition: border-color .15s, background .15s; }
+  .ds-btn:hover { border-color: var(--ink); }
+  .ds-btn[disabled] { opacity: .65; cursor: progress; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
   /* HTML 片段铺满详情区（图片仍居中、最宽 900px） */
   .detail-stack:has(.detail-html) { max-width: none; }
