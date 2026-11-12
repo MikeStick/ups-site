@@ -47,6 +47,8 @@ async function seriesToCanvas(el, h2c) {
   box.style.cssText = `position:absolute;left:-30000px;top:0;width:${RENDER_W}px;background:#fff;padding:24px 28px;box-sizing:border-box`;
   const clone = el.cloneNode(true);
   clone.style.margin = '0';
+  // PDF 里不突出当前型号：去掉高亮（.cur），所有型号正常显示
+  clone.querySelectorAll('.cur').forEach((n) => n.classList.remove('cur'));
   box.appendChild(clone);
   document.body.appendChild(box);
   try {
