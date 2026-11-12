@@ -35,14 +35,43 @@ function tableOf(tbl) {
   const N = Math.max(...occ.slice(0, rows.length).map((o) => o.length));
   const head = rows[0];
   const isHead = head.length > 1 && (head.some((x) => x.th) || trs[0].parentNode.tagName === 'THEAD');
+  // 表头可能有两行：型号一行 + 下面一行细分（"2 batt. / 4 batt."、"单进单出 / 三进单出"）。
+  // 表头行 = 开头连续的、在 <thead> 里或全是 <th> 的行（最多 3 行）
+  let H = 1;
+  while (isHead && H < Math.min(3, rows.length - 1)) {
+    const tr = trs[H], cells = rows[H];
+    const inHead = tr.parentNode.tagName === 'THEAD' && trs[0].parentNode.tagName === 'THEAD';
+    if (!(inHead || (cells.length && cells.every((x) => x.th)))) break;
+    H++;
+  }
   if (!isHead) {
     // 没有型号行：按普通表格输出
     return { t: 'grid', rows: rows.map((cells) => cells.map((x) => ({ text: x.text, cs: x.cs, rs: x.rs, th: x.th }))) };
   }
   const L = head[0].cs; // 参数名占几列
   const models = head.slice(1).map((x) => x.text);
+  // 每个数据列对应的型号（第一行）和细分（第二、三行），合并单元格展开到每一列
+  const cols = [];
+  for (let c = L; c < N; c++) {
+    const top = occ[0][c];
+    const subs = [];
+    for (let r = 1; r < H; r++) { const x = occ[r] && occ[r][c]; if (x && x !== top && x.text) subs.push(x.text); }
+    cols.push({ m: top ? top.text : '', sub: subs.join(' · ') });
+  }
+  // 表头每一行的单元格（跨几列），给网站按原样画出两层表头
+  const heads = [];
+  for (let r = 0; r < H; r++) {
+    const seen = new Set(), row = [];
+    for (let c = L; c < N; c++) {
+      const x = occ[r] && occ[r][c];
+      if (!x || seen.has(x) || x.r !== r) continue; // 从上一行跨下来的格子不重复画
+      seen.add(x);
+      row.push({ text: x.text, col: Math.max(x.c, L) - L, cs: Math.min(x.c + x.cs, N) - Math.max(x.c, L), rs: Math.min(x.rs, H - r) });
+    }
+    heads.push(row);
+  }
   const out = [];
-  for (let r = 1; r < rows.length; r++) {
+  for (let r = H; r < rows.length; r++) {
     const cells = rows[r];
     if (cells.length === 1 && cells[0].c === 0 && cells[0].cs >= N) { out.push({ sec: cells[0].text }); continue; }
     if (!occ[r]) continue;
@@ -54,7 +83,24 @@ function tableOf(tbl) {
     });
     out.push({ label: parts.join(' · '), cells: data });
   }
-  return { t: 'table', corner: head[0].text, models, rows: out };
+  return { t: 'table', corner: head[0].text, models, cols, heads: H > 1 ? heads : null, rows: out };
+}
+
+const BLOCKY = 'table,ul,ol,h1,h2,h3,h4,h5,h6,img,svg';
+const elKids = (n) => n.childNodes.filter((k) => k.nodeType === 1 && !['SCRIPT', 'STYLE'].includes(k.tagName));
+function cardsOf(n) {
+  if (!['DIV', 'SECTION', 'UL'].includes(n.tagName)) return null;
+  const kids = elKids(n);
+  if (kids.length < 2 || kids.length > 12) return null;
+  const items = [];
+  for (const k of kids) {
+    if (!['DIV', 'LI', 'ARTICLE', 'A'].includes(k.tagName) || k.querySelector(BLOCKY)) return null;
+    const lines = elKids(k).map(textOf).filter(Boolean);
+    if (lines.length < 2 || lines.length > 5 || elKids(k).some((x) => elKids(x).some((y) => ['DIV', 'P', 'SECTION'].includes(y.tagName)))) return null;
+    if (lines.join(' ').length > 160) return null;
+    items.push(lines);
+  }
+  return items;
 }
 
 function walk(node, blocks) {
@@ -71,6 +117,9 @@ function walk(node, blocks) {
       if (items.length) blocks.push({ t: items.length <= 16 && items.every((x) => x.length <= 40) ? 'chips' : 'list', items });
       continue;
     }
+    // 型号卡片组（一排小卡片，每张 2–5 行短文字：型号 / 功率 / 电池选项…）→ 网站自己的卡片样式，不再拆成一行行文字
+    const cards = cardsOf(n);
+    if (cards) { blocks.push({ t: 'cards', items: cards }); continue; }
     const hasBlock = n.querySelector('table,p,ul,ol,h1,h2,h3,h4,h5,h6,div');
     if ((tag === 'P' || tag === 'DIV' || tag === 'SECTION' || tag === 'ARTICLE') && !hasBlock) {
       const t = textOf(n);
@@ -90,7 +139,14 @@ export function tplHtmlBlocks(html) {
   const blocks = [];
   walk(body, blocks);
   // 相邻的短文字段落合并检查：只保留非空
-  return blocks.filter((b) => b.t !== 'p' || b.text);
+  const out = blocks.filter((b) => b.t !== 'p' || b.text);
+  // 标题前面紧挨着的一行短文字 = 小标题（eyebrow，如 "Lithium UPS Series"）；第一个标题后面紧跟的段落 = 副标题
+  const firstTitle = out.findIndex((b) => b.t === 'title');
+  if (firstTitle > 0 && out[firstTitle - 1].t === 'p' && out[firstTitle - 1].text.length <= 40) out[firstTitle - 1] = { t: 'eyebrow', text: out[firstTitle - 1].text };
+  if (firstTitle >= 0 && out[firstTitle + 1] && out[firstTitle + 1].t === 'p' && out[firstTitle + 1].text.length <= 160) out[firstTitle + 1] = { t: 'sub', text: out[firstTitle + 1].text };
+  // 后面的 H1 / H2（Key Features、Technical Specifications）是小节标题，不和主标题一样大
+  out.forEach((b, i) => { if (b.t === 'title' && i !== firstTitle) out[i] = { t: 'h', text: b.text }; });
+  return out;
 }
 
 // 型号匹配（GS400 ↔ GS400BI MAX）：字母前缀 + 数字相同即可
