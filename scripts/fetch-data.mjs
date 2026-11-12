@@ -23,10 +23,20 @@ const KEY = process.env.SITE_BUILD_KEY || '';
 let sharp = null;
 try { sharp = (await import('sharp')).default; } catch { console.warn('[fetch-data] sharp 不可用，图片按原格式保存'); }
 
-async function getJson(url) {
-  const r = await fetch(url, { headers: { 'x-site-key': KEY } });
-  if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
-  return r.json();
+// 接口第一次需要翻译新语言时（比如新增阿拉伯语）可能要好几分钟，单次请求会超时；
+// CRM 那边翻译会继续跑并缓存，所以失败后等一会儿重试，最多 4 次
+async function getJson(url, tries = 4) {
+  for (let i = 1; ; i++) {
+    try {
+      const r = await fetch(url, { headers: { 'x-site-key': KEY } });
+      if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
+      return await r.json();
+    } catch (e) {
+      if (i >= tries) throw e;
+      console.warn(`[fetch-data] 第 ${i} 次请求失败（${e.message}），${30 * i} 秒后重试`);
+      await new Promise((ok) => setTimeout(ok, 30000 * i));
+    }
+  }
 }
 
 async function saveImage(url, slug, idx) {
@@ -247,7 +257,7 @@ async function saveArticleMedia(n) {
   return out;
 }
 
-// 网站管理的图片和动态。接口不可用时（比如 CRM 还没更新）不让构建失败，页面按"没上传图片、默认动态"显示。
+// 网站管理的图片和动态。
 async function fetchSite() {
   let site = { assets: {}, news: [] };
   try {
@@ -276,7 +286,10 @@ async function fetchSite() {
     site = { assets, news };
     console.log(`[fetch-data] 网站管理：${Object.keys(assets).length} 个图片位，${site.news.length} 条动态`);
   } catch (e) {
-    console.warn('[fetch-data] 网站管理数据拉取失败（按默认内容构建）：', e.message);
+    // 接口返回 404（CRM 还没有这个接口）时按默认内容构建；其它失败（超时、500）让构建失败，
+    // 网站保持上一个版本——否则首页视频、新闻会全部丢失
+    if (/HTTP 404/.test(e.message)) console.warn('[fetch-data] 网站管理接口不存在（按默认内容构建）：', e.message);
+    else throw new Error('网站管理数据（首页视频/图片、新闻）拉取失败：' + e.message);
   }
   await fs.writeFile(SITE_JSON, JSON.stringify(site, null, 2));
 }
