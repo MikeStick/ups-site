@@ -8,10 +8,17 @@ import { LANGS } from '../config.mjs';
 // 片段里注入的小脚本：把内容高度报给父页面，父页面据此调整 iframe 高度
 const HH_SCRIPT = '<script>(function(){function s(){try{parent.postMessage({skeHtmlH:Math.ceil(document.documentElement.getBoundingClientRect().height)},"*")}catch(e){}}addEventListener("load",s);if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);setTimeout(s,300);setTimeout(s,1500);})()</' + 'script>';
 
+// 完整网页形式的片段（自带 <html>，常见于从别处导出的彩页）：页面本身的灰底、外边距，
+// 以及整页外面那层"卡片"（最大宽度、阴影、圆角、边框、左右内边距）去掉，让内容铺满产品页的详情区。
+// 只在 body 里只有一个外层 div 时才处理那层卡片（最后一个子元素是下面注入的高度脚本）。
+const FULL_CSS = '<style>html,body{background:#fff!important;margin:0!important;padding:0!important;min-height:0!important}' +
+  'body>div:first-child:nth-last-child(2){max-width:none!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:0!important;padding-left:0!important;padding-right:0!important;padding-top:4px!important}</style>';
+
 export function htmlDoc(h) {
   const base = '<base target="_blank">';
   if (/<html[\s>]/i.test(h)) {
-    const d = /<head[^>]*>/i.test(h) ? h.replace(/<head[^>]*>/i, (m) => m + base) : h.replace(/<html[^>]*>/i, (m) => m + '<head>' + base + '</head>');
+    const head = base + FULL_CSS;
+    const d = /<\/head>/i.test(h) ? h.replace(/<\/head>/i, head + '</head>') : /<head[^>]*>/i.test(h) ? h.replace(/<head[^>]*>/i, (m) => m + head) : h.replace(/<html[^>]*>/i, (m) => m + '<head>' + head + '</head>');
     return /<\/body>/i.test(d) ? d.replace(/<\/body>/i, HH_SCRIPT + '</body>') : d + HH_SCRIPT;
   }
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + base +

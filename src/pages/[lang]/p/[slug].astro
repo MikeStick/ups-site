@@ -522,6 +522,9 @@ const jsonLd = {
   .detail-stack { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; }
   .detail-stack img { width: 100%; height: auto; display: block; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
+  /* HTML 片段铺满详情区（图片仍居中、最宽 900px） */
+  .detail-stack:has(.detail-html) { max-width: none; }
+  .detail-stack:has(.detail-html) img { max-width: 900px; margin-inline: auto; }
   .specs dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .vdis-t + .vdis-t { margin-top: 18px; }
   .vdis h3 { font-size: 15px; margin: 6px 0 8px; }
