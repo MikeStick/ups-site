@@ -1,7 +1,9 @@
 // 产品品类：客户档案系统里的细分品类决定产品出现在哪个栏目。
 // 一个产品可以同时属于多个品类：type（主品类，决定参数表 / 询价面板）+ extraTypes（同时属于，只影响出现在哪些栏目）
 export const typesOf = (p) => [p.type, ...(Array.isArray(p.extraTypes) ? p.extraTypes : [])].filter(Boolean);
-const has = (p, list) => typesOf(p).some((t) => list.includes(t));
+// 品类名比较时忽略空格和大小写（CRM 里偶尔写成"一体式锂电 UPS"、"在线式ups"）
+const tnorm = (t) => String(t || '').replace(/\s+/g, '').toUpperCase();
+const has = (p, list) => typesOf(p).some((t) => list.some((x) => tnorm(x) === tnorm(t)));
 // 只看主品类（产品页用：决定显示哪套参数表、哪种询价面板、面包屑回到哪个栏目）
 export const primary = (p) => ({ ...p, extraTypes: [] });
 export const OFFLINE_TYPES = ['离线式UPS', '离线式锂电UPS', '在线互动式UPS'];
@@ -180,7 +182,8 @@ export const ONLINE_TYPES = ['在线式高频UPS', '高频塔式UPS', '在线式
 export const isOnline = (p) => has(p, ONLINE_TYPES);
 // 一体式锂电 UPS（All-in-One Lithium UPS，内置锂电池、电池节数可选，例如 C1K-Pro）：栏目 /all-in-one-ups/
 export const AIO_TYPES = ['一体式锂电UPS', '锂电一体式UPS'];
-export const isAio = (p) => has(p, AIO_TYPES);
+// 品类名写法不固定（一体式锂电UPS / 锂电一体式UPS / 一体机锂电UPS / 锂电一体UPS / All-in-one…）：名字里同时有"一体"和"锂"且是 UPS 的都算
+export const isAio = (p) => has(p, AIO_TYPES) || typesOf(p).some((t) => (/一体/.test(t) && /锂/.test(t) && /UPS/i.test(t)) || /all[\s-]*in[\s-]*one.*(lithium|li-?ion).*ups/i.test(t));
 // 工频机 UPS 栏目（Industrial UPS）：带输出隔离变压器的工频在线式
 export const INDUSTRIAL_TYPES = ['工频UPS'];
 export const isIndustrial = (p) => has(p, INDUSTRIAL_TYPES);
