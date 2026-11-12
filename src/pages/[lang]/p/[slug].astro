@@ -310,7 +310,7 @@ const jsonLd = {
       <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} />
       {(dsItems.length > 0 || dsSeries) && (
         <button type="button" class="ds-btn" data-ds={JSON.stringify({ items: dsItems, series: dsSeries, name: dsName, title: `${p.model} Datasheet`, busy: DST.busy, fail: DST.fail })}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6m-3-3 3 3 3-3"/></svg>
+          <svg class="ds-ico" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M8 2h12l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#E2231A" stroke-width="1.6"/><path d="M20 2v6a2 2 0 0 0 2 2h6" fill="none" stroke="#E2231A" stroke-width="1.6"/><rect x="2" y="15" width="22" height="10" rx="2" fill="#E2231A"/><text x="13" y="22.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="700" fill="#fff" letter-spacing=".3">PDF</text></svg>
           <span>{DST.btn}</span>
         </button>
       )}
@@ -549,8 +549,9 @@ const jsonLd = {
   /* 详情图：按顺序上下拼接，不留缝（详情图通常是一整张长图切成几段） */
   .detail-stack { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; }
   .detail-stack img { width: 100%; height: auto; display: block; }
-  .ds-btn { margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: 600 15px var(--body); cursor: pointer; transition: border-color .15s, background .15s; }
-  .ds-btn:hover { border-color: var(--ink); }
+  .ds-btn { margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: #E2231A; font: 600 15px var(--body); cursor: pointer; transition: border-color .15s, background .15s; }
+  .ds-btn:hover { border-color: #E2231A; background: #fff5f4; }
+  .ds-ico { flex: none; }
   .ds-btn[disabled] { opacity: .65; cursor: progress; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
   /* HTML 片段铺满详情区（图片仍居中、最宽 900px） */
