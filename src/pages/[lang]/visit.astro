@@ -1,0 +1,412 @@
+---
+// 预约拜访（/visit/）：日期 + 北京时间整点（9–12、14–18）、拜访地点（北京办公室 / 深圳总部 / 东莞工厂，可多选）、
+// 人数、姓名职位、公司 + 营业执照（图片或 PDF）+ 网站、电话/WhatsApp、邮箱、感兴趣的产品（网站类目或手动填写）。
+// 提交到 CRM（/api/chat/visit，和在线客服同一个服务），后台"网站管理 → 预约拜访"查看；配置了企业微信会推送。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE, CHAT } from '../../config.mjs';
+import { VT, PLACES, VISIT_HOURS } from '../../lib/visit-i18n.mjs';
+import { HM } from '../../lib/home-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = VT[lang] || VT.en, H = HM[lang];
+// 感兴趣的产品：页面上按当前语言显示，提交的值用英文名称（后台看得懂）
+const itemsOf = (g) => g.items.filter((x) => !x.tool).flatMap((x) => [{ label: x.label }, ...(x.sub ? [{ label: x.sub.label }] : [])]);
+const enGroups = catalog('en');
+const groups = catalog(lang).map((g, gi) => {
+  const en = itemsOf(enGroups[gi] || { items: [] });
+  return { key: g.key, h: H.strip[g.key][0], items: itemsOf(g).map((x, i) => ({ label: x.label, value: (en[i] || x).label })) };
+});
+const hh = (h) => `${String(h).padStart(2, '0')}:00`;
+const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { errors: T.errors, sending: T.sending, submit: T.submit, copied: T.copied, copy: T.copy, yourTime: T.yourTime, sameTz: T.sameTz, places: T.placeNames, waHello: T.waHello, time: T.time, people: T.people, company: T.company, date: T.date } };
+---
+<Base lang={lang} title={T.title} description={T.lead.slice(0, 155)} path="visit/">
+  <div class="vz" data-visit data-cfg={JSON.stringify(cfg)}>
+    <header class="vz-head">
+      <span class="eyebrow">{T.eyebrow}</span>
+      <h1>{T.h1}</h1>
+      <p>{T.lead}</p>
+    </header>
+
+    <div class="vz-grid">
+      <form class="vz-form" data-form novalidate>
+        <input type="text" name="hp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <section class="vz-sec">
+          <h2><i>1</i>{T.s1}</h2>
+          <div class="row2">
+            <label class="fld" data-f="date">
+              <span>{T.date} <em>*</em></span>
+              <input type="date" name="date" required />
+              <small>{T.dateHint} <b data-weekday></b></small>
+            </label>
+            <label class="fld" data-f="people">
+              <span>{T.people} <em>*</em></span>
+              <div class="step">
+                <button type="button" data-step="-1" aria-label="−">−</button>
+                <input type="number" name="people" min="1" max="50" value="2" inputmode="numeric" required />
+                <button type="button" data-step="1" aria-label="+">+</button>
+              </div>
+            </label>
+          </div>
+          <fieldset class="fld" data-f="hour">
+            <legend>{T.time} <em>*</em></legend>
+            <div class="slots">
+              <div class="slot-row"><span class="slot-h">{T.am}</span><div class="chips">{VISIT_HOURS.filter((h) => h <= 12).map((h) => <label class="chip"><input type="radio" name="hour" value={h} /><span>{hh(h)}</span></label>)}</div></div>
+              <div class="slot-row"><span class="slot-h">{T.pm}</span><div class="chips">{VISIT_HOURS.filter((h) => h >= 14).map((h) => <label class="chip"><input type="radio" name="hour" value={h} /><span>{hh(h)}</span></label>)}</div></div>
+            </div>
+            <small class="local" data-local hidden></small>
+          </fieldset>
+        </section>
+
+        <section class="vz-sec">
+          <h2><i>2</i>{T.s2}</h2>
+          <fieldset class="fld" data-f="places">
+            <legend>{T.places} <em>*</em></legend>
+            <div class="places">
+              {PLACES.map((p) => (
+                <label class:list={['place', `pl-${p.key}`]}>
+                  <input type="checkbox" name="places" value={p.key} />
+                  <span class="pl-box">
+                    <span class="pl-top"><b>{T.placeNames[p.key]}</b><small>{T.placeTags[p.key]}</small><i class="tick" aria-hidden="true"></i></span>
+                    <span class="pl-en">{p.enName}</span>
+                    <span class="pl-addr">{p.enAddr}</span>
+                    <span class="pl-zh"><small>{T.zhAddr}</small><span lang="zh">{p.zhName}<br />{p.zhAddr}</span><button type="button" class="cp" data-copy={`${p.zhName} ${p.zhAddr}`}>{T.copy}</button></span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p class="dist"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M7 17l1.5-5h7L17 17M8 12l1-3h6l1 3"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/></svg><span>{T.distance}</span></p>
+          </fieldset>
+        </section>
+
+        <section class="vz-sec">
+          <h2><i>3</i>{T.s3}</h2>
+          <div class="row2">
+            <label class="fld" data-f="name"><span>{T.name} <em>*</em></span><input name="name" autocomplete="name" required maxlength="80" /></label>
+            <label class="fld" data-f="title"><span>{T.position} <em>*</em></span><input name="title" autocomplete="organization-title" placeholder={T.positionPh} required maxlength="80" /></label>
+            <label class="fld" data-f="phone"><span>{T.phone} <em>*</em></span><input name="phone" type="tel" autocomplete="tel" placeholder={T.phonePh} required maxlength="60" /></label>
+            <label class="fld" data-f="email"><span>{T.email} <em>*</em></span><input name="email" type="email" autocomplete="email" required maxlength="120" /></label>
+          </div>
+        </section>
+
+        <section class="vz-sec">
+          <h2><i>4</i>{T.s4}</h2>
+          <div class="row2">
+            <label class="fld" data-f="company"><span>{T.company} <em>*</em></span><input name="company" autocomplete="organization" required maxlength="160" /></label>
+            <label class="fld" data-f="website"><span>{T.website} <small>({T.optional})</small></span><input name="website" type="url" inputmode="url" autocomplete="url" placeholder={T.websitePh} maxlength="200" /></label>
+          </div>
+          <div class="fld" data-f="license">
+            <span>{T.license} <em>*</em></span>
+            <label class="drop" data-drop>
+              <input type="file" name="license" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif,application/pdf,.pdf,.heic" />
+              <span class="drop-empty" data-drop-empty>
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+                <b>{T.licensePick}</b> <span>{T.licenseDrop}</span>
+                <small>{T.licenseHint}</small>
+              </span>
+              <span class="drop-file" data-drop-file hidden>
+                <img data-drop-img alt="" hidden />
+                <span class="pdf-ico" data-drop-pdf hidden>PDF</span>
+                <span class="df-meta"><b data-drop-name></b><small data-drop-size></small><u>{T.licenseChange}</u></span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="vz-sec">
+          <h2><i>5</i>{T.s5} <small>({T.optional})</small></h2>
+          <div class="pgs">
+            {groups.map((g) => (
+              <div class:list={['pg', `g-${g.key}`]}>
+                <span class="pg-h">{g.h}</span>
+                <div class="chips">{g.items.map((x) => <label class="chip"><input type="checkbox" name="products" value={x.value} /><span>{x.label}</span></label>)}</div>
+              </div>
+            ))}
+          </div>
+          <label class="fld"><span>{T.productsOther}</span><input name="productsOther" placeholder={T.productsOtherPh} maxlength="500" /></label>
+          <label class="fld"><span>{T.notes}</span><textarea name="notes" rows="3" placeholder={T.notesPh} maxlength="2000"></textarea></label>
+        </section>
+      </form>
+
+      <aside class="vz-side">
+        <div class="sum" data-sum>
+          <span class="sum-l">{T.title}</span>
+          <div class="sum-when"><b data-sum-date>—</b><span data-sum-time>—</span></div>
+          <small class="sum-local" data-sum-local></small>
+          <ul class="sum-places" data-sum-places></ul>
+          <div class="sum-people" data-sum-people></div>
+          <p class="err" data-err hidden></p>
+          <button type="button" class="btn go" data-submit>{T.submit}</button>
+          <small class="priv">{T.privacy}</small>
+        </div>
+        <div class="ok" data-ok hidden>
+          <span class="ok-ic" aria-hidden="true">✓</span>
+          <h2>{T.okH}</h2>
+          <p>{T.okP}</p>
+          <a class="btn wa" data-ok-wa href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">{T.okWa}</a>
+          <button type="button" class="btn line" data-again>{T.okAgain}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<script>
+  for (const root of document.querySelectorAll('[data-visit]')) {
+    const c = JSON.parse(root.dataset.cfg), t = c.t;
+    const f = root.querySelector('[data-form]');
+    const $ = (s) => root.querySelector(s);
+    const fmtH = (h) => `${String(h).padStart(2, '0')}:00`;
+    const loc = c.lang === 'ar' ? 'ar-u-nu-latn' : c.lang;
+
+    // 日期：明天起（北京时间），一年以内
+    const bjToday = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+    const addDays = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10);
+    const dateIn = f.elements.namedItem('date');
+    dateIn.min = addDays(bjToday, 1); dateIn.max = addDays(bjToday, 365);
+    const wdOf = (d) => new Intl.DateTimeFormat(loc, { weekday: 'long', timeZone: 'UTC' }).format(new Date(d + 'T00:00:00Z'));
+    const longDate = (d) => new Intl.DateTimeFormat(loc, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'UTC' }).format(new Date(d + 'T00:00:00Z'));
+
+    // 北京时间 → 访客本地时间
+    function localOf(date, hour) {
+      const d = date || addDays(bjToday, 1);
+      const at = new Date(Date.parse(`${d}T${String(hour).padStart(2, '0')}:00:00+08:00`));
+      const offMin = -at.getTimezoneOffset();
+      if (offMin === 480) return t.sameTz;
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const s = new Intl.DateTimeFormat(loc, { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(at);
+      return `${t.yourTime}: ${s}${tz ? ` (${tz})` : ''}`;
+    }
+
+    // 人数 + / −
+    const ppl = f.elements.namedItem('people');
+    root.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => {
+      ppl.value = String(Math.min(50, Math.max(1, (parseInt(ppl.value, 10) || 1) + Number(b.dataset.step)))); update();
+    }));
+
+    // 复制中文地址（按钮在 label 里，阻止勾选）
+    root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      try { await navigator.clipboard.writeText(b.dataset.copy); } catch (er) { const ta = document.createElement('textarea'); ta.value = b.dataset.copy; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+      b.textContent = t.copied; setTimeout(() => { b.textContent = t.copy; }, 1500);
+    }));
+
+    // 营业执照：选择 / 拖放 + 预览
+    const fileIn = f.elements.namedItem('license'), drop = $('[data-drop]');
+    const showFile = () => {
+      const file = fileIn.files && fileIn.files[0];
+      $('[data-drop-empty]').hidden = !!file; $('[data-drop-file]').hidden = !file;
+      if (!file) return;
+      const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+      const img = $('[data-drop-img]');
+      $('[data-drop-pdf]').hidden = !isPdf; img.hidden = isPdf;
+      if (!isPdf) { if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src); img.src = URL.createObjectURL(file); }
+      $('[data-drop-name]').textContent = file.name;
+      $('[data-drop-size]').textContent = file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+      clearErr('license');
+    };
+    fileIn.addEventListener('change', showFile);
+    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files.length) { fileIn.files = e.dataTransfer.files; showFile(); } });
+
+    // 右侧摘要
+    function update() {
+      const fd = new FormData(f), d = String(fd.get('date') || ''), h = fd.get('hour');
+      $('[data-weekday]').textContent = d ? `· ${wdOf(d)}` : '';
+      $('[data-sum-date]').textContent = d ? longDate(d) : t.date;
+      $('[data-sum-time]').textContent = h ? `${fmtH(h)} · ${t.time}` : t.time;
+      const lo = h ? localOf(d, h) : '';
+      $('[data-sum-local]').textContent = lo; $('[data-local]').textContent = lo; $('[data-local]').hidden = !lo;
+      const pl = fd.getAll('places');
+      $('[data-sum-places]').innerHTML = '';
+      pl.forEach((k) => { const li = document.createElement('li'); li.textContent = t.places[k]; $('[data-sum-places]').appendChild(li); });
+      $('[data-sum-people]').textContent = `${t.people}: ${fd.get('people') || '—'}`;
+    }
+    f.addEventListener('input', (e) => { update(); if (e.target.name) clearErr(e.target.name); });
+    f.addEventListener('change', (e) => { update(); if (e.target.name) clearErr(e.target.name); });
+    update();
+
+    // 校验 + 提交
+    const errBox = $('[data-err]');
+    function clearErr(k) { const el = root.querySelector(`[data-f="${k}"]`); if (el) { el.classList.remove('bad'); const m = el.querySelector('.msg'); if (m) m.remove(); } if (!root.querySelector('.fld.bad')) errBox.hidden = true; }
+    function markErr(k) {
+      const el = root.querySelector(`[data-f="${k === 'license_type' || k === 'file_too_big' ? 'license' : k}"]`);
+      if (!el) return null;
+      el.classList.add('bad');
+      if (!el.querySelector('.msg')) { const m = document.createElement('small'); m.className = 'msg'; m.textContent = t.errors[k] || ''; el.appendChild(m); }
+      return el;
+    }
+    function check() {
+      const fd = new FormData(f), bad = [];
+      const d = String(fd.get('date') || '');
+      if (!d || d < dateIn.min || d > dateIn.max) bad.push('date');
+      if (!fd.get('hour')) bad.push('hour');
+      const n = parseInt(fd.get('people'), 10); if (!(n >= 1 && n <= 50)) bad.push('people');
+      for (const k of ['name', 'title', 'phone', 'company']) if (!String(fd.get(k) || '').trim()) bad.push(k);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fd.get('email') || '').trim())) bad.push('email');
+      if (!fd.getAll('places').length) bad.push('places');
+      const file = fileIn.files && fileIn.files[0];
+      if (!file) bad.push('license');
+      else if (file.size > 10 * 1048576) bad.push('file_too_big');
+      else if (!/^(image\/|application\/pdf)/i.test(file.type || '') && !/\.(pdf|jpe?g|png|webp|heic|heif|gif)$/i.test(file.name)) bad.push('license_type');
+      return bad;
+    }
+    function showErrs(bad) {
+      root.querySelectorAll('.bad').forEach((el) => el.classList.remove('bad'));
+      root.querySelectorAll('.msg').forEach((m) => m.remove());
+      const els = bad.map(markErr).filter(Boolean);
+      errBox.textContent = t.errors.fix; errBox.hidden = false;
+      if (els[0]) els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const btn = $('[data-submit]');
+    btn.addEventListener('click', async () => {
+      errBox.hidden = true;
+      const bad = check();
+      if (bad.length) return showErrs(bad);
+      const fd = new FormData(f), out = new FormData();
+      for (const k of ['date', 'hour', 'people', 'name', 'title', 'company', 'website', 'phone', 'email', 'productsOther', 'notes', 'hp']) out.append(k, String(fd.get(k) || '').trim());
+      out.append('products', JSON.stringify(fd.getAll('products')));
+      out.append('places', JSON.stringify(fd.getAll('places')));
+      out.append('lang', c.lang); out.append('page', location.href);
+      out.append('license', fileIn.files[0]);
+      btn.disabled = true; btn.textContent = t.sending;
+      try {
+        const r = await fetch(`${c.api}/api/chat/visit`, { method: 'POST', body: out });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          if (j.error === 'invalid' && Array.isArray(j.fields)) return showErrs(j.fields);
+          if (j.error === 'file_too_big' || j.error === 'too_many') { if (j.error === 'file_too_big') return showErrs(['file_too_big']); errBox.textContent = t.errors.too_many; errBox.hidden = false; return; }
+          throw new Error(j.error || r.status);
+        }
+        // 成功：WhatsApp 按钮带上预约摘要
+        const h = fd.get('hour'), d = String(fd.get('date'));
+        const msg = [t.waHello, '', `${longDate(d)} ${fmtH(h)} (${t.time})`, fd.getAll('places').map((k) => t.places[k]).join(' + '), `${t.people}: ${fd.get('people')}`, `${t.company}: ${String(fd.get('company')).trim()}`].join('\n');
+        $('[data-ok-wa]').href = `https://wa.me/${c.wa}?text=${encodeURIComponent(msg)}`;
+        $('[data-sum]').hidden = true; $('[data-ok]').hidden = false; f.classList.add('done');
+        $('[data-ok]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {
+        errBox.textContent = t.errors.network; errBox.hidden = false;
+      } finally { btn.disabled = false; btn.textContent = t.submit; }
+    });
+    $('[data-again]').addEventListener('click', () => {
+      f.reset(); showFile(); update(); f.classList.remove('done');
+      $('[data-sum]').hidden = false; $('[data-ok]').hidden = true; window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+</script>
+
+<style>
+  .vz { padding-bottom: 30px; }
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .vz-head { margin: 34px 0 26px; max-width: 760px; }
+  .vz-head h1 { font-size: clamp(36px, 5.6vw, 64px); margin: 8px 0 12px; }
+  .vz-head p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
+  .vz-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+  .vz-form { position: relative; display: grid; gap: 16px; }
+  .vz-form.done { opacity: .55; pointer-events: none; }
+  .hp { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); opacity: 0; pointer-events: none; }
+  .vz-sec { padding: 22px 24px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 16px; }
+  .vz-sec h2 { display: flex; align-items: center; gap: 10px; font-size: 21px; margin: 0; }
+  .vz-sec h2 small { font: 500 13px var(--body); color: var(--muted); }
+  .vz-sec h2 i { font-style: normal; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 14px var(--mono); flex: none; }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  legend { padding: 0; margin-bottom: 8px; }
+  .fld { display: grid; gap: 6px; align-content: start; }
+  .fld > span, .fld > legend { font-weight: 700; font-size: 14px; }
+  .fld em { font-style: normal; color: #c2410c; }
+  .fld > span small { font-weight: 500; color: var(--muted); }
+  .fld small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  .fld input, .fld textarea { font: 15px var(--body); padding: 11px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; min-height: 44px; }
+  .fld input:focus, .fld textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .fld.bad input, .fld.bad .drop, .fld.bad .place .pl-box, .fld.bad .chip span { border-color: #dc2626; }
+  .fld .msg { color: #dc2626; font-weight: 600; }
+  .step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .step button { border: 1px solid var(--line); background: var(--bg); font-size: 20px; cursor: pointer; color: var(--ink); }
+  .step button:first-child { border-radius: 9px 0 0 9px; } .step button:last-child { border-radius: 0 9px 9px 0; }
+  .step input { border-radius: 0; text-align: center; font-weight: 700; border-left: 0; border-right: 0; -moz-appearance: textfield; }
+  .step input::-webkit-inner-spin-button, .step input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  [dir="rtl"] .step button:first-child { border-radius: 0 9px 9px 0; } [dir="rtl"] .step button:last-child { border-radius: 9px 0 0 9px; }
+  .slots { display: grid; gap: 8px; }
+  .slot-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .slot-h { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { position: relative; cursor: pointer; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span { display: inline-block; padding: 8px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; transition: background .12s, border-color .12s, color .12s; }
+  .slots .chip span { font: 600 14px var(--mono); padding: 9px 14px; direction: ltr; }
+  .chip:hover span { border-color: var(--accent); }
+  .chip input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .local { margin-top: 8px; display: block; color: var(--accent) !important; font-weight: 600; }
+  /* 地点卡片 */
+  .places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .place { position: relative; cursor: pointer; display: flex; }
+  .place input { position: absolute; opacity: 0; pointer-events: none; }
+  .pl-box { flex: 1; display: grid; gap: 6px; align-content: start; padding: 16px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--bg); transition: border-color .12s, background .12s, box-shadow .12s; }
+  .place:hover .pl-box { border-color: var(--accent); }
+  .place input:checked + .pl-box { border-color: var(--accent); background: rgba(15, 107, 92, .06); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .place input:focus-visible + .pl-box { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pl-top { display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 2px 8px; align-items: start; }
+  .pl-top b { font-size: 16px; } .pl-top small { grid-column: 1; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+  .tick { grid-column: 2; grid-row: 1 / span 2; width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--surface); }
+  .place input:checked + .pl-box .tick { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 15px no-repeat; border-color: var(--accent); }
+  .pl-en { font-size: 13px; font-weight: 600; }
+  .pl-addr { font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .pl-zh { display: grid; gap: 3px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; line-height: 1.45; }
+  .pl-zh small { font-size: 11.5px; color: var(--muted); }
+  .cp { justify-self: start; margin-top: 2px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); font: 600 12px var(--body); cursor: pointer; color: var(--ink); }
+  .cp:hover { border-color: var(--accent); color: var(--accent); }
+  .dist { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; padding: 11px 14px; border-radius: 10px; background: #fffbea; border: 1px solid #f2e2a6; color: #5c4a00; font-size: 14px; line-height: 1.45; }
+  .dist svg { flex: none; }
+  /* 上传 */
+  .drop { position: relative; display: block; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; transition: border-color .12s, background .12s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(15, 107, 92, .05); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .drop-empty { display: grid; justify-items: center; gap: 4px; padding: 22px 16px; text-align: center; font-size: 14px; color: var(--muted); }
+  .drop-empty svg { color: var(--accent); } .drop-empty b { color: var(--accent); }
+  .drop-file { display: flex; align-items: center; gap: 14px; padding: 12px 14px; }
+  .drop-file img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  .pdf-ico { display: grid; place-items: center; width: 60px; height: 72px; border-radius: 8px; background: #E2231A; color: #fff; font: 700 15px Arial, sans-serif; }
+  .df-meta { display: grid; gap: 2px; min-width: 0; } .df-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .df-meta small { color: var(--muted); } .df-meta u { color: var(--accent); font-size: 13px; }
+  /* 产品 */
+  .pgs { display: grid; }
+  .pg { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 0; border-top: 1px dashed var(--line); }
+  .pg:first-child { border-top: 0; padding-top: 0; }
+  .pg-h { font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding-top: 9px; }
+  .g-solar .pg-h { color: #8a6400; } .g-batt .pg-h { color: #2b4f8f; }
+  /* 右侧 */
+  .vz-side { position: sticky; top: 16px; display: grid; gap: 12px; }
+  .sum, .ok { display: grid; gap: 10px; padding: 22px; border-radius: 18px; background: #0f1d1b; color: #e6efec; }
+  .sum-l { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: #9fb2ad; }
+  .sum-when { display: grid; gap: 2px; } .sum-when b { font-family: var(--display); font-size: 26px; color: #fff; line-height: 1.15; } .sum-when span { color: #c9d6d2; font-size: 14px; }
+  .sum-local { color: #5ef0a0; font: 600 12.5px var(--mono); }
+  .sum-places { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .sum-places li { padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.07); font-size: 14px; font-weight: 600; }
+  .sum-people { color: #c9d6d2; font-size: 14px; }
+  .err { margin: 0; padding: 9px 12px; border-radius: 8px; background: #fee2e2; color: #991b1b; font-size: 13.5px; font-weight: 600; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 10px; font: 700 15.5px var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+  .btn.go { background: #5ef0a0; color: #06301a; } .btn.go:hover { background: #46e08c; } .btn.go[disabled] { opacity: .7; cursor: progress; }
+  .btn.wa { background: #25d366; color: #06301a; }
+  .btn.line { background: transparent; color: #e6efec; border-color: rgba(255,255,255,.25); }
+  .priv { color: #9fb2ad; font-size: 12px; line-height: 1.45; }
+  .ok h2 { margin: 0; font-size: 22px; color: #fff; } .ok p { margin: 0; color: #c9d6d2; line-height: 1.55; }
+  .ok-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #5ef0a0; color: #06301a; font-size: 24px; font-weight: 800; }
+  @media (max-width: 980px) {
+    .vz-grid { grid-template-columns: 1fr; }
+    .vz-side { position: static; }
+    .places { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .vz-sec { padding: 18px 16px; }
+    .row2 { grid-template-columns: 1fr; }
+    .slot-row, .pg { grid-template-columns: 1fr; gap: 6px; }
+    .pg-h { padding-top: 0; }
+  }
+</style>
