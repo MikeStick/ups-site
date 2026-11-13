@@ -1,6 +1,6 @@
 ---
 // 预约拜访（/visit/）：日期 + 北京时间整点（9–12、14–18）、拜访地点（北京办公室 / 深圳总部 / 东莞工厂，可多选）、
-// 人数、姓名职位、公司 + 营业执照（图片或 PDF）+ 网站、电话/WhatsApp、邮箱、感兴趣的产品（网站类目或手动填写）。
+// 人数、姓名职位、公司 + 网站、电话/WhatsApp、邮箱、感兴趣的产品（网站类目或手动填写）。
 // 提交到 CRM（/api/chat/visit，和在线客服同一个服务），后台"网站管理 → 预约拜访"查看；配置了企业微信会推送。
 import Base from '../../layouts/Base.astro';
 import { LANGS, SITE, CHAT } from '../../config.mjs';
@@ -99,22 +99,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
             <label class="fld" data-f="company"><span>{T.company} <em>*</em></span><input name="company" autocomplete="organization" required maxlength="160" /></label>
             <label class="fld" data-f="website"><span>{T.website} <small>({T.optional})</small></span><input name="website" type="url" inputmode="url" autocomplete="url" placeholder={T.websitePh} maxlength="200" /></label>
           </div>
-          <div class="fld" data-f="license">
-            <span>{T.license} <em>*</em></span>
-            <label class="drop" data-drop>
-              <input type="file" name="license" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif,application/pdf,.pdf,.heic" />
-              <span class="drop-empty" data-drop-empty>
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-                <b>{T.licensePick}</b> <span>{T.licenseDrop}</span>
-                <small>{T.licenseHint}</small>
-              </span>
-              <span class="drop-file" data-drop-file hidden>
-                <img data-drop-img alt="" hidden />
-                <span class="pdf-ico" data-drop-pdf hidden>PDF</span>
-                <span class="df-meta"><b data-drop-name></b><small data-drop-size></small><u>{T.licenseChange}</u></span>
-              </span>
-            </label>
-          </div>
         </section>
 
         <section class="vz-sec">
@@ -141,7 +125,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
           <div class="sum-people" data-sum-people></div>
           <p class="err" data-err hidden></p>
           <button type="button" class="btn go" data-submit>{T.submit}</button>
-          <small class="priv">{T.privacy}</small>
         </div>
         <div class="ok" data-ok hidden>
           <span class="ok-ic" aria-hidden="true">✓</span>
@@ -195,24 +178,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
       b.textContent = t.copied; setTimeout(() => { b.textContent = t.copy; }, 1500);
     }));
 
-    // 营业执照：选择 / 拖放 + 预览
-    const fileIn = f.elements.namedItem('license'), drop = $('[data-drop]');
-    const showFile = () => {
-      const file = fileIn.files && fileIn.files[0];
-      $('[data-drop-empty]').hidden = !!file; $('[data-drop-file]').hidden = !file;
-      if (!file) return;
-      const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
-      const img = $('[data-drop-img]');
-      $('[data-drop-pdf]').hidden = !isPdf; img.hidden = isPdf;
-      if (!isPdf) { if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src); img.src = URL.createObjectURL(file); }
-      $('[data-drop-name]').textContent = file.name;
-      $('[data-drop-size]').textContent = file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
-      clearErr('license');
-    };
-    fileIn.addEventListener('change', showFile);
-    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
-    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files.length) { fileIn.files = e.dataTransfer.files; showFile(); } });
 
     // 右侧摘要
     function update() {
@@ -235,7 +200,7 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
     const errBox = $('[data-err]');
     function clearErr(k) { const el = root.querySelector(`[data-f="${k}"]`); if (el) { el.classList.remove('bad'); const m = el.querySelector('.msg'); if (m) m.remove(); } if (!root.querySelector('.fld.bad')) errBox.hidden = true; }
     function markErr(k) {
-      const el = root.querySelector(`[data-f="${k === 'license_type' || k === 'file_too_big' ? 'license' : k}"]`);
+      const el = root.querySelector(`[data-f="${k}"]`);
       if (!el) return null;
       el.classList.add('bad');
       if (!el.querySelector('.msg')) { const m = document.createElement('small'); m.className = 'msg'; m.textContent = t.errors[k] || ''; el.appendChild(m); }
@@ -250,10 +215,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
       for (const k of ['name', 'title', 'phone', 'company']) if (!String(fd.get(k) || '').trim()) bad.push(k);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fd.get('email') || '').trim())) bad.push('email');
       if (!fd.getAll('places').length) bad.push('places');
-      const file = fileIn.files && fileIn.files[0];
-      if (!file) bad.push('license');
-      else if (file.size > 10 * 1048576) bad.push('file_too_big');
-      else if (!/^(image\/|application\/pdf)/i.test(file.type || '') && !/\.(pdf|jpe?g|png|webp|heic|heif|gif)$/i.test(file.name)) bad.push('license_type');
       return bad;
     }
     function showErrs(bad) {
@@ -273,14 +234,13 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
       out.append('products', JSON.stringify(fd.getAll('products')));
       out.append('places', JSON.stringify(fd.getAll('places')));
       out.append('lang', c.lang); out.append('page', location.href);
-      out.append('license', fileIn.files[0]);
       btn.disabled = true; btn.textContent = t.sending;
       try {
         const r = await fetch(`${c.api}/api/chat/visit`, { method: 'POST', body: out });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) {
           if (j.error === 'invalid' && Array.isArray(j.fields)) return showErrs(j.fields);
-          if (j.error === 'file_too_big' || j.error === 'too_many') { if (j.error === 'file_too_big') return showErrs(['file_too_big']); errBox.textContent = t.errors.too_many; errBox.hidden = false; return; }
+          if (j.error === 'too_many') { errBox.textContent = t.errors.too_many; errBox.hidden = false; return; }
           throw new Error(j.error || r.status);
         }
         // 成功：WhatsApp 按钮带上预约摘要
@@ -294,7 +254,7 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
       } finally { btn.disabled = false; btn.textContent = t.submit; }
     });
     $('[data-again]').addEventListener('click', () => {
-      f.reset(); showFile(); update(); f.classList.remove('done');
+      f.reset(); update(); f.classList.remove('done');
       $('[data-sum]').hidden = false; $('[data-ok]').hidden = true; window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
@@ -324,7 +284,7 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
   .fld small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
   .fld input, .fld textarea { font: 15px var(--body); padding: 11px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; min-height: 44px; }
   .fld input:focus, .fld textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
-  .fld.bad input, .fld.bad .drop, .fld.bad .place .pl-box, .fld.bad .chip span { border-color: #dc2626; }
+  .fld.bad input, .fld.bad .place .pl-box, .fld.bad .chip span { border-color: #dc2626; }
   .fld .msg { color: #dc2626; font-weight: 600; }
   .step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .step button { border: 1px solid var(--line); background: var(--bg); font-size: 20px; cursor: pointer; color: var(--ink); }
@@ -364,17 +324,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
   .cp:hover { border-color: var(--accent); color: var(--accent); }
   .dist { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; padding: 11px 14px; border-radius: 10px; background: #fffbea; border: 1px solid #f2e2a6; color: #5c4a00; font-size: 14px; line-height: 1.45; }
   .dist svg { flex: none; }
-  /* 上传 */
-  .drop { position: relative; display: block; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; transition: border-color .12s, background .12s; }
-  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(15, 107, 92, .05); }
-  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-  .drop-empty { display: grid; justify-items: center; gap: 4px; padding: 22px 16px; text-align: center; font-size: 14px; color: var(--muted); }
-  .drop-empty svg { color: var(--accent); } .drop-empty b { color: var(--accent); }
-  .drop-file { display: flex; align-items: center; gap: 14px; padding: 12px 14px; }
-  .drop-file img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
-  .pdf-ico { display: grid; place-items: center; width: 60px; height: 72px; border-radius: 8px; background: #E2231A; color: #fff; font: 700 15px Arial, sans-serif; }
-  .df-meta { display: grid; gap: 2px; min-width: 0; } .df-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-  .df-meta small { color: var(--muted); } .df-meta u { color: var(--accent); font-size: 13px; }
   /* 产品 */
   .pgs { display: grid; }
   .pg { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 0; border-top: 1px dashed var(--line); }
@@ -395,7 +344,6 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
   .btn.go { background: #5ef0a0; color: #06301a; } .btn.go:hover { background: #46e08c; } .btn.go[disabled] { opacity: .7; cursor: progress; }
   .btn.wa { background: #25d366; color: #06301a; }
   .btn.line { background: transparent; color: #e6efec; border-color: rgba(255,255,255,.25); }
-  .priv { color: #9fb2ad; font-size: 12px; line-height: 1.45; }
   .ok h2 { margin: 0; font-size: 22px; color: #fff; } .ok p { margin: 0; color: #c9d6d2; line-height: 1.55; }
   .ok-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #5ef0a0; color: #06301a; font-size: 24px; font-weight: 800; }
   @media (max-width: 980px) {
