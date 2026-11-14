@@ -34,6 +34,7 @@ const altHref = (l) => `/${l}/${path}`;
 const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.flatMap((x) => [[x.page, x.label], ...(x.sub ? [[x.sub.page, x.sub.label, 'sub']] : [])]) }));
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 import { VT } from '../lib/visit-i18n.mjs';
+import { SUP } from '../lib/service-i18n.mjs';
 const CONTACT_US = { en: 'Contact us', es: 'Contáctenos', ru: 'Связаться с нами', ar: 'اتصل بنا' };
 const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín · Shenzhen · fábrica de Dongguan', ru: 'Пекин · Шэньчжэнь · завод в Дунгуане', ar: 'بكين · شنتشن · مصنع دونغقوان' };
 ---
@@ -107,6 +108,7 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
     .contact-list b { font-size: 14.5px; }
     .about-menu { position: relative; }
     .about-list { min-width: 200px; top: calc(100% + 2px); }
+    .nav .about-list small { font-size: 12px; color: var(--muted); }
     .nav .about-list a { color: var(--ink); font-size: 14px; box-shadow: none; padding: 10px 12px; }
     .nav .about-list a[aria-current="page"] { background: var(--ok-soft); color: var(--ink); box-shadow: none; }
     .contact-list small { font-size: 12px; color: var(--muted); }
@@ -187,6 +189,15 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
             </a>
           </div>
         </details>
+        <details class="nav-menu about-menu" data-support-menu>
+          <summary aria-current={path === 'service/' ? 'page' : undefined}>{SUP[lang].nav} <i aria-hidden="true">▾</i></summary>
+          <div class="contact-list about-list">
+            <a href={`/${lang}/service/`} aria-current={path === 'service/' ? 'page' : undefined}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.6 17.4a1.4 1.4 0 0 0 2 2l5.7-5.7a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-.5-.5-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              <span><b>{SUP[lang].svc}</b><small>{SUP[lang].svcSub}</small></span>
+            </a>
+          </div>
+        </details>
       </nav>
       <details class="contact-menu" data-contact-menu>
         <summary class="nav-custom" aria-current={path === 'contact/' || path === 'visit/' ? 'page' : undefined}>{CO[lang].nav} <i aria-hidden="true">▾</i></summary>
@@ -221,7 +232,7 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）
-      var ms = document.querySelectorAll('[data-lang-menu], [data-nav-menu], [data-contact-menu], [data-about-menu]');
+      var ms = document.querySelectorAll('[data-lang-menu], [data-nav-menu], [data-contact-menu], [data-about-menu], [data-support-menu]');
       document.addEventListener('click', function (e) { ms.forEach(function (m) { if (m.open && !m.contains(e.target)) m.open = false; }); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ms.forEach(function (m) { m.open = false; }); });
     })();

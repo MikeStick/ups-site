@@ -1,0 +1,387 @@
+---
+// 售后服务申请（/service/）：产品（类型、型号、数量、SN 码）→ 购买（时间、渠道、订单号）→ 问题（类型、是否还能运行、故障代码、描述、照片）
+// → 所在地区 → 联系方式。提交到 CRM（/api/chat/service），返回单号（SV-日期-4位）；后台"网站管理 → 售后服务"处理。
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE, CHAT } from '../../config.mjs';
+import { SV, ISSUES } from '../../lib/service-i18n.mjs';
+import { HM } from '../../lib/home-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+import products from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = SV[lang] || SV.en, H = HM[lang];
+// 产品类型：页面按当前语言显示，提交英文名（后台看得懂）
+const itemsOf = (g) => g.items.filter((x) => !x.tool).flatMap((x) => [{ label: x.label }, ...(x.sub ? [{ label: x.sub.label }] : [])]);
+const enGroups = catalog('en');
+const groups = catalog(lang).map((g, gi) => {
+  const en = itemsOf(enGroups[gi] || { items: [] });
+  return { h: H.strip[g.key][0], items: itemsOf(g).map((x, i) => ({ label: x.label, value: (en[i] || x).label })) };
+});
+// 型号输入提示：网站上发布的型号
+const models = [...new Set((Array.isArray(products) ? products : []).map((p) => String(p.model || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+const thisMonth = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
+const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, t: { errors: T.errors, sending: T.sending, submit: T.submit, copied: T.copied, copy: T.copy, issueNames: T.issueNames, runningOpts: T.runningOpts, waHello: T.waHello, sumEmpty: T.sumEmpty, sns: T.sns, filesRemove: T.filesRemove, qty: T.qty } };
+---
+<Base lang={lang} title={T.title} description={T.lead.slice(0, 155)} path="service/">
+  <div class="sv" data-svc data-cfg={JSON.stringify(cfg)}>
+    <header class="sv-head">
+      <span class="eyebrow">{T.eyebrow}</span>
+      <h1>{T.h1}</h1>
+      <p>{T.lead}</p>
+    </header>
+
+    <div class="sv-grid">
+      <form class="sv-form" data-form novalidate>
+        <input type="text" name="hp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <section class="sv-sec">
+          <h2><i>1</i>{T.s1}</h2>
+          <div class="row2">
+            <label class="fld" data-f="category">
+              <span>{T.category}</span>
+              <select name="category">
+                <option value="">{T.categoryPh}</option>
+                {groups.map((g) => <optgroup label={g.h}>{g.items.map((x) => <option value={x.value}>{x.label}</option>)}</optgroup>)}
+                <option value="Other">{T.categoryOther}</option>
+              </select>
+            </label>
+            <label class="fld" data-f="model">
+              <span>{T.model} <em>*</em></span>
+              <input name="model" list="sv-models" placeholder={T.modelPh} maxlength="120" autocomplete="off" required />
+              <datalist id="sv-models">{models.map((m) => <option value={m} />)}</datalist>
+              <small>{T.modelHint}</small>
+            </label>
+          </div>
+          <div class="row2">
+            <label class="fld" data-f="sns">
+              <span>{T.sns} <small>({T.optional})</small></span>
+              <textarea name="sns" rows="3" placeholder={T.snsPh} spellcheck="false" class="mono"></textarea>
+              <small>{T.snsHint} <b data-sn-count></b></small>
+            </label>
+            <label class="fld" data-f="qty">
+              <span>{T.qty} <em>*</em></span>
+              <div class="step">
+                <button type="button" data-step="-1" aria-label="−">−</button>
+                <input type="number" name="qty" min="1" max="100000" value="1" inputmode="numeric" required />
+                <button type="button" data-step="1" aria-label="+">+</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section class="sv-sec">
+          <h2><i>2</i>{T.s2} <small>({T.optional})</small></h2>
+          <div class="row2">
+            <label class="fld" data-f="purchase"><span>{T.purchase}</span><input type="month" name="purchase" max={thisMonth} min="2010-01" /></label>
+            <label class="fld" data-f="order"><span>{T.order}</span><input name="order" maxlength="80" /></label>
+          </div>
+          <fieldset class="fld" data-f="channel">
+            <legend>{T.channel}</legend>
+            <div class="chips">{Object.entries(T.channels).map(([k, l]) => <label class="chip"><input type="radio" name="channel" value={k} /><span>{l}</span></label>)}</div>
+          </fieldset>
+          <label class="fld" data-f="seller" data-seller hidden><span>{T.seller}</span><input name="seller" placeholder={T.sellerPh} maxlength="160" /></label>
+        </section>
+
+        <section class="sv-sec">
+          <h2><i>3</i>{T.s3}</h2>
+          <fieldset class="fld" data-f="issues">
+            <legend>{T.issues} <em>*</em></legend>
+            <div class="chips">{ISSUES.map((k) => <label class="chip"><input type="checkbox" name="issues" value={k} /><span>{T.issueNames[k]}</span></label>)}</div>
+          </fieldset>
+          <fieldset class="fld" data-f="running">
+            <legend>{T.running}</legend>
+            <div class="chips run">{Object.entries(T.runningOpts).map(([k, l]) => <label class:list={['chip', `r-${k}`]}><input type="radio" name="running" value={k} /><span>{l}</span></label>)}</div>
+          </fieldset>
+          <label class="fld" data-f="errorCode"><span>{T.errorCode} <small>({T.optional})</small></span><input name="errorCode" placeholder={T.errorCodePh} maxlength="120" class="mono" /></label>
+          <label class="fld" data-f="desc"><span>{T.desc} <em>*</em></span><textarea name="desc" rows="5" placeholder={T.descPh} maxlength="4000" required></textarea></label>
+          <div class="fld" data-f="files">
+            <span>{T.files} <small>({T.optional})</small></span>
+            <div class="files" data-files></div>
+            <label class="add" data-add>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif,application/pdf,.pdf,.heic" multiple data-file-in />
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg>
+              <b>{T.filesPick}</b>
+            </label>
+            <small>{T.filesHint}</small>
+          </div>
+        </section>
+
+        <section class="sv-sec">
+          <h2><i>4</i>{T.s4}</h2>
+          <div class="row3">
+            <label class="fld" data-f="country"><span>{T.country} <em>*</em></span><input name="country" autocomplete="country-name" maxlength="80" required /></label>
+            <label class="fld" data-f="city"><span>{T.city}</span><input name="city" autocomplete="address-level2" maxlength="120" /></label>
+            <label class="fld" data-f="site"><span>{T.site}</span><input name="site" placeholder={T.sitePh} maxlength="300" /></label>
+          </div>
+        </section>
+
+        <section class="sv-sec">
+          <h2><i>5</i>{T.s5}</h2>
+          <div class="row2">
+            <label class="fld" data-f="name"><span>{T.name} <em>*</em></span><input name="name" autocomplete="name" maxlength="80" required /></label>
+            <label class="fld" data-f="company"><span>{T.company} <small>({T.optional})</small></span><input name="company" autocomplete="organization" maxlength="160" /></label>
+            <label class="fld" data-f="phone"><span>{T.phone} <em>*</em></span><input name="phone" type="tel" autocomplete="tel" placeholder={T.phonePh} maxlength="60" required /></label>
+            <label class="fld" data-f="email"><span>{T.email} <em>*</em></span><input name="email" type="email" autocomplete="email" maxlength="120" required /></label>
+          </div>
+        </section>
+      </form>
+
+      <aside class="sv-side">
+        <div class="sum" data-sum>
+          <span class="sum-l">{T.sumL}</span>
+          <div class="sum-body" data-sum-body><p class="sum-empty">{T.sumEmpty}</p></div>
+          <p class="err" data-err hidden></p>
+          <button type="button" class="btn go" data-submit>{T.submit}</button>
+          <small class="urgent">{T.urgent}</small>
+        </div>
+        <div class="ok" data-ok hidden>
+          <span class="ok-ic" aria-hidden="true">✓</span>
+          <h2>{T.okH}</h2>
+          <div class="ref-box"><small>{T.okRef}</small><b data-ref></b><button type="button" class="cp" data-copy-ref>{T.copy}</button></div>
+          <p>{T.okP}</p>
+          <a class="btn wa" data-ok-wa href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">{T.okWa}</a>
+          <button type="button" class="btn line" data-again>{T.okAgain}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<script>
+  for (const root of document.querySelectorAll('[data-svc]')) {
+    const c = JSON.parse(root.dataset.cfg), t = c.t;
+    const f = root.querySelector('[data-form]');
+    const $ = (s) => root.querySelector(s);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const snList = () => [...new Set(String(f.elements.namedItem('sns').value || '').split(/[\n,;，；]+/).map((x) => x.trim()).filter(Boolean))];
+
+    // 数量 + / −；填了 SN 且数量还是 1 时，按 SN 个数自动带出
+    const qty = f.elements.namedItem('qty');
+    let qtyTouched = false;
+    root.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => {
+      qtyTouched = true; qty.value = String(Math.min(100000, Math.max(1, (parseInt(qty.value, 10) || 1) + Number(b.dataset.step)))); update();
+    }));
+    qty.addEventListener('input', () => { qtyTouched = true; });
+    f.elements.namedItem('sns').addEventListener('input', () => {
+      const n = snList().length;
+      $('[data-sn-count]').textContent = n ? `· ${n}` : '';
+      if (!qtyTouched && n > 1) qty.value = String(n);
+    });
+
+    // 购买渠道选"经销商 / 其他"时显示卖家名称
+    f.addEventListener('change', (e) => { if (e.target.name === 'channel') $('[data-seller]').hidden = e.target.value === 'direct'; });
+
+    // 附件：最多 3 个，可以分几次添加、单个移除
+    let files = [];
+    const fileIn = $('[data-file-in]'), list = $('[data-files]'), add = $('[data-add]');
+    const sizeOf = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+    function drawFiles() {
+      list.querySelectorAll('img').forEach((im) => im.src.startsWith('blob:') && URL.revokeObjectURL(im.src));
+      list.innerHTML = '';
+      files.forEach((file, i) => {
+        const isImg = /^image\/(jpeg|png|webp|gif)$/i.test(file.type);
+        const d = document.createElement('div'); d.className = 'file';
+        d.innerHTML = (isImg ? `<img alt="">` : `<span class="fi">${/pdf/i.test(file.type) || /\.pdf$/i.test(file.name) ? 'PDF' : 'IMG'}</span>`)
+          + `<span class="fm"><b>${esc(file.name)}</b><small>${sizeOf(file.size)}</small></span><button type="button" aria-label="${esc(t.filesRemove)}">×</button>`;
+        if (isImg) d.querySelector('img').src = URL.createObjectURL(file);
+        d.querySelector('button').addEventListener('click', () => { files.splice(i, 1); drawFiles(); });
+        list.appendChild(d);
+      });
+      add.hidden = files.length >= 3;
+      clearErr('files'); update();
+    }
+    fileIn.addEventListener('change', () => { files = [...files, ...fileIn.files].slice(0, 3); fileIn.value = ''; drawFiles(); });
+
+    // 右侧摘要
+    function update() {
+      const fd = new FormData(f), rows = [];
+      const model = String(fd.get('model') || '').trim(), cat = f.elements.namedItem('category');
+      const catLabel = cat.value ? cat.options[cat.selectedIndex].text : '';
+      if (model || catLabel) rows.push(`<div class="s-model"><b>${esc(model || '—')}</b>${catLabel ? `<small>${esc(catLabel)}</small>` : ''}</div>`);
+      const sns = snList();
+      rows.push(`<div class="s-row"><span>${esc(t.qty)}</span><b>${esc(fd.get('qty') || '—')}</b></div>`);
+      if (sns.length) rows.push(`<div class="s-row"><span>SN</span><b class="mono">${esc(sns.slice(0, 3).join(', '))}${sns.length > 3 ? ` +${sns.length - 3}` : ''}</b></div>`);
+      const iss = fd.getAll('issues').map((k) => t.issueNames[k]);
+      if (iss.length) rows.push(`<ul class="s-iss">${iss.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`);
+      const run = fd.get('running');
+      if (run) rows.push(`<span class="s-run r-${run}">${esc(t.runningOpts[run])}</span>`);
+      if (files.length) rows.push(`<div class="s-row"><span>📎</span><b>${files.length}</b></div>`);
+      $('[data-sum-body]').innerHTML = model || iss.length || sns.length ? rows.join('') : `<p class="sum-empty">${esc(t.sumEmpty)}</p>`;
+    }
+    f.addEventListener('input', (e) => { update(); if (e.target.name) clearErr(e.target.name); });
+    f.addEventListener('change', (e) => { update(); if (e.target.name) clearErr(e.target.name); });
+    update();
+
+    // 校验 + 提交
+    const errBox = $('[data-err]');
+    function clearErr(k) { const el = root.querySelector(`[data-f="${k}"]`); if (el) { el.classList.remove('bad'); const m = el.querySelector('.msg'); if (m) m.remove(); } if (!root.querySelector('.fld.bad')) errBox.hidden = true; }
+    function markErr(k) {
+      const key = ['file_type', 'file_too_big', 'too_many_files'].includes(k) ? 'files' : k;
+      const el = root.querySelector(`[data-f="${key}"]`);
+      if (!el) return null;
+      el.classList.add('bad');
+      if (!el.querySelector('.msg')) { const m = document.createElement('small'); m.className = 'msg'; m.textContent = t.errors[k] || ''; el.appendChild(m); }
+      return el;
+    }
+    function check() {
+      const fd = new FormData(f), bad = [];
+      if (!String(fd.get('model') || '').trim()) bad.push('model');
+      const n = parseInt(fd.get('qty'), 10); if (!(n >= 1 && n <= 100000)) bad.push('qty');
+      if (!fd.getAll('issues').length) bad.push('issues');
+      if (String(fd.get('desc') || '').trim().length < 5) bad.push('desc');
+      for (const k of ['country', 'name', 'phone']) if (!String(fd.get(k) || '').trim()) bad.push(k);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fd.get('email') || '').trim())) bad.push('email');
+      if (files.some((x) => x.size > 10 * 1048576)) bad.push('file_too_big');
+      else if (files.some((x) => !/^(image\/|application\/pdf)/i.test(x.type || '') && !/\.(pdf|jpe?g|png|webp|heic|heif|gif)$/i.test(x.name))) bad.push('file_type');
+      return bad;
+    }
+    function showErrs(bad) {
+      root.querySelectorAll('.bad').forEach((el) => el.classList.remove('bad'));
+      root.querySelectorAll('.msg').forEach((m) => m.remove());
+      const els = bad.map(markErr).filter(Boolean);
+      errBox.textContent = t.errors.fix; errBox.hidden = false;
+      if (els[0]) els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const btn = $('[data-submit]');
+    btn.addEventListener('click', async () => {
+      errBox.hidden = true;
+      const bad = check();
+      if (bad.length) return showErrs(bad);
+      const fd = new FormData(f), out = new FormData();
+      for (const k of ['category', 'model', 'qty', 'purchase', 'channel', 'seller', 'order', 'running', 'errorCode', 'desc', 'country', 'city', 'site', 'name', 'company', 'phone', 'email', 'hp']) out.append(k, String(fd.get(k) || '').trim());
+      out.append('sns', snList().join('\n'));
+      out.append('issues', JSON.stringify(fd.getAll('issues')));
+      out.append('lang', c.lang); out.append('page', location.href);
+      files.forEach((x) => out.append('files', x));
+      btn.disabled = true; btn.textContent = t.sending;
+      try {
+        const r = await fetch(`${c.api}/api/chat/service`, { method: 'POST', body: out });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          if (j.error === 'invalid' && Array.isArray(j.fields)) return showErrs(j.fields);
+          if (['file_too_big', 'too_many_files'].includes(j.error)) return showErrs([j.error]);
+          if (j.error === 'too_many') { errBox.textContent = t.errors.too_many; errBox.hidden = false; return; }
+          throw new Error(j.error || r.status);
+        }
+        $('[data-ref]').textContent = j.ref || '';
+        const sns = snList();
+        const msg = [t.waHello, '', `#${j.ref}`, `${String(fd.get('model')).trim()} × ${fd.get('qty')}`, sns.length ? `SN: ${sns.slice(0, 5).join(', ')}${sns.length > 5 ? '…' : ''}` : '', fd.getAll('issues').map((k) => t.issueNames[k]).join(', ')].filter(Boolean).join('\n');
+        $('[data-ok-wa]').href = `https://wa.me/${c.wa}?text=${encodeURIComponent(msg)}`;
+        $('[data-sum]').hidden = true; $('[data-ok]').hidden = false; f.classList.add('done');
+        $('[data-ok]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {
+        errBox.textContent = t.errors.network; errBox.hidden = false;
+      } finally { btn.disabled = false; btn.textContent = t.submit; }
+    });
+    $('[data-copy-ref]').addEventListener('click', async (e) => {
+      const b = e.currentTarget, v = $('[data-ref]').textContent;
+      try { await navigator.clipboard.writeText(v); } catch (er) { /* 旧浏览器：用户自己选中复制 */ }
+      b.textContent = t.copied; setTimeout(() => { b.textContent = t.copy; }, 1500);
+    });
+    $('[data-again]').addEventListener('click', () => {
+      f.reset(); files = []; drawFiles(); qtyTouched = false; $('[data-seller]').hidden = true; $('[data-sn-count]').textContent = '';
+      update(); f.classList.remove('done');
+      $('[data-sum]').hidden = false; $('[data-ok]').hidden = true; window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+</script>
+
+<style>
+  .sv { padding-bottom: 30px; }
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .sv-head { margin: 34px 0 26px; max-width: 780px; }
+  .sv-head h1 { font-size: clamp(36px, 5.6vw, 64px); margin: 8px 0 12px; }
+  .sv-head p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
+  .sv-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+  .sv-form { position: relative; display: grid; gap: 16px; }
+  .sv-form.done { opacity: .55; pointer-events: none; }
+  .hp { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); opacity: 0; pointer-events: none; }
+  .sv-sec { padding: 22px 24px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 16px; }
+  .sv-sec h2 { display: flex; align-items: center; gap: 10px; font-size: 21px; margin: 0; }
+  .sv-sec h2 small { font: 500 13px var(--body); color: var(--muted); }
+  .sv-sec h2 i { font-style: normal; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 14px var(--mono); flex: none; }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  legend { padding: 0; margin-bottom: 8px; }
+  .fld { display: grid; gap: 6px; align-content: start; }
+  .fld[hidden] { display: none; }
+  .fld > span, .fld > legend { font-weight: 700; font-size: 14px; }
+  .fld em { font-style: normal; color: #c2410c; }
+  .fld > span small, .fld > legend small { font-weight: 500; color: var(--muted); }
+  .fld small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  .fld input, .fld textarea, .fld select { font: 15px var(--body); padding: 11px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; min-height: 44px; }
+  .fld textarea { resize: vertical; line-height: 1.45; }
+  .fld .mono, .mono { font-family: var(--mono); }
+  .fld input:focus, .fld textarea:focus, .fld select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .fld.bad input, .fld.bad textarea, .fld.bad .chip span, .fld.bad .add { border-color: #dc2626; }
+  .fld .msg { color: #dc2626; font-weight: 600; }
+  .step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .step button { border: 1px solid var(--line); background: var(--bg); font-size: 20px; cursor: pointer; color: var(--ink); }
+  .step button:first-child { border-radius: 9px 0 0 9px; } .step button:last-child { border-radius: 0 9px 9px 0; }
+  .step input { border-radius: 0; text-align: center; font-weight: 700; border-left: 0; border-right: 0; -moz-appearance: textfield; }
+  .step input::-webkit-inner-spin-button, .step input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  [dir="rtl"] .step button:first-child { border-radius: 0 9px 9px 0; } [dir="rtl"] .step button:last-child { border-radius: 9px 0 0 9px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { position: relative; cursor: pointer; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span { display: inline-block; padding: 8px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; transition: background .12s, border-color .12s, color .12s; }
+  .chip:hover span { border-color: var(--accent); }
+  .chip input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .run .r-no input:checked + span { background: #dc2626; border-color: #dc2626; }
+  .run .r-partial input:checked + span { background: #d97706; border-color: #d97706; }
+  /* 附件 */
+  .files { display: grid; gap: 8px; }
+  .files:empty { display: none; }
+  .files :global(.file) { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .files :global(.file img) { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--line); flex: none; }
+  .files :global(.fi) { display: grid; place-items: center; width: 44px; height: 52px; border-radius: 7px; background: #E2231A; color: #fff; font: 700 12px Arial, sans-serif; flex: none; }
+  .files :global(.fm) { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .files :global(.fm b) { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files :global(.fm small) { color: var(--muted); font-size: 12.5px; }
+  .files :global(.file button) { border: 0; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; color: var(--muted); padding: 4px 8px; }
+  .files :global(.file button:hover) { color: #dc2626; }
+  .add { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; color: var(--accent); }
+  .add[hidden] { display: none; }
+  .add:hover { border-color: var(--accent); background: rgba(15, 107, 92, .05); }
+  .add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  /* 右侧 */
+  .sv-side { position: sticky; top: 16px; display: grid; gap: 12px; }
+  .sum, .ok { display: grid; gap: 12px; padding: 22px; border-radius: 18px; background: #0f1d1b; color: #e6efec; }
+  .sum-l { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: #9fb2ad; }
+  .sum-body { display: grid; gap: 8px; }
+  .sum-empty { margin: 0; color: #9fb2ad; font-size: 14px; line-height: 1.5; }
+  .sum-body :global(.s-model) { display: grid; gap: 2px; }
+  .sum-body :global(.s-model b) { font-family: var(--display); font-size: 24px; color: #fff; line-height: 1.15; word-break: break-word; }
+  .sum-body :global(.s-model small) { color: #9fb2ad; font-size: 13px; }
+  .sum-body :global(.s-row) { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #c9d6d2; border-top: 1px solid rgba(255,255,255,.08); padding-top: 7px; }
+  .sum-body :global(.s-row b) { color: #fff; text-align: end; word-break: break-all; }
+  .sum-body :global(.s-iss) { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+  .sum-body :global(.s-iss li) { padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 12.5px; font-weight: 600; }
+  .sum-body :global(.s-run) { justify-self: start; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: rgba(255,255,255,.1); }
+  .sum-body :global(.s-run.r-no) { background: #dc2626; color: #fff; } .sum-body :global(.s-run.r-partial) { background: #d97706; color: #fff; }
+  .err { margin: 0; padding: 9px 12px; border-radius: 8px; background: #fee2e2; color: #991b1b; font-size: 13.5px; font-weight: 600; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 10px; font: 700 15.5px var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+  .btn.go { background: #5ef0a0; color: #06301a; } .btn.go:hover { background: #46e08c; } .btn.go[disabled] { opacity: .7; cursor: progress; }
+  .btn.wa { background: #25d366; color: #06301a; }
+  .btn.line { background: transparent; color: #e6efec; border-color: rgba(255,255,255,.25); }
+  .urgent { color: #f5c26b; font-size: 12.5px; line-height: 1.45; }
+  .ok h2 { margin: 0; font-size: 22px; color: #fff; } .ok p { margin: 0; color: #c9d6d2; line-height: 1.55; }
+  .ok-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #5ef0a0; color: #06301a; font-size: 24px; font-weight: 800; }
+  .ref-box { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 12px 14px; border-radius: 12px; background: rgba(94, 240, 160, .1); border: 1px solid rgba(94, 240, 160, .35); }
+  .ref-box small { grid-column: 1 / -1; color: #9fb2ad; font-size: 12px; }
+  .ref-box b { font: 700 22px var(--mono); color: #5ef0a0; letter-spacing: .03em; direction: ltr; }
+  .cp { padding: 6px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,.25); background: transparent; color: #e6efec; font: 600 13px var(--body); cursor: pointer; }
+  @media (max-width: 980px) {
+    .sv-grid { grid-template-columns: 1fr; }
+    .sv-side { position: static; }
+  }
+  @media (max-width: 640px) {
+    .sv-sec { padding: 18px 16px; }
+    .row2, .row3 { grid-template-columns: 1fr; }
+  }
+</style>
