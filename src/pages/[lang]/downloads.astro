@@ -47,7 +47,9 @@ const L10N = Object.fromEntries(LANGS.map((L) => {
       tagline: (SITE.tagline && (SITE.tagline[L] || SITE.tagline.en)) || '',
       eyebrow: A.eyebrow, title: A.title, lead: A.lead, p1: A.whoP1, p2: A.whoP2,
       stats: STATS.map((s) => ({ n: s.n, u: s.u, l: A.stats[s.k] })),
-      coverPhoto: ph('hero') || ph('assembly') || ph('line') || '',
+      // 封面 / 关于页的图：网站管理 → Downloads 里专门的图位（带 SKE 品牌），没有就用 About 页的工厂外景
+      coverPhoto: ph('pdf_cover') || ph('hero') || '',
+      aboutPhoto: ph('pdf_about') || ph('pdf_cover') || ph('hero') || '',
       photos: ['smt', 'assembly', 'aging', 'qc', 'line'].map(ph).filter(Boolean),
       factory: (CONTACT.address && (CONTACT.address[L] || CONTACT.address.en)) || '',
       hq: `${PLACES[1].enName}, ${PLACES[1].enAddr}`, office: `${PLACES[0].enName}, ${PLACES[0].enAddr}`,

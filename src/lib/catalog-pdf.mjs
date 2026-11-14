@@ -304,7 +304,7 @@ function introPages(job) {
     <div class="ps-cat">${esc(C.eyebrow)}</div>
     <h1>${esc(C.title)}</h1>
     <p class="in-lead">${esc(C.lead)}</p>
-    ${C.coverPhoto ? bg(C.coverPhoto, 'in-hero') : ''}
+    ${C.aboutPhoto ? bg(C.aboutPhoto, 'in-hero') : ''}
     <div class="in-stats">${C.stats.map((s) => `<div><b>${esc(s.n)}${s.u ? `<small>${esc(s.u)}</small>` : ''}</b><span>${esc(s.l)}</span></div>`).join('')}</div>
     <p>${esc(C.p1)}</p><p>${esc(C.p2)}</p>
     <div class="in-cert">${['ISO 9001', 'ISO 14001', 'ISO 45001'].map((x) => `<span>${x}</span>`).join('')}</div>
