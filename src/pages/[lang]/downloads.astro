@@ -1,0 +1,326 @@
+---
+// 下载中心（/downloads/）：整本产品目录 / 按大类或类目的目录 / 单个型号资料，PDF，语言可选（网站已有的语言）。
+// PDF 在访客浏览器里生成（lib/catalog-pdf.mjs），内容取网站上已发布的产品页，所以总是最新的。
+// 搜不到型号：提示联系销售获取（WhatsApp / 邮件，消息里带上型号和语言）。
+import Base from '../../layouts/Base.astro';
+import { LANGS, RTL_LANGS, SITE, CONTACT } from '../../config.mjs';
+import { UI } from '../../i18n.mjs';
+import { DL, pdfTexts } from '../../lib/downloads-i18n.mjs';
+import { AT, STATS } from '../../lib/about-i18n.mjs';
+import { PLACES } from '../../lib/visit-i18n.mjs';
+import { catalog } from '../../lib/catalog.mjs';
+import { primary } from '../../lib/category.mjs';
+import products from '../../data/products.json';
+import site from '../../data/site.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = DL[lang] || DL.en;
+const ph = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0].src : null; };
+
+// 产品：属于哪些类目（类目页会列出它的），以及整本目录里放在哪个类目（主品类第一个匹配的，避免重复）
+const items = catalog('en').flatMap((g) => g.items.filter((x) => x.f).map((x) => ({ ...x, group: g.key })));
+const list = (Array.isArray(products) ? products : []).filter((p) => p && p.slug && p.model).map((p) => {
+  const cats = items.filter((x) => { try { return x.f(p); } catch { return false; } }).map((x) => x.key);
+  const pc = (items.find((x) => { try { return x.f(primary(p)); } catch { return false; } }) || {}).key || cats[0] || 'other';
+  const img = Array.isArray(p.images) && p.images[0] ? (p.images[0].thumb || p.images[0].src) : '';
+  const br = {};
+  for (const L of LANGS) { const b = p.brochures && p.brochures[L]; if (b && b.src && /pdf/i.test(b.type || b.src)) br[L] = b.src; }
+  return { s: p.slug, m: String(p.model).trim(), c: cats, pc, img, br };
+});
+const counts = {};
+for (const p of list) for (const k of p.c) counts[k] = (counts[k] || 0) + 1;
+
+// 各语言的类目名称、PDF 文字、公司介绍
+const L10N = Object.fromEntries(LANGS.map((L) => {
+  const A = AT[L] || AT.en;
+  return [L, {
+    name: UI[L].langName, dir: RTL_LANGS.includes(L) ? 'rtl' : 'ltr',
+    groups: catalog(L).map((g) => ({ key: g.key, h: g.h, items: g.items.filter((x) => x.f).map((x) => ({ key: x.key, label: x.label })) })),
+    pdfT: pdfTexts(L),
+    company: {
+      tagline: (SITE.tagline && (SITE.tagline[L] || SITE.tagline.en)) || '',
+      eyebrow: A.eyebrow, title: A.title, lead: A.lead, p1: A.whoP1, p2: A.whoP2,
+      stats: STATS.map((s) => ({ n: s.n, u: s.u, l: A.stats[s.k] })),
+      coverPhoto: ph('hero') || ph('assembly') || ph('line') || '',
+      photos: ['smt', 'assembly', 'aging', 'qc', 'line'].map(ph).filter(Boolean),
+      factory: (CONTACT.address && (CONTACT.address[L] || CONTACT.address.en)) || '',
+      hq: `${PLACES[1].enName}, ${PLACES[1].enAddr}`, office: `${PLACES[0].enName}, ${PLACES[0].enAddr}`,
+    },
+  }];
+}));
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, list, L10N, t: {
+  dl: T.dl, groupAll: T.groupAll, busyStart: T.busyStart, busyTpl: T.busy('{a}', '{b}'), cancel: T.cancel, done: T.done, fail: T.fail, original: T.original,
+  noneHTpl: T.noneH('{q}'), noneP: T.noneP, noneWa: T.noneWa, noneMail: T.noneMail, noneMsgTpl: T.noneMsg('{q}', '{l}'),
+} };
+const total = list.length;
+const catTotal = Object.keys(counts).length;
+---
+<Base lang={lang} title={T.title} description={T.lead.slice(0, 155)} path="downloads/">
+  <div class="dl" data-dl data-cfg={JSON.stringify(cfg)}>
+    <header class="dl-head">
+      <span class="eyebrow">{T.eyebrow}</span>
+      <h1>{T.h1}</h1>
+      <p>{T.lead}</p>
+    </header>
+
+    <div class="langbar">
+      <span>{T.langL}</span>
+      <div class="seg" role="radiogroup" aria-label={T.langL}>
+        {LANGS.map((L) => <label><input type="radio" name="dl-lang" value={L} checked={L === lang} /><span><b>{L.toUpperCase()}</b> {UI[L].langName}</span></label>)}
+      </div>
+    </div>
+
+    <div class="cards">
+      <!-- 1. 整本目录 -->
+      <section class="card c-all" data-card="all">
+        <div class="c-top">
+          <span class="c-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <div><h2>{T.m1}</h2><p>{T.m1p}</p></div>
+        </div>
+        <div class="c-meta"><span>{T.products(total)}</span><span>{T.cats(catTotal)}</span></div>
+        <div class="opts">
+          <label class="ck"><input type="checkbox" data-opt="intro" checked /><span>{T.optIntro}</span></label>
+          <label class="ck"><input type="checkbox" data-opt="details" /><span>{T.optDetails}</span></label>
+        </div>
+        <div class="act"><button type="button" class="pdf-btn" data-go="all"><i aria-hidden="true">PDF</i><span>{T.dl}</span></button></div>
+        <div class="prog" data-prog hidden><div class="bar"><i data-bar></i></div><span data-ptext></span><button type="button" class="link" data-cancel>{T.cancel}</button></div>
+        <small class="note">{T.sizeNote}</small>
+      </section>
+
+      <!-- 2. 按类目 -->
+      <section class="card c-cat" data-card="cat">
+        <div class="c-top">
+          <span class="c-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+          <div><h2>{T.m2}</h2><p>{T.m2p}</p></div>
+        </div>
+        <div class="cgroups" data-cgroups></div>
+        <div class="opts">
+          <label class="ck"><input type="checkbox" data-opt="intro" checked /><span>{T.optIntro}</span></label>
+          <label class="ck"><input type="checkbox" data-opt="details" checked /><span>{T.optDetails}</span></label>
+        </div>
+        <div class="act"><button type="button" class="pdf-btn" data-go="cat" disabled><i aria-hidden="true">PDF</i><span>{T.dl}</span></button><span class="sel-name" data-selname></span></div>
+        <div class="prog" data-prog hidden><div class="bar"><i data-bar></i></div><span data-ptext></span><button type="button" class="link" data-cancel>{T.cancel}</button></div>
+      </section>
+
+      <!-- 3. 单个型号 -->
+      <section class="card c-one" data-card="one">
+        <div class="c-top">
+          <span class="c-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div><h2>{T.m3}</h2><p>{T.m3p}</p></div>
+        </div>
+        <label class="search"><input type="search" data-q placeholder={T.searchPh} autocomplete="off" spellcheck="false" /><small>{T.searchHint}</small></label>
+        <div class="results" data-results></div>
+        <div class="none" data-none hidden>
+          <b data-none-h></b>
+          <p>{T.noneP}</p>
+          <div class="none-btns"><a class="btn wa" data-none-wa target="_blank" rel="noopener">{T.noneWa}</a><a class="btn line" data-none-mail>{T.noneMail}</a></div>
+        </div>
+        <div class="prog" data-prog hidden><div class="bar"><i data-bar></i></div><span data-ptext></span><button type="button" class="link" data-cancel>{T.cancel}</button></div>
+      </section>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { buildPdf, saveBlob, resetPdfCss } from '../../lib/catalog-pdf.mjs';
+  for (const root of document.querySelectorAll('[data-dl]')) {
+    const c = JSON.parse(root.dataset.cfg), t = c.t;
+    const $ = (s, el = root) => el.querySelector(s);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const norm = (s) => String(s || '').normalize('NFKC').toUpperCase().replace(/[\s\-_/.·,()（）]+/g, '');
+    let dlLang = c.lang;
+    const L = () => c.L10N[dlLang] || c.L10N.en;
+    const catLabel = (k, lng = dlLang) => { for (const g of (c.L10N[lng] || c.L10N.en).groups) { const x = g.items.find((i) => i.key === k); if (x) return { label: x.label, group: g.h, gkey: g.key }; } return { label: k, group: '', gkey: '' }; };
+    const fileSafe = (s) => String(s).replace(/\//g, '∕').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    const catEn = (k) => catLabel(k, 'en').label;
+
+    // 语言切换：类目名称、搜索结果跟着变
+    root.querySelectorAll('input[name="dl-lang"]').forEach((r) => r.addEventListener('change', () => { dlLang = r.value; drawCats(); drawResults(); }));
+
+    // ---------- 类目选择 ----------
+    let sel = null; // { kind: 'group'|'cat', key }
+    const counts = {}; c.list.forEach((p) => p.c.forEach((k) => { counts[k] = (counts[k] || 0) + 1; }));
+    function drawCats() {
+      const box = $('[data-cgroups]');
+      box.innerHTML = L().groups.map((g) => {
+        const n = new Set(c.list.filter((p) => p.c.some((k) => g.items.some((i) => i.key === k))).map((p) => p.s)).size;
+        if (!n) return '';
+        return `<div class="cg"><div class="cg-h">${esc(g.h)}</div><div class="chips">
+          <label class="chip all"><input type="radio" name="dl-cat" value="group:${g.key}" ${sel && sel.kind === 'group' && sel.key === g.key ? 'checked' : ''}><span>${esc(t.groupAll)} <em>${n}</em></span></label>
+          ${g.items.filter((i) => counts[i.key]).map((i) => `<label class="chip"><input type="radio" name="dl-cat" value="cat:${i.key}" ${sel && sel.kind === 'cat' && sel.key === i.key ? 'checked' : ''}><span>${esc(i.label)} <em>${counts[i.key]}</em></span></label>`).join('')}
+        </div></div>`;
+      }).join('');
+      box.querySelectorAll('input[name="dl-cat"]').forEach((r) => r.addEventListener('change', () => {
+        const [kind, key] = r.value.split(':'); sel = { kind, key };
+        $('[data-go="cat"]').disabled = false;
+        $('[data-selname]').textContent = kind === 'group' ? (L().groups.find((g) => g.key === key) || {}).h : catLabel(key).label;
+      }));
+    }
+    drawCats();
+
+    // ---------- 搜索 ----------
+    const qIn = $('[data-q]');
+    function drawResults() {
+      const q = qIn.value.trim(), nq = norm(q), box = $('[data-results]');
+      $('[data-none]').hidden = true;
+      if (!nq) { box.innerHTML = ''; return; }
+      const hits = c.list.filter((p) => norm(p.m).includes(nq)).sort((a, b) => (norm(a.m).startsWith(nq) ? 0 : 1) - (norm(b.m).startsWith(nq) ? 0 : 1) || a.m.localeCompare(b.m, 'en', { numeric: true })).slice(0, 8);
+      if (!hits.length) {
+        box.innerHTML = '';
+        const msg = t.noneMsgTpl.replace('{q}', q).replace('{l}', L().name);
+        $('[data-none-h]').textContent = t.noneHTpl.replace('{q}', q);
+        $('[data-none-wa]').href = `https://wa.me/${c.wa}?text=${encodeURIComponent(msg)}`;
+        $('[data-none-mail]').href = `mailto:${c.email}?subject=${encodeURIComponent(`Datasheet: ${q}`)}&body=${encodeURIComponent(msg)}`;
+        $('[data-none]').hidden = false;
+        return;
+      }
+      box.innerHTML = hits.map((p) => {
+        const cl = catLabel(p.pc).label, br = p.br[dlLang];
+        return `<div class="res"><span class="r-img">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : ''}</span>
+          <span class="r-txt"><b>${esc(p.m)}</b><small>${esc(cl)}</small></span>
+          <span class="r-act">${br ? `<a class="link" href="${esc(br)}" target="_blank" rel="noopener">${esc(t.original)}</a>` : ''}
+          <button type="button" class="pdf-btn sm" data-one="${esc(p.s)}"><i aria-hidden="true">PDF</i><span>${esc(t.dl)}</span></button></span></div>`;
+      }).join('');
+      box.querySelectorAll('[data-one]').forEach((b) => b.addEventListener('click', () => run('one', b.dataset.one, b)));
+    }
+    qIn.addEventListener('input', drawResults);
+
+    // ---------- 生成 ----------
+    let busy = null;
+    async function run(kind, arg, btn) {
+      if (busy) return;
+      const card = btn.closest('[data-card]');
+      const opt = (k) => { const el = card.querySelector(`[data-opt="${k}"]`); return el ? el.checked : false; };
+      const lx = L(), P = lx.pdfT;
+      let sections = [], mode = 'catalog', coverTitle = P.catalogue, coverSub = '', name = '', title = '';
+      const byCat = (key, slugs) => ({ group: catLabel(key).group, label: catLabel(key).label, slugs });
+      const ordered = () => lx.groups.flatMap((g) => g.items.map((i) => ({ ...i, gkey: g.key })));
+      if (kind === 'all') {
+        for (const it of ordered()) { const s = c.list.filter((p) => p.pc === it.key).map((p) => p.s); if (s.length) sections.push(byCat(it.key, s)); }
+        const other = c.list.filter((p) => !ordered().some((i) => i.key === p.pc)).map((p) => p.s);
+        if (other.length) sections.push({ group: '', label: 'SKE Power', slugs: other });
+        coverSub = sections.map((s) => s.label).join(' · ');
+        name = `SKE Power Product Catalogue (${dlLang}).pdf`; title = 'SKE Power Product Catalogue';
+      } else if (kind === 'cat') {
+        if (!sel) return;
+        if (sel.kind === 'group') {
+          const g = lx.groups.find((x) => x.key === sel.key); const used = new Set();
+          for (const it of g.items) { const s = c.list.filter((p) => p.c.includes(it.key) && !used.has(p.s)).map((p) => p.s); s.forEach((x) => used.add(x)); if (s.length) sections.push(byCat(it.key, s)); }
+          coverTitle = P.catCatalogueTpl.replace('{c}', g.h); coverSub = sections.map((s) => s.label).join(' · ');
+          const gEn = (c.L10N.en.groups.find((x) => x.key === sel.key) || {}).h || sel.key;
+          name = `SKE Power ${fileSafe(gEn)} Catalogue (${dlLang}).pdf`; title = `SKE Power ${gEn} Catalogue`;
+        } else {
+          sections.push(byCat(sel.key, c.list.filter((p) => p.c.includes(sel.key)).map((p) => p.s)));
+          coverTitle = P.catCatalogueTpl.replace('{c}', catLabel(sel.key).label);
+          name = `SKE Power ${fileSafe(catEn(sel.key))} Catalogue (${dlLang}).pdf`; title = `SKE Power ${catEn(sel.key)} Catalogue`;
+        }
+      } else {
+        const p = c.list.find((x) => x.s === arg); if (!p) return;
+        mode = 'single';
+        sections.push(byCat(p.pc, [p.s]));
+        name = `${fileSafe(catEn(p.pc))} ${fileSafe(p.m)} Datasheet (${dlLang}).pdf`; title = `${p.m} ${P.datasheet}`;
+      }
+      if (!sections.length) return;
+      const job = { mode, lang: dlLang, dir: lx.dir, sections, intro: opt('intro'), details: opt('details'), pdfT: P, company: lx.company, coverTitle, coverSub, title };
+      const prog = card.querySelector('[data-prog]'), bar = card.querySelector('[data-bar]'), ptext = card.querySelector('[data-ptext]');
+      const ctl = new AbortController(); busy = ctl;
+      root.querySelectorAll('.pdf-btn').forEach((b) => (b.disabled = true));
+      prog.hidden = false; bar.style.width = '2%'; ptext.textContent = t.busyStart;
+      card.querySelector('[data-cancel]').onclick = () => ctl.abort();
+      try {
+        const blob = await buildPdf(job, (a, b) => { bar.style.width = `${Math.max(2, Math.round((a / Math.max(1, b)) * 100))}%`; ptext.textContent = t.busyTpl.replace('{a}', a).replace('{b}', b); }, ctl.signal);
+        saveBlob(blob, name);
+        ptext.textContent = t.done; bar.style.width = '100%';
+        setTimeout(() => { prog.hidden = true; }, 2500);
+      } catch (e) {
+        if (e && e.name === 'AbortError') prog.hidden = true;
+        else { console.error(e); ptext.textContent = t.fail; }
+      } finally {
+        busy = null;
+        root.querySelectorAll('.pdf-btn').forEach((b) => (b.disabled = false));
+        if (!sel) $('[data-go="cat"]').disabled = true;
+        resetPdfCss();
+      }
+    }
+    root.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => run(b.dataset.go, null, b)));
+  }
+</script>
+
+<style>
+  .dl { padding-bottom: 30px; }
+  .eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--charge); }
+  .dl-head { margin: 34px 0 22px; max-width: 800px; }
+  .dl-head h1 { font-size: clamp(36px, 5.6vw, 64px); margin: 8px 0 12px; }
+  .dl-head p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
+  .langbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; }
+  .langbar > span { font-weight: 700; font-size: 14px; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 4px; background: var(--surface); gap: 2px; }
+  .seg label { position: relative; cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: inline-flex; gap: 6px; align-items: center; padding: 8px 14px; border-radius: 9px; font-size: 14px; }
+  .seg b { font: 700 12px var(--mono); color: var(--muted); }
+  .seg input:checked + span { background: var(--accent); color: #fff; } .seg input:checked + span b { color: #cfeee5; }
+  .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .c-cat { grid-row: span 2; }
+  .card { padding: 22px 24px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 14px; }
+  .c-top { display: flex; gap: 14px; align-items: flex-start; }
+  .c-ic { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--ok-soft); color: var(--accent); flex: none; }
+  .c-ic svg { width: 24px; height: 24px; }
+  .card h2 { font-size: 22px; margin: 0 0 4px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+  .c-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .c-meta span { font: 600 12.5px var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; }
+  .opts { display: flex; gap: 8px 18px; flex-wrap: wrap; }
+  .ck { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+  .ck input { width: 17px; height: 17px; accent-color: var(--accent); }
+  .act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sel-name { font-weight: 700; color: var(--accent); }
+  :global(.pdf-btn) { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 18px 0 8px; border-radius: 11px; border: 1px solid #E2231A; background: #fff; color: #E2231A; font: 700 15px var(--body); cursor: pointer; transition: background .15s; }
+  :global(.pdf-btn i) { font: 700 11px Arial, sans-serif; font-style: normal; background: #E2231A; color: #fff; border-radius: 6px; padding: 7px 7px; letter-spacing: .03em; }
+  :global(.pdf-btn:hover:not([disabled])) { background: #fff5f4; }
+  :global(.pdf-btn[disabled]) { opacity: .45; cursor: not-allowed; }
+  :global(.pdf-btn.sm) { min-height: 38px; font-size: 14px; padding: 0 12px 0 6px; }
+  :global(.pdf-btn.sm i) { padding: 5px 6px; font-size: 10px; }
+  .prog { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
+  .prog[hidden] { display: none; }
+  .bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .prog span { font-size: 13.5px; font-weight: 600; }
+  :global(.dl .link) { background: none; border: 0; padding: 0; color: var(--accent); font: 600 13.5px var(--body); text-decoration: underline; cursor: pointer; }
+  .note { color: var(--muted); font-size: 12.5px; }
+  .cgroups { display: grid; gap: 12px; }
+  .cgroups :global(.cg-h) { font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px; }
+  .cgroups :global(.chips) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cgroups :global(.chip) { position: relative; cursor: pointer; }
+  .cgroups :global(.chip input) { position: absolute; opacity: 0; pointer-events: none; }
+  .cgroups :global(.chip span) { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13.5px; }
+  .cgroups :global(.chip em) { font: 600 11px var(--mono); font-style: normal; color: var(--muted); }
+  .cgroups :global(.chip.all span) { border-style: dashed; font-weight: 600; }
+  .cgroups :global(.chip:hover span) { border-color: var(--accent); }
+  .cgroups :global(.chip input:checked + span) { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cgroups :global(.chip input:checked + span em) { color: #cfeee5; }
+  .search { display: grid; gap: 4px; }
+  .search input { font: 16px var(--body); padding: 13px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .search input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .search small { color: var(--muted); font-size: 12.5px; }
+  .results { display: grid; gap: 8px; }
+  .results :global(.res) { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+  .results :global(.r-img) { width: 54px; height: 54px; border-radius: 9px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; flex: none; }
+  .results :global(.r-img img) { max-width: 90%; max-height: 90%; object-fit: contain; }
+  .results :global(.r-txt) { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .results :global(.r-txt b) { font-size: 15px; overflow-wrap: anywhere; direction: ltr; text-align: start; }
+  .results :global(.r-txt small) { color: var(--muted); font-size: 12.5px; }
+  .results :global(.r-act) { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .none { padding: 14px 16px; border-radius: 12px; background: #fffbea; border: 1px solid #f2e2a6; display: grid; gap: 8px; }
+  .none[hidden] { display: none; }
+  .none b { font-size: 15px; } .none p { color: #5c4a00; }
+  .none-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 16px; border-radius: 10px; font: 700 14.5px var(--body); text-decoration: none; border: 1px solid transparent; }
+  .btn.wa { background: #25d366; color: #06301a; } .btn.line { border-color: var(--line); color: var(--ink); background: #fff; }
+  @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } .c-cat { grid-row: auto; } }
+  @media (max-width: 640px) { .card { padding: 18px 16px; } .results :global(.res) { flex-wrap: wrap; } .results :global(.r-act) { width: 100%; justify-content: flex-start; } }
+</style>

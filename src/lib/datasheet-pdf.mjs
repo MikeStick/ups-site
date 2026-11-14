@@ -6,12 +6,12 @@ const MAX_H = 14000;            // PDF 单页最大高度（pt），超过就切
 const RENDER_W = 1000;          // HTML 按这个宽度排版后截图（和电脑上看到的一样）
 const SCALE = 2;                // 截图清晰度
 
-const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+export const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
-function loadImg(src) {
+export function loadImg(src) {
   return new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => bad(new Error('image ' + src)); im.src = src; });
 }
-function imgToCanvas(im) {
+export function imgToCanvas(im) {
   const c = document.createElement('canvas');
   c.width = im.naturalWidth; c.height = im.naturalHeight;
   const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0);
@@ -19,7 +19,7 @@ function imgToCanvas(im) {
 }
 
 // 详情 HTML（/h/<哈希>.html，同源）：放进屏幕外的 iframe 按 1000px 宽排版，等样式和图片加载完再截图
-async function htmlToCanvas(url, h2c) {
+export async function htmlToCanvas(url, h2c) {
   const fr = document.createElement('iframe');
   fr.style.cssText = `position:fixed;left:-30000px;top:0;width:${RENDER_W}px;height:1200px;border:0;visibility:hidden`;
   fr.src = url;
@@ -42,7 +42,7 @@ async function htmlToCanvas(url, h2c) {
 }
 
 // 系列参数表（页面上的 .series-html）：复制一份到屏幕外、按 1000px（表格更宽就按表格宽度）排版后截图
-async function seriesToCanvas(el, h2c) {
+export async function seriesToCanvas(el, h2c) {
   const box = document.createElement('div');
   box.style.cssText = `position:absolute;left:-30000px;top:0;width:${RENDER_W}px;background:#fff;padding:24px 28px;box-sizing:border-box`;
   const clone = el.cloneNode(true);

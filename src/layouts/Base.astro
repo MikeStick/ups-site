@@ -35,6 +35,7 @@ const NAV = catalog(lang).map((g) => ({ h: g.h, items: g.items.flatMap((x) => [[
 const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean);
 import { VT } from '../lib/visit-i18n.mjs';
 import { SUP } from '../lib/service-i18n.mjs';
+import { DL } from '../lib/downloads-i18n.mjs';
 const CONTACT_US = { en: 'Contact us', es: 'Contáctenos', ru: 'Связаться с нами', ar: 'اتصل بنا' };
 const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín · Shenzhen · fábrica de Dongguan', ru: 'Пекин · Шэньчжэнь · завод в Дунгуане', ar: 'بكين · شنتشن · مصنع دونغقوان' };
 ---
@@ -190,11 +191,15 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
           </div>
         </details>
         <details class="nav-menu about-menu" data-support-menu>
-          <summary aria-current={path === 'service/' ? 'page' : undefined}>{SUP[lang].nav} <i aria-hidden="true">▾</i></summary>
+          <summary aria-current={path === 'service/' || path === 'downloads/' ? 'page' : undefined}>{SUP[lang].nav} <i aria-hidden="true">▾</i></summary>
           <div class="contact-list about-list">
             <a href={`/${lang}/service/`} aria-current={path === 'service/' ? 'page' : undefined}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.6 17.4a1.4 1.4 0 0 0 2 2l5.7-5.7a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-.5-.5-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
               <span><b>{SUP[lang].svc}</b><small>{SUP[lang].svcSub}</small></span>
+            </a>
+            <a href={`/${lang}/downloads/`} aria-current={path === 'downloads/' ? 'page' : undefined}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span><b>{DL[lang].nav}</b><small>{DL[lang].navSub}</small></span>
             </a>
           </div>
         </details>
