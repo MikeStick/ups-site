@@ -13,6 +13,7 @@ const SCALE = 1.6;                                // 截图倍率：清晰度和
 const MAXW = 1300;                                // 截图最宽像素，超过先缩小（控制文件大小）
 const JPEG_Q = 0.8;
 const ACCENT = [15, 107, 92];
+const PG_H = Math.floor(SHEET_W * CH / CW) - 6;   // 公司介绍每页固定高度（px），正好一页 A4 内容区
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const isLatin = (s) => /^[\x20-\x7e]*$/.test(String(s || ''));
@@ -59,23 +60,56 @@ const CSS = `
 .cv-sub{font-size:16px;color:#c9d6d2;line-height:1.55;max-width:600px}
 .cv-foot{display:flex;justify-content:space-between;gap:20px;margin-top:40px;padding-top:18px;border-top:1px solid rgba(255,255,255,.16);font-size:13px;color:#9fb2ad}
 .cv-foot b{color:#fff}
-/* 公司介绍 */
-.in{padding:4px 2px 8px}
-.in h1{font-size:38px;margin:0 0 10px}
-.in-lead{font-size:16px;line-height:1.6;color:#33413e;margin:0 0 18px}
-.in-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 20px}
+/* 公司介绍（固定高度的页） */
+.pg{height:${PG_H}px;overflow:hidden;padding:4px 2px 0}
+.in h1{font-size:36px;margin:0 0 10px;line-height:1.08}
+.in-lead{font-size:15.5px;line-height:1.6;color:#33413e;margin:0 0 16px}
+.in-hero{height:250px;border-radius:14px;background:#eef2f0 center/cover no-repeat;margin:0 0 16px}
+.in-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}
 .in-stats div{border:1px solid #e3e8e6;border-radius:12px;padding:12px 14px}
-.in-stats b{display:block;font:700 28px var(--display);color:#0f6b5c}
+.in-stats b{display:block;font:700 28px var(--display);color:#0f6b5c;direction:ltr;text-align:start}
 .in-stats b small{font-size:15px}
 .in-stats span{font-size:12.5px;color:#5b6b67}
 .in p{font-size:14px;line-height:1.65;color:#33413e;margin:0 0 12px}
-.in-ph{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 18px}
-.in-ph div{aspect-ratio:4/3;border-radius:10px;background:#eef2f0 center/cover no-repeat}
-.in-cert{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+.in-cert{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
 .in-cert span{border:1px solid #0f6b5c;color:#0f6b5c;border-radius:6px;padding:4px 10px;font:600 12px var(--mono)}
-.in-ct{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.in-ct div{background:#f6f8f7;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5}
-.in-ct b{display:block;font-size:13.5px;margin-bottom:2px}
+.in-h2{font-size:19px;margin:18px 0 8px}
+.in-fac{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:6px 0 18px}
+.in-fac figure{margin:0}
+.in-fac figure div{height:200px;border-radius:12px;background:#eef2f0 center/cover no-repeat}
+.in-fac figcaption{font-size:12.5px;font-weight:600;color:#33413e;margin-top:5px}
+.in-flow{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.in-flow li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:2px 12px;align-items:baseline;padding:9px 12px;border:1px solid #e3e8e6;border-radius:10px}
+.in-flow li b{grid-row:span 2;font:700 20px var(--mono);color:#0f6b5c}
+.in-flow li strong{font-size:14.5px}
+.in-flow li span{font-size:13px;color:#5b6b67}
+.in-chips{display:flex;flex-wrap:wrap;gap:6px}
+.in-chips span{background:#f0f4f2;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.in-bjname{font-weight:700;color:#0f6b5c!important;margin:0 0 12px!important}
+.in-bjph{height:300px;border-radius:14px;background:#eef2f0 center/cover no-repeat;margin:0 0 14px}
+.in-bjcert{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 4px}
+.in-bjcert div{border:1px solid #e3e8e6;border-radius:10px;padding:9px 11px}
+.in-bjcert b{display:block;font:700 13px var(--mono);color:#0f6b5c;direction:ltr;text-align:start}
+.in-bjcert span{font-size:12px;color:#5b6b67}
+.in-cl{margin:0;padding:0 0 0 18px;columns:2;column-gap:24px;font-size:13px;line-height:1.6}
+[dir=rtl] .in-cl{padding:0 18px 0 0}
+.in-cg{margin:0 0 12px}
+.in-cats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.in-cats div{border:1px solid #e3e8e6;border-radius:10px;padding:8px;display:grid;gap:3px;align-content:start}
+.in-cats .ci{display:flex;align-items:center;justify-content:center;height:78px;background:#f6f8f7;border-radius:7px;overflow:hidden}
+.in-cats .ci img{width:88%;height:88%;object-fit:contain}
+.in-cats b{font-size:12px;line-height:1.3}
+.in-cats small{font-size:11px;color:#5b6b67}
+.in-locs{display:grid;gap:12px;margin:6px 0 18px}
+.in-loc{display:grid;gap:3px;padding:14px 16px;border:1px solid #e3e8e6;border-radius:12px}
+.in-loc b{font-size:15px}
+.in-loc span{font-size:13.5px;color:#33413e;line-height:1.5}
+.in-loc small{font-size:11.5px;color:#5b6b67;margin-top:4px}
+.in-ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}
+.in-ctx div{background:#0f1d1b;color:#fff;border-radius:12px;padding:14px 16px;display:grid;gap:3px}
+.in-ctx small{color:#9fb2ad;font-size:12px}
+.in-ctx b{font-size:15px;direction:ltr;text-align:start}
+.in-note{font-size:12px!important;color:#5b6b67!important}
 /* 目录 / 索引 */
 .tc{padding:4px 2px 8px}
 .tc h1{font-size:38px;margin:0 0 20px}
@@ -260,23 +294,65 @@ function coverHtml(job) {
     <div class="cv-foot"><span><b>www.ups-china.com</b><br>sales@ups-china.com</span><span style="text-align:end">WhatsApp / WeChat<br><b>+86 152 0127 3157</b></span></div>
   </div>`;
 }
-function introHtml(job) {
-  const C = job.company, P = job.pdfT;
-  return `<div class="in">
+// 公司介绍：固定 5 页以内（每页固定高度，内容多了也不会撑出第二页）——关于我们 / 工厂与质量 / 北京办公室 / 产品类目 / 联系与地址
+function introPages(job) {
+  const C = job.company, P = job.pdfT, B = C.bj || {};
+  const bg = (u, cls = '') => (u ? `<div class="${cls}" data-bg="${esc(u)}" style="background-image:url('${esc(u)}')"></div>` : '');
+  const pages = [];
+  // 1. 关于我们
+  pages.push(`<div class="pg in">
     <div class="ps-cat">${esc(C.eyebrow)}</div>
     <h1>${esc(C.title)}</h1>
     <p class="in-lead">${esc(C.lead)}</p>
+    ${C.coverPhoto ? bg(C.coverPhoto, 'in-hero') : ''}
     <div class="in-stats">${C.stats.map((s) => `<div><b>${esc(s.n)}${s.u ? `<small>${esc(s.u)}</small>` : ''}</b><span>${esc(s.l)}</span></div>`).join('')}</div>
     <p>${esc(C.p1)}</p><p>${esc(C.p2)}</p>
-    ${C.photos.length ? `<div class="in-ph">${C.photos.slice(0, 3).map((u) => `<div data-bg="${esc(u)}" style="background-image:url('${esc(u)}')"></div>`).join('')}</div>` : ''}
     <div class="in-cert">${['ISO 9001', 'ISO 14001', 'ISO 45001'].map((x) => `<span>${x}</span>`).join('')}</div>
-    <div class="in-ct">
-      <div><b>${esc(P.factory)}</b>${esc(C.factory)}</div>
-      <div><b>${esc(P.hq)}</b>${esc(C.hq)}</div>
-      <div><b>${esc(P.office)}</b>${esc(C.office)}</div>
-      <div><b>${esc(P.contact)}</b>sales@ups-china.com<br>WhatsApp / WeChat +86 152 0127 3157<br>www.ups-china.com</div>
+  </div>`);
+  // 2. 工厂与质量
+  if (C.facH) pages.push(`<div class="pg in">
+    <div class="ps-cat">${esc(C.facEyebrow)}</div>
+    <h1>${esc(C.facH)}</h1>
+    ${C.facPhotos.length ? `<div class="in-fac">${C.facPhotos.slice(0, 4).map((x) => `<figure>${bg(x.src)}<figcaption>${esc(x.cap)}</figcaption></figure>`).join('')}</div>` : ''}
+    <ol class="in-flow">${(C.flow || []).map(([h, d], i) => `<li><b>${String(i + 1).padStart(2, '0')}</b><strong>${esc(h)}</strong><span>${esc(d)}</span></li>`).join('')}</ol>
+    ${C.apps && C.apps.length ? `<h2 class="in-h2">${esc(C.appsH)}</h2><div class="in-chips">${C.apps.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+  </div>`);
+  // 3. 北京办公室
+  if (B.name) pages.push(`<div class="pg in">
+    <div class="ps-cat">${esc(B.eyebrow)}</div>
+    <h1>${esc(B.h)}</h1>
+    <p class="in-bjname" dir="auto">${esc(B.name)}</p>
+    ${bg(B.photo, 'in-bjph')}
+    <p>${esc(B.p)}</p>
+    ${B.certs ? `<div class="in-bjcert">${B.certs.map(([c, d]) => `<div><b>${esc(c)}</b><span>${esc(d)}</span></div>`).join('')}</div>` : ''}
+    ${B.sectors ? `<h2 class="in-h2">${esc(B.sectorsH)}</h2><div class="in-chips">${B.sectors.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+    ${B.clients ? `<h2 class="in-h2">${esc(B.clientsH)}</h2><p style="margin-bottom:6px">${esc(B.clientsP)}</p><ul class="in-cl">${B.clients.map((x) => `<li dir="auto">${esc(x)}</li>`).join('')}</ul>` : ''}
+  </div>`);
+  // 4. 产品类目（带图片和型号数量）
+  if (C.cats && C.cats.length) pages.push(`<div class="pg in">
+    <div class="ps-cat">${esc(C.rangeEyebrow || P.contents)}</div>
+    <h1>${esc(C.rangeH || P.catalogue)}</h1>
+    ${C.cats.map((g) => `<div class="in-cg"><div class="tc-gh">${esc(g.h)}</div><div class="in-cats">${g.items.map((x) => `<div>${x.img ? `<span class="ci" data-bg="${esc(x.img)}"><img src="${esc(x.img)}" alt=""></span>` : '<span class="ci"></span>'}<b>${esc(x.label)}</b><small>${esc(P.modelsTpl.replace('{n}', x.n))}</small></div>`).join('')}</div></div>`).join('')}
+  </div>`);
+  // 5. 联系与地址
+  const pl = (k) => (C.places || []).find((x) => x.key === k) || {};
+  const loc = (title, en, enAddr, zh, zhAddr) => `<div class="in-loc"><div class="tc-gh">${esc(title)}</div><b dir="auto">${esc(en)}</b><span dir="auto">${esc(enAddr)}</span>${zhAddr ? `<small>${esc(P.zhAddr)}</small><span lang="zh">${esc(zh)} ${esc(zhAddr)}</span>` : ''}</div>`;
+  pages.push(`<div class="pg in">
+    <div class="ps-cat">${esc(P.contact)}</div>
+    <h1>${esc(P.locH)}</h1>
+    <div class="in-locs">
+      ${loc(P.factory, 'SKE Industrial Park', C.factory, '', C.factoryZh)}
+      ${loc(P.hq, pl('shenzhen').en, pl('shenzhen').enAddr, pl('shenzhen').zh, pl('shenzhen').zhAddr)}
+      ${loc(P.office, pl('beijing').en, pl('beijing').enAddr, pl('beijing').zh, pl('beijing').zhAddr)}
     </div>
-  </div>`;
+    <div class="in-ctx">
+      <div><small>WhatsApp / WeChat</small><b>+86 152 0127 3157</b></div>
+      <div><small>Email</small><b>sales@ups-china.com</b></div>
+      <div><small>Web</small><b>www.ups-china.com</b></div>
+    </div>
+    <p class="in-note">${esc(P.note)}</p>
+  </div>`);
+  return pages.slice(0, 5);
 }
 function tocHtml(job, toc) {
   const P = job.pdfT;
@@ -308,7 +384,7 @@ export async function buildPdf(job, onProgress = () => {}, signal) {
 
   if (multi) {
     addFull(st, await shoot(h2c, coverHtml(job), job)); check(signal);
-    if (job.intro) { addA4(st, await shoot(h2c, introHtml(job), job)); check(signal); }
+    if (job.intro) for (const h of introPages(job)) { addA4(st, await shoot(h2c, h, job)); check(signal); }
     tocPage = newPage(st); // 目录页先空着，最后补上（这时才知道每个类目从第几页开始）
   }
 

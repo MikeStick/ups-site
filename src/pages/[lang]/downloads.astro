@@ -8,6 +8,7 @@ import { UI } from '../../i18n.mjs';
 import { DL, pdfTexts } from '../../lib/downloads-i18n.mjs';
 import { AT, STATS } from '../../lib/about-i18n.mjs';
 import { PLACES } from '../../lib/visit-i18n.mjs';
+import { BJ } from '../../lib/beijing-i18n.mjs';
 import { catalog } from '../../lib/catalog.mjs';
 import { primary } from '../../lib/category.mjs';
 import products from '../../data/products.json';
@@ -32,6 +33,8 @@ const list = (Array.isArray(products) ? products : []).filter((p) => p && p.slug
 });
 const counts = {};
 for (const p of list) for (const k of p.c) counts[k] = (counts[k] || 0) + 1;
+// 类目图片：网站管理里的 cat_<key> 图片位，没有就用这个类目第一个有图的产品
+const catImg = (key) => ph(`cat_${key}`) || (list.find((p) => p.c.includes(key) && p.img) || {}).img || '';
 
 // 各语言的类目名称、PDF 文字、公司介绍
 const L10N = Object.fromEntries(LANGS.map((L) => {
@@ -48,6 +51,14 @@ const L10N = Object.fromEntries(LANGS.map((L) => {
       photos: ['smt', 'assembly', 'aging', 'qc', 'line'].map(ph).filter(Boolean),
       factory: (CONTACT.address && (CONTACT.address[L] || CONTACT.address.en)) || '',
       hq: `${PLACES[1].enName}, ${PLACES[1].enAddr}`, office: `${PLACES[0].enName}, ${PLACES[0].enAddr}`,
+      // 公司介绍（PDF 里最多 5 页）：关于我们 / 工厂与质量 / 北京办公室 / 产品类目 / 联系与地址
+      facEyebrow: A.facEyebrow, facH: A.facH,
+      facPhotos: ['smt', 'assembly', 'aging', 'qc'].map((k) => ({ src: ph(k), cap: A.facPhotos[k] })).filter((x) => x.src),
+      flow: A.flow, appsH: A.appsH, apps: A.apps, rangeEyebrow: A.rangeEyebrow, rangeH: A.rangeH,
+      bj: { ...(BJ[L] || BJ.en), photo: '/img/beijing-office.jpg' },
+      cats: catalog(L).map((g) => ({ h: g.h, items: g.items.filter((x) => x.f && counts[x.key]).map((x) => ({ label: x.label, n: counts[x.key], img: catImg(x.key) })) })).filter((g) => g.items.length),
+      places: PLACES.map((x) => ({ key: x.key, en: x.enName, enAddr: x.enAddr, zh: x.zhName, zhAddr: x.zhAddr })),
+      factoryZh: CONTACT.addressZh || '',
     },
   }];
 }));
@@ -82,7 +93,7 @@ const catTotal = Object.keys(counts).length;
         </div>
         <div class="c-meta"><span>{T.products(total)}</span><span>{T.cats(catTotal)}</span></div>
         <div class="opts">
-          <label class="ck"><input type="checkbox" data-opt="intro" checked /><span>{T.optIntro}</span></label>
+          <label class="ck"><input type="checkbox" data-opt="intro" /><span>{T.optIntro}</span></label>
           <label class="ck"><input type="checkbox" data-opt="details" /><span>{T.optDetails}</span></label>
         </div>
         <div class="act"><button type="button" class="pdf-btn" data-go="all"><i aria-hidden="true">PDF</i><span>{T.dl}</span></button></div>
@@ -98,7 +109,7 @@ const catTotal = Object.keys(counts).length;
         </div>
         <div class="cgroups" data-cgroups></div>
         <div class="opts">
-          <label class="ck"><input type="checkbox" data-opt="intro" checked /><span>{T.optIntro}</span></label>
+          <label class="ck"><input type="checkbox" data-opt="intro" /><span>{T.optIntro}</span></label>
           <label class="ck"><input type="checkbox" data-opt="details" checked /><span>{T.optDetails}</span></label>
         </div>
         <div class="act"><button type="button" class="pdf-btn" data-go="cat" disabled><i aria-hidden="true">PDF</i><span>{T.dl}</span></button><span class="sel-name" data-selname></span></div>
