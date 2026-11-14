@@ -105,6 +105,10 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
     .contact-list svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
     .contact-list span { display: grid; gap: 1px; }
     .contact-list b { font-size: 14.5px; }
+    .about-menu { position: relative; }
+    .about-list { min-width: 200px; top: calc(100% + 2px); }
+    .nav .about-list a { color: var(--ink); font-size: 14px; box-shadow: none; padding: 10px 12px; }
+    .nav .about-list a[aria-current="page"] { background: var(--ok-soft); color: var(--ink); box-shadow: none; }
     .contact-list small { font-size: 12px; color: var(--muted); }
     .nav { display: flex; gap: 2px; }
     .nav a { color: #cfd9d6; text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 6px; }
@@ -166,9 +170,23 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
             ))}
           </div>
         </details>
-        <a href={`/${lang}/cases/`} aria-current={path === 'cases/' ? 'page' : undefined}>{CS[lang].nav}</a>
-        <a href={`/${lang}/news/`} aria-current={String(path || '').startsWith('news/') ? 'page' : undefined}>{NW[lang].nav}</a>
-        <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>{AT[lang].nav}</a>
+        <details class="nav-menu about-menu" data-about-menu>
+          <summary aria-current={path === 'about/' || path === 'cases/' || String(path || '').startsWith('news/') ? 'page' : undefined}>{AT[lang].nav} <i aria-hidden="true">▾</i></summary>
+          <div class="contact-list about-list">
+            <a href={`/${lang}/about/`} aria-current={path === 'about/' ? 'page' : undefined}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V9l6-4v4l6-4v4l6-4v16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 17h2M11 17h2M15 17h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span><b>{AT[lang].nav}</b></span>
+            </a>
+            <a href={`/${lang}/cases/`} aria-current={path === 'cases/' ? 'page' : undefined}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              <span><b>{CS[lang].nav}</b></span>
+            </a>
+            <a href={`/${lang}/news/`} aria-current={String(path || '').startsWith('news/') ? 'page' : undefined}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12v16H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1zM17 8h3v10a2 2 0 0 1-2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8h6M8 12h6M8 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span><b>{NW[lang].nav}</b></span>
+            </a>
+          </div>
+        </details>
       </nav>
       <details class="contact-menu" data-contact-menu>
         <summary class="nav-custom" aria-current={path === 'contact/' || path === 'visit/' ? 'page' : undefined}>{CO[lang].nav} <i aria-hidden="true">▾</i></summary>
@@ -203,7 +221,7 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）
-      var ms = document.querySelectorAll('[data-lang-menu], [data-nav-menu], [data-contact-menu]');
+      var ms = document.querySelectorAll('[data-lang-menu], [data-nav-menu], [data-contact-menu], [data-about-menu]');
       document.addEventListener('click', function (e) { ms.forEach(function (m) { if (m.open && !m.contains(e.target)) m.open = false; }); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ms.forEach(function (m) { m.open = false; }); });
     })();
