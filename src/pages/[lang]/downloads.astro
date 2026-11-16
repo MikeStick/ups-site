@@ -72,7 +72,8 @@ const L10N = Object.fromEntries(LANGS.map((L) => {
     },
   }];
 }));
-const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, list, L10N, t: {
+const catImgs = Object.fromEntries(Object.keys(counts).map((k) => [k, catImg(k)]).filter((x) => x[1]));
+const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, list, L10N, catImgs, t: {
   dl: T.dl, groupAll: T.groupAll, busyStart: T.busyStart, busyTpl: T.busy('{a}', '{b}'), cancel: T.cancel, done: T.done, fail: T.fail, original: T.original,
   noneHTpl: T.noneH('{q}'), noneP: T.noneP, noneWa: T.noneWa, noneMail: T.noneMail, noneMsgTpl: T.noneMsg('{q}', '{l}'),
 } };
@@ -217,7 +218,7 @@ const catTotal = Object.keys(counts).length;
       const opt = (k) => { const el = card.querySelector(`[data-opt="${k}"]`); return el ? el.checked : false; };
       const lx = L(), P = lx.pdfT;
       let sections = [], mode = 'catalog', coverTitle = P.catalogue, coverSub = '', name = '', title = '';
-      const byCat = (key, slugs) => ({ group: catLabel(key).group, label: catLabel(key).label, slugs });
+      const byCat = (key, slugs) => ({ group: catLabel(key).group, label: catLabel(key).label, slugs, img: c.catImgs[key] || '' });
       const ordered = () => lx.groups.flatMap((g) => g.items.map((i) => ({ ...i, gkey: g.key })));
       if (kind === 'all') {
         for (const it of ordered()) { const s = c.list.filter((p) => p.pc === it.key).map((p) => p.s); if (s.length) sections.push(byCat(it.key, s)); }
@@ -246,7 +247,8 @@ const catTotal = Object.keys(counts).length;
       }
       if (!sections.length) return;
       const tplOf = Object.fromEntries(c.list.filter((p) => p.t).map((p) => [p.s, p.t]));
-      const job = { mode, lang: dlLang, dir: lx.dir, sections, tplOf, intro: opt('intro'), details: opt('details'), pdfT: P, company: lx.company, coverTitle, coverSub, title };
+      const imgOf = Object.fromEntries(c.list.filter((p) => p.img).map((p) => [p.s, p.img]));
+      const job = { mode, lang: dlLang, dir: lx.dir, sections, tplOf, imgOf, intro: opt('intro'), details: opt('details'), pdfT: P, company: lx.company, coverTitle, coverSub, title };
       const prog = card.querySelector('[data-prog]'), bar = card.querySelector('[data-bar]'), ptext = card.querySelector('[data-ptext]');
       const ctl = new AbortController(); busy = ctl;
       root.querySelectorAll('.pdf-btn').forEach((b) => (b.disabled = true));

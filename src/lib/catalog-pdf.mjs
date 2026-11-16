@@ -68,7 +68,7 @@ async function photo(url, wPt, hPt, cover = false) {
     const c = document.createElement('canvas'); c.width = cw; c.height = ch;
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cw, ch); g.imageSmoothingQuality = 'high';
     g.drawImage(im, sx, sy, sw, sh, 0, 0, cw, ch);
-    return { data: c.toDataURL('image/jpeg', JPEG_Q), w, h };
+    try { return { data: c.toDataURL('image/jpeg', JPEG_Q), w, h }; } catch (e) { return null; } // 跨域图片画不出来
   })();
   imgCache.set(key, job);
   return job;
@@ -271,19 +271,23 @@ async function readProduct(lang, slug) {
   const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
   const q = (s) => doc.querySelector(s);
   const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
-  const img = q('.gallery-col img');
+  // 产品图：主图区的图片（YouTube 缩略图不能用），没有就用模板详情的第一张图
+  const imgs = [...doc.querySelectorAll('.gallery-col img, .gallery-col [data-src]')].map((el) => el.getAttribute('src') || el.dataset.src)
+    .filter((u) => u && !/ytimg|youtube/i.test(u) && (u.startsWith('/') || u.startsWith(location.origin)));
   let ds = null; try { ds = JSON.parse((q('[data-ds]') || {}).dataset?.ds || 'null'); } catch (e) { ds = null; }
   return {
     slug,
     type: txt(q('.summary .type')),
     model: txt(q('.summary h1')),
-    img: img ? img.getAttribute('src') : '',
+    img: imgs[0] || '',
+    imgs,
     hl: [...doc.querySelectorAll('.summary .highlights li')].map(txt).filter(Boolean),
     desc: txt(q('.summary .desc')),
     feats: [...doc.querySelectorAll('.details ul.features li')].map(txt).filter(Boolean),
     specs: [...doc.querySelectorAll('.details dl.specs > div')].map((d) => [txt(d.querySelector('dt')), txt(d.querySelector('dd'))]).filter((x) => x[0] && x[1]),
     vdis: [...doc.querySelectorAll('.details .vdis .vdis-t')].map((el) => ({ h: txt(el.querySelector('h3')), rows: htmlTableRows(el.querySelector('table')) })).filter((x) => x.rows.length),
     items: ds && Array.isArray(ds.items) ? ds.items : [],
+    tplImg: ((ds && Array.isArray(ds.items) ? ds.items : []).find((x) => x.img) || {}).img || '',
     series: [...doc.querySelectorAll('.series-html')],
     doc,
   };
@@ -306,7 +310,7 @@ function htmlTableRows(tbl) {
 }
 
 /* ---------- 系列：同一个模板的产品放一起 ---------- */
-function groupSeries(sec, pds, tplOf) {
+function groupSeries(sec, pds, tplOf, imgOf = {}) {
   const order = [], map = new Map();
   for (const pd of pds) {
     const key = tplOf[pd.slug] || `type:${pd.type || pd.model}`;
@@ -316,7 +320,9 @@ function groupSeries(sec, pds, tplOf) {
   return order.map((k) => {
     const list = map.get(k).sort((a, b) => a.model.localeCompare(b.model, 'en', { numeric: true }));
     const types = [...new Set(list.map((p) => p.type).filter(Boolean))];
-    return { key: k, cat: sec.label, group: sec.group, list, title: types.length === 1 ? types[0] : sec.label, img: (list.find((p) => p.img) || {}).img || '' };
+    const img = (list.find((p) => p.img) || {}).img || list.map((p) => imgOf[p.slug]).find(Boolean) || sec.img || (list.find((p) => p.tplImg) || {}).tplImg || '';
+    for (const p of list) if (!p.img) p.img = imgOf[p.slug] || img;
+    return { key: k, cat: sec.label, group: sec.group, list, title: types.length === 1 ? types[0] : sec.label, img };
   });
 }
 
@@ -350,14 +356,19 @@ export async function buildPdf(job, onProgress = () => {}, signal) {
       done++; onProgress(done, all.length);
     }));
   }
-  const sections = job.sections.map((s) => ({ ...s, series: groupSeries(s, s.slugs.map((x) => got.get(x)).filter(Boolean), job.tplOf || {}) })).filter((s) => s.series.length);
+  const sections = job.sections.map((s) => ({ ...s, series: groupSeries(s, s.slugs.map((x) => got.get(x)).filter(Boolean), job.tplOf || {}, job.imgOf || {}) })).filter((s) => s.series.length);
   if (!sections.length) throw new Error('empty');
 
   const toc = [], idx = [];
   let tocPages = [];
+  // 只有一两个系列（比如只选了一个类目）：不要单独的目录页，直接看产品
+  const nSeries = sections.reduce((n, s) => n + s.series.length, 0);
+  const withToc = multi && nSeries > 2;
   if (multi) {
     await cover(D, job, newPage);
     if (job.intro) await intro(D, job, newPage, signal);
+  }
+  if (withToc) {
     // 目录页先留出来，最后补内容
     const lines = sections.reduce((n, s) => n + 2 + (s.series.length > 1 ? s.series.length : 0), 0);
     const nToc = Math.max(1, Math.ceil(lines / 44));
@@ -379,10 +390,8 @@ export async function buildPdf(job, onProgress = () => {}, signal) {
     if (job.details || !multi) await details(D, sec, job, newPage, signal);
   }
 
-  if (multi) {
-    if (idx.length > 6) indexPages(D, P, idx, newPage);
-    drawToc(D, job, toc, tocPages);
-  }
+  if (multi && idx.length > 6) indexPages(D, P, idx, newPage);
+  if (withToc) drawToc(D, job, toc, tocPages);
   pdf.setDisplayMode('100%', 'continuous', 'UseNone');
   pdf.setProperties({ title: job.title, creator: 'SKE Power', subject: SITE, author: 'SKE Power' });
   return pdf.output('blob');
