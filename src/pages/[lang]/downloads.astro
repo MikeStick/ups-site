@@ -21,6 +21,14 @@ const { lang } = Astro.params;
 const T = DL[lang] || DL.en;
 const ph = (k) => { const a = site.assets && site.assets[k]; return a && a[0] ? a[0].src : null; };
 
+// 产品所在的模板（= 系列）：PDF 里同一个模板的型号放在一页、做对比参数表
+function tplKey(p) {
+  const h = Array.isArray(p.templateHtml) && p.templateHtml[0] && p.templateHtml[0].id;
+  if (h) return 'T:' + String(h).split('~')[0];
+  const urls = [...(p.templateImages || []).map((x) => (typeof x === 'string' ? x : x && x.src)), ...(p.templateDetail || []).map((x) => x && x.img && (x.img.src || x.img))];
+  for (const u of urls) { const m = String(u || '').match(/\/_tpl\/([^/]+)\//) || String(u || '').match(/tplmedia\/([^/]+)\//); if (m) return 'T:' + m[1]; }
+  return '';
+}
 // 产品：属于哪些类目（类目页会列出它的），以及整本目录里放在哪个类目（主品类第一个匹配的，避免重复）
 const items = catalog('en').flatMap((g) => g.items.filter((x) => x.f).map((x) => ({ ...x, group: g.key })));
 const list = (Array.isArray(products) ? products : []).filter((p) => p && p.slug && p.model).map((p) => {
@@ -29,7 +37,7 @@ const list = (Array.isArray(products) ? products : []).filter((p) => p && p.slug
   const img = Array.isArray(p.images) && p.images[0] ? (p.images[0].thumb || p.images[0].src) : '';
   const br = {};
   for (const L of LANGS) { const b = p.brochures && p.brochures[L]; if (b && b.src && /pdf/i.test(b.type || b.src)) br[L] = b.src; }
-  return { s: p.slug, m: String(p.model).trim(), c: cats, pc, img, br };
+  return { s: p.slug, m: String(p.model).trim(), c: cats, pc, img, br, t: tplKey(p) };
 });
 const counts = {};
 for (const p of list) for (const k of p.c) counts[k] = (counts[k] || 0) + 1;
@@ -237,7 +245,8 @@ const catTotal = Object.keys(counts).length;
         name = `${fileSafe(catEn(p.pc))} ${fileSafe(p.m)} Datasheet (${dlLang}).pdf`; title = `${p.m} ${P.datasheet}`;
       }
       if (!sections.length) return;
-      const job = { mode, lang: dlLang, dir: lx.dir, sections, intro: opt('intro'), details: opt('details'), pdfT: P, company: lx.company, coverTitle, coverSub, title };
+      const tplOf = Object.fromEntries(c.list.filter((p) => p.t).map((p) => [p.s, p.t]));
+      const job = { mode, lang: dlLang, dir: lx.dir, sections, tplOf, intro: opt('intro'), details: opt('details'), pdfT: P, company: lx.company, coverTitle, coverSub, title };
       const prog = card.querySelector('[data-prog]'), bar = card.querySelector('[data-bar]'), ptext = card.querySelector('[data-ptext]');
       const ctl = new AbortController(); busy = ctl;
       root.querySelectorAll('.pdf-btn').forEach((b) => (b.disabled = true));

@@ -26,7 +26,7 @@ export const DL = {
     pdf: {
       catalogue: 'Product catalogue', catCatalogue: (c) => `${c} — catalogue`, datasheet: 'Datasheet',
       edition: (y) => `Edition ${y}`, contents: 'Contents', index: 'Model index', models: (n) => `${n} models`,
-      specs: 'Specifications', features: 'Key features', details: 'Series details', page: 'Page',
+      specs: 'Specifications', features: 'Key features', model: 'Model', cont: 'continued', details: 'Series details', page: 'Page',
       contact: 'Contact', factory: 'Factory', office: 'Beijing office', hq: 'Shenzhen headquarters', locH: 'Contact & locations', zhAddr: 'Address in Chinese',
       note: 'Specifications are subject to change without notice. Latest data: ups-china.com',
     },
@@ -55,7 +55,7 @@ export const DL = {
     pdf: {
       catalogue: 'Catálogo de productos', catCatalogue: (c) => `${c} — catálogo`, datasheet: 'Ficha técnica',
       edition: (y) => `Edición ${y}`, contents: 'Índice', index: 'Índice de modelos', models: (n) => `${n} modelos`,
-      specs: 'Especificaciones', features: 'Características principales', details: 'Detalles de la serie', page: 'Página',
+      specs: 'Especificaciones', features: 'Características principales', model: 'Modelo', cont: 'continuación', details: 'Detalles de la serie', page: 'Página',
       contact: 'Contacto', factory: 'Fábrica', office: 'Oficina de Pekín', hq: 'Sede de Shenzhen', locH: 'Contacto y ubicaciones', zhAddr: 'Dirección en chino',
       note: 'Las especificaciones pueden cambiar sin previo aviso. Datos actualizados: ups-china.com',
     },
@@ -84,7 +84,7 @@ export const DL = {
     pdf: {
       catalogue: 'Каталог продукции', catCatalogue: (c) => `${c} — каталог`, datasheet: 'Техописание',
       edition: (y) => `Издание ${y}`, contents: 'Содержание', index: 'Указатель моделей', models: (n) => `${n} моделей`,
-      specs: 'Характеристики', features: 'Основные особенности', details: 'Подробно о серии', page: 'Стр.',
+      specs: 'Характеристики', features: 'Основные особенности', model: 'Модель', cont: 'продолжение', details: 'Подробно о серии', page: 'Стр.',
       contact: 'Контакты', factory: 'Завод', office: 'Офис в Пекине', hq: 'Штаб-квартира в Шэньчжэне', locH: 'Контакты и адреса', zhAddr: 'Адрес на китайском',
       note: 'Характеристики могут быть изменены без уведомления. Актуальные данные: ups-china.com',
     },
@@ -113,7 +113,7 @@ export const DL = {
     pdf: {
       catalogue: 'كتالوج المنتجات', catCatalogue: (c) => `${c} — كتالوج`, datasheet: 'ورقة البيانات',
       edition: (y) => `إصدار ${y}`, contents: 'المحتويات', index: 'فهرس الطرازات', models: (n) => `${n} طرازًا`,
-      specs: 'المواصفات', features: 'الميزات الرئيسية', details: 'تفاصيل السلسلة', page: 'صفحة',
+      specs: 'المواصفات', features: 'الميزات الرئيسية', model: 'الطراز', cont: 'تابع', details: 'تفاصيل السلسلة', page: 'صفحة',
       contact: 'التواصل', factory: 'المصنع', office: 'مكتب بكين', hq: 'المقر الرئيسي في شنتشن', locH: 'التواصل والمواقع', zhAddr: 'العنوان بالصينية',
       note: 'المواصفات قابلة للتغيير دون إشعار. أحدث البيانات: ups-china.com',
     },
@@ -126,7 +126,7 @@ export function pdfTexts(lang) {
   const y = new Date().getFullYear();
   return {
     catalogue: P.catalogue, catCatalogueTpl: P.catCatalogue('{c}'), datasheet: P.datasheet, edition: P.edition(y), contents: P.contents, index: P.index,
-    modelsTpl: P.models('{n}'), specs: P.specs, features: P.features, details: P.details, page: P.page,
+    modelsTpl: P.models('{n}'), specs: P.specs, features: P.features, model: P.model, cont: P.cont, details: P.details, page: P.page,
     contact: P.contact, factory: P.factory, office: P.office, hq: P.hq, note: P.note, locH: P.locH, zhAddr: P.zhAddr,
   };
 }
