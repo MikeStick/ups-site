@@ -209,7 +209,7 @@ const cfg = { api: CHAT.api, wa: SITE.whatsapp, lang, hours: VISIT_HOURS, t: { e
     function check() {
       const fd = new FormData(f), bad = [];
       const d = String(fd.get('date') || '');
-      if (!d || d < dateIn.min || d > dateIn.max) bad.push('date');
+      if (!d || d < dateIn.min || d > dateIn.max || [0, 6].includes(new Date(d + 'T00:00:00Z').getUTCDay())) bad.push('date');
       if (!fd.get('hour')) bad.push('hour');
       const n = parseInt(fd.get('people'), 10); if (!(n >= 1 && n <= 50)) bad.push('people');
       for (const k of ['name', 'title', 'phone', 'company']) if (!String(fd.get(k) || '').trim()) bad.push(k);

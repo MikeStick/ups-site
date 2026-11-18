@@ -1,7 +1,7 @@
 // 预约拜访页（/visit/）文案。地址：英文按国际写法，中文原文给司机看。
 // 深圳总部 ↔ 东莞工厂 36 km，车程约 1 小时（可以同一天去两处）。
 
-export const VISIT_HOURS = [9, 10, 11, 12, 14, 15, 16, 17, 18];
+export const VISIT_HOURS = [9, 10, 11, 14, 15, 16, 17];
 
 export const PLACES = [
   {
@@ -35,8 +35,8 @@ export const VT = {
     h1: 'Book a visit',
     lead: 'Meet our team at the Beijing office, the Shenzhen headquarters or the Dongguan factory. Choose a date and time and tell us a little about your company. We will contact you to confirm.',
     s1: 'When', s2: 'Where', s3: 'Who is visiting', s4: 'Your company', s5: 'Interested products',
-    date: 'Visit date', dateHint: 'Year / month / day. Bookings start from tomorrow.',
-    time: 'Time (Beijing time, GMT+8)', am: 'Morning', pm: 'Afternoon',
+    date: 'Visit date', dateHint: 'Year / month / day. Monday – Friday, from tomorrow.',
+    time: 'Time (Monday – Friday, Beijing time, GMT+8)', am: 'Morning', pm: 'Afternoon',
     yourTime: 'Your local time', sameTz: 'Same as your time zone',
     places: 'Visit location — choose one or more',
     placeNames: { beijing: 'Beijing office', shenzhen: 'Shenzhen headquarters', dongguan: 'Dongguan factory' },
@@ -54,7 +54,7 @@ export const VT = {
     submit: 'Send booking request', sending: 'Sending…',
     privacy: 'Your business license is only used to prepare the visit and is not shared.',
     errors: {
-      date: 'Please choose a visit date from tomorrow onwards.', hour: 'Please choose a time.', people: 'Please enter the number of visitors (1–50).',
+      date: 'Please choose a weekday (Monday – Friday) from tomorrow onwards.', hour: 'Please choose a time.', people: 'Please enter the number of visitors (1–50).',
       name: 'Please enter your name.', title: 'Please enter your position.', company: 'Please enter the company name.',
       phone: 'Please enter a phone or WhatsApp number.', email: 'Please enter a valid email address.', places: 'Please choose at least one location.',
       license: 'Please upload your business license.', license_type: 'The business license must be an image or a PDF file.', file_too_big: 'The file is larger than 10 MB.',
@@ -73,8 +73,8 @@ export const VT = {
     h1: 'Reservar una visita',
     lead: 'Conozca a nuestro equipo en la oficina de Pekín, la sede de Shenzhen o la fábrica de Dongguan. Elija fecha y hora y cuéntenos un poco sobre su empresa. Le contactaremos para confirmar.',
     s1: 'Cuándo', s2: 'Dónde', s3: 'Quién visita', s4: 'Su empresa', s5: 'Productos de interés',
-    date: 'Fecha de la visita', dateHint: 'Año / mes / día. Reservas a partir de mañana.',
-    time: 'Hora (hora de Pekín, GMT+8)', am: 'Mañana', pm: 'Tarde',
+    date: 'Fecha de la visita', dateHint: 'Año / mes / día. De lunes a viernes, a partir de mañana.',
+    time: 'Hora (lunes a viernes, hora de Pekín, GMT+8)', am: 'Mañana', pm: 'Tarde',
     yourTime: 'Su hora local', sameTz: 'Igual que su zona horaria',
     places: 'Lugar de la visita: elija uno o varios',
     placeNames: { beijing: 'Oficina de Pekín', shenzhen: 'Sede de Shenzhen', dongguan: 'Fábrica de Dongguan' },
@@ -92,7 +92,7 @@ export const VT = {
     submit: 'Enviar solicitud de visita', sending: 'Enviando…',
     privacy: 'La licencia comercial solo se usa para preparar la visita y no se comparte.',
     errors: {
-      date: 'Elija una fecha a partir de mañana.', hour: 'Elija una hora.', people: 'Indique el número de visitantes (1–50).',
+      date: 'Elija un día laborable (lunes a viernes) a partir de mañana.', hour: 'Elija una hora.', people: 'Indique el número de visitantes (1–50).',
       name: 'Indique su nombre.', title: 'Indique su cargo.', company: 'Indique el nombre de la empresa.',
       phone: 'Indique un teléfono o WhatsApp.', email: 'Indique un correo válido.', places: 'Elija al menos un lugar.',
       license: 'Suba la licencia comercial de su empresa.', license_type: 'La licencia debe ser una imagen o un PDF.', file_too_big: 'El archivo supera los 10 MB.',
@@ -111,8 +111,8 @@ export const VT = {
     h1: 'Записаться на визит',
     lead: 'Встретьтесь с нашей командой в офисе в Пекине, в штаб-квартире в Шэньчжэне или на заводе в Дунгуане. Выберите дату и время и коротко расскажите о компании. Мы свяжемся с вами для подтверждения.',
     s1: 'Когда', s2: 'Где', s3: 'Кто приедет', s4: 'Ваша компания', s5: 'Интересующая продукция',
-    date: 'Дата визита', dateHint: 'Год / месяц / день. Запись — начиная с завтрашнего дня.',
-    time: 'Время (пекинское, GMT+8)', am: 'Утро', pm: 'День',
+    date: 'Дата визита', dateHint: 'Год / месяц / день. Понедельник – пятница, начиная с завтрашнего дня.',
+    time: 'Время (понедельник – пятница, пекинское, GMT+8)', am: 'Утро', pm: 'День',
     yourTime: 'Ваше местное время', sameTz: 'Совпадает с вашим часовым поясом',
     places: 'Место визита — одно или несколько',
     placeNames: { beijing: 'Офис в Пекине', shenzhen: 'Штаб-квартира в Шэньчжэне', dongguan: 'Завод в Дунгуане' },
@@ -130,7 +130,7 @@ export const VT = {
     submit: 'Отправить заявку на визит', sending: 'Отправка…',
     privacy: 'Свидетельство о регистрации используется только для подготовки визита и никому не передаётся.',
     errors: {
-      date: 'Выберите дату, начиная с завтрашнего дня.', hour: 'Выберите время.', people: 'Укажите количество человек (1–50).',
+      date: 'Выберите будний день (понедельник – пятница), начиная с завтрашнего дня.', hour: 'Выберите время.', people: 'Укажите количество человек (1–50).',
       name: 'Укажите имя.', title: 'Укажите должность.', company: 'Укажите название компании.',
       phone: 'Укажите телефон или WhatsApp.', email: 'Укажите корректный email.', places: 'Выберите хотя бы одно место.',
       license: 'Загрузите свидетельство о регистрации компании.', license_type: 'Файл должен быть изображением или PDF.', file_too_big: 'Файл больше 10 МБ.',
@@ -149,8 +149,8 @@ export const VT = {
     h1: 'احجز زيارة',
     lead: 'قابل فريقنا في مكتب بكين أو المقر الرئيسي في شنتشن أو المصنع في دونغقوان. اختر التاريخ والوقت وأخبرنا قليلًا عن شركتك، وسنتواصل معك للتأكيد.',
     s1: 'متى', s2: 'أين', s3: 'من سيزور', s4: 'شركتك', s5: 'المنتجات التي تهمك',
-    date: 'تاريخ الزيارة', dateHint: 'السنة / الشهر / اليوم. يبدأ الحجز من الغد.',
-    time: 'الوقت (بتوقيت بكين، GMT+8)', am: 'صباحًا', pm: 'بعد الظهر',
+    date: 'تاريخ الزيارة', dateHint: 'السنة / الشهر / اليوم. من الاثنين إلى الجمعة، بدءًا من الغد.',
+    time: 'الوقت (من الاثنين إلى الجمعة، بتوقيت بكين، GMT+8)', am: 'صباحًا', pm: 'بعد الظهر',
     yourTime: 'الوقت المحلي لديك', sameTz: 'نفس منطقتك الزمنية',
     places: 'مكان الزيارة — اختر مكانًا واحدًا أو أكثر',
     placeNames: { beijing: 'مكتب بكين', shenzhen: 'المقر الرئيسي في شنتشن', dongguan: 'مصنع دونغقوان' },
@@ -168,7 +168,7 @@ export const VT = {
     submit: 'إرسال طلب الزيارة', sending: 'جارٍ الإرسال…',
     privacy: 'يُستخدم السجل التجاري فقط للتحضير للزيارة ولا تتم مشاركته.',
     errors: {
-      date: 'يرجى اختيار تاريخ بدءًا من الغد.', hour: 'يرجى اختيار الوقت.', people: 'يرجى إدخال عدد الزوار (1–50).',
+      date: 'يرجى اختيار يوم عمل (من الاثنين إلى الجمعة) بدءًا من الغد.', hour: 'يرجى اختيار الوقت.', people: 'يرجى إدخال عدد الزوار (1–50).',
       name: 'يرجى إدخال اسمك.', title: 'يرجى إدخال منصبك.', company: 'يرجى إدخال اسم الشركة.',
       phone: 'يرجى إدخال رقم الهاتف أو واتساب.', email: 'يرجى إدخال بريد إلكتروني صحيح.', places: 'يرجى اختيار مكان واحد على الأقل.',
       license: 'يرجى رفع السجل التجاري لشركتك.', license_type: 'يجب أن يكون الملف صورة أو PDF.', file_too_big: 'حجم الملف أكبر من 10 ميغابايت.',
