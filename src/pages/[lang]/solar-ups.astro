@@ -1,0 +1,487 @@
+---
+// 太阳能 UPS 栏目页（Solar UPS）：首屏 → 能量流示意（晴天 / 夜间 / 停电 / 削峰）→ 快速选型（负载 + 无电网小时数 → 机柜、电池、光伏）
+// → 全系列 15 个机柜参数 → 已发布型号 → 卖点 → 通用参数 → 应用 → 项目报价。只询价，不显示价格。
+// 产品来自客户档案系统：细分品类 = 太阳能UPS（或模板选了网站类目"太阳能 UPS"）。全系列数据见 src/lib/solarups-i18n.mjs
+import CatSearch from '../../components/CatSearch.astro';
+import { SF, csData } from '../../lib/search-i18n.mjs';
+import Base from '../../layouts/Base.astro';
+import { LANGS, SITE } from '../../config.mjs';
+import { SU, SU_RANGE, SU_BATT_V, SU_MAX_PAR } from '../../lib/solarups-i18n.mjs';
+import { isSolarUps, capacityOf, fmtCap } from '../../lib/category.mjs';
+import { specValue } from '../../lib/offline-i18n.mjs';
+import all from '../../data/products.json';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const T = SU[lang];
+const models = all.filter(isSolarUps).map((p) => ({ p, c: capacityOf(p) })).sort((a, b) => a.c.va - b.c.va);
+const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+const num = (x: number) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
+const cfg = { range: SU_RANGE, battV: SU_BATT_V, maxPar: SU_MAX_PAR, wa: SITE.whatsapp || '', email: SITE.email || '', lang,
+  t: { rec: T.rec, unit: T.unit, units: T.units, battE: T.battE, tooBig: T.tooBig, msg: T.msg } };
+const MODES = ['sun', 'night', 'outage', 'peak'] as const;
+const APP_ICONS = [
+  '<path d="M4 25h22M7 25V13l8-6 8 6v12M12 25v-7h6v7"/><path d="M24 8l3-3"/>',
+  '<path d="M15 3v4M15 23v4M3 15h4M23 15h4M7 7l3 3M20 20l3 3M7 23l3-3M20 10l3-3"/><circle cx="15" cy="15" r="5"/>',
+  '<path d="M4 24l6-8 5 5 5-9 6 12"/><path d="M4 27h22"/>',
+  '<path d="M4 26V14l7 4v-4l7 4v-4l7 4v8z"/>',
+  '<path d="M15 4c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z"/>',
+  '<path d="M5 26V12l10-7 10 7v14M11 26v-7h8v7M5 12h20"/>',
+];
+---
+<Base lang={lang} title={`${T.title} 10–600 kVA · ${SITE.name}`} description={T.metaDesc} path="solar-ups/">
+<div class="off sups">
+  <nav class="crumbs"><a href={`/${lang}/`}>{T.crumbs}</a> / {T.title}</nav>
+
+  <section class="hero" style="--bg:url(/img/solar-ups/hero.webp)">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h1>{T.h1a}<em>{T.h1b}</em></h1>
+        <p>{T.lead}</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#sizer">{T.ctaSizer}</a>
+          <a class="btn ghost" href="#range">{T.ctaRange}</a>
+        </div>
+        <div class="hero-facts">
+          {T.facts.map(([a, b]) => <div><b class="num">{a}</b><span>{b}</span></div>)}
+        </div>
+      </div>
+      <div class="hero-img"><img src="/img/solar-ups/ups.webp" alt={T.title} width="640" height="1194" fetchpriority="high" /></div>
+    </div>
+  </section>
+
+  <!-- 能量流：四种工作方式 -->
+  <section class="block" id="flow">
+    <div class="head"><span class="eyebrow">{T.flowEyebrow}</span><h2>{T.flowH}</h2><p>{T.flowP}</p></div>
+    <div class="flow card" data-flow data-mode="sun">
+      <div class="modes" role="tablist">
+        {MODES.map((m, i) => <button type="button" role="tab" class:list={['chip', { on: i === 0 }]} data-mode-btn={m}>{T.modes[m][0]}</button>)}
+      </div>
+      <div class="flow-in">
+        <svg viewBox="0 0 900 470" class="fsvg" role="img" aria-label={T.flowH}>
+          <defs>
+            <linearGradient id="su-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf4ff"/><stop offset="1" stop-color="#f8fbf6"/></linearGradient>
+          </defs>
+          <rect width="900" height="470" rx="16" fill="url(#su-sky)"/>
+          <!-- 连线：先画底线，再画动画线 -->
+          <g class="wires">
+            <path id="w-pv" d="M190 105 C 300 105, 330 190, 390 205"/>
+            <path id="w-grid" d="M180 245 H 390"/>
+            <path id="w-gen" d="M190 385 C 300 385, 330 300, 390 285"/>
+            <path id="w-batt" d="M460 400 V 330"/>
+            <path id="w-load" d="M520 245 H 700"/>
+          </g>
+          <g class="flows">
+            <path class="f f-pv" d="M190 105 C 300 105, 330 190, 390 205"/>
+            <path class="f f-grid" d="M180 245 H 390"/>
+            <path class="f f-gen" d="M190 385 C 300 385, 330 300, 390 285"/>
+            <path class="f f-chg" d="M460 330 V 400"/>
+            <path class="f f-dis" d="M460 400 V 330"/>
+            <path class="f f-load" d="M520 245 H 700"/>
+          </g>
+          <!-- 光伏 -->
+          <g class="node n-pv" transform="translate(70 60)">
+            <circle cx="108" cy="2" r="14" class="sun"/>
+            <path d="M8 70 L28 18 H112 L92 70 Z" class="pv"/>
+            <path d="M22 44 H105 M36 18 L18 70 M64 18 L46 70 M92 18 L74 70" class="pvl"/>
+            <path d="M58 70 V86 M44 86 H72" class="stand"/>
+            <text x="60" y="108" text-anchor="middle">{T.node.pv}</text>
+          </g>
+          <!-- 电网 -->
+          <g class="node n-grid" transform="translate(80 195)">
+            <path d="M50 4 L30 92 M50 4 L70 92 M38 40 H62 M34 60 H66 M18 22 H82 M24 22 L50 4 L76 22" class="ln"/>
+            <text x="50" y="114" text-anchor="middle">{T.node.grid}</text>
+            <g class="x"><path d="M84 30 l20 20 M104 30 l-20 20"/></g>
+          </g>
+          <!-- 发电机 -->
+          <g class="node n-gen" transform="translate(76 350)">
+            <rect x="8" y="8" width="96" height="56" rx="8" class="gen"/>
+            <rect x="20" y="20" width="36" height="22" rx="3" class="genw"/>
+            <circle cx="80" cy="34" r="12" class="genw"/>
+            <path d="M14 64 v10 M98 64 v10" class="ln"/>
+            <text x="56" y="96" text-anchor="middle">{T.node.gen}</text>
+          </g>
+          <!-- 电池 -->
+          <g class="node n-batt" transform="translate(410 398)">
+            <rect x="0" y="0" width="100" height="40" rx="6" class="bat"/>
+            <rect x="8" y="8" width="56" height="24" rx="3" class="batl"/>
+            <path d="M74 14 h14 M81 8 v12 M74 28 h14" class="batp"/>
+            <text x="50" y="62" text-anchor="middle">{T.node.batt}</text>
+          </g>
+          <!-- 太阳能 UPS -->
+          <g class="node n-ups">
+            <rect x="388" y="150" width="134" height="182" rx="14" class="upsbg"/>
+            <image href="/img/solar-ups/ups.webp" x="408" y="158" width="94" height="168" preserveAspectRatio="xMidYMid meet"/>
+            <text x="455" y="138" text-anchor="middle" class="upst">{T.node.ups}</text>
+          </g>
+          <!-- 负载 -->
+          <g class="node n-load" transform="translate(700 170)">
+            <path d="M10 140 V60 L50 32 V60 L90 32 V60 L130 32 V140 Z" class="ld"/>
+            <rect x="26" y="88" width="20" height="20" class="ldw"/><rect x="62" y="88" width="20" height="20" class="ldw"/><rect x="98" y="88" width="20" height="20" class="ldw"/>
+            <text x="70" y="166" text-anchor="middle">{T.node.load}</text>
+          </g>
+        </svg>
+        <div class="flow-txt">
+          {MODES.map((m, i) => <div class="mtxt" data-mode-txt={m} hidden={i !== 0}><h3>{T.modes[m][0]}</h3><p>{T.modes[m][1]}</p></div>)}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 快速选型 -->
+  <section class="block" id="sizer">
+    <div class="head"><span class="eyebrow">{T.sizerEyebrow}</span><h2>{T.sizerH}</h2><p>{T.sizerP}</p></div>
+    <div class="sizer" data-sizer data-cfg={JSON.stringify(cfg)}>
+      <div class="card inputs">
+        <label class="fld"><span>{T.s1}</span><div class="inp"><input type="number" min="1" max="3240" step="1" value="30" data-in="kw" /><i>{T.s1u}</i></div><small>{T.s1tip}</small></label>
+        <label class="fld"><span>{T.s2}</span><div class="inp"><input type="number" min="0" max="48" step="0.5" value="4" data-in="h" /><i>{T.s2u}</i></div></label>
+        <div class="fld"><span>{T.s3}</span><div class="seg" data-in="v">{[380, 400, 415].map((v, i) => <button type="button" class:list={{ on: i === 0 }} data-v={v}>{v} V</button>)}</div></div>
+        <div class="fld"><span>{T.s4}</span><div class="seg" data-in="m">{[20, 30, 10].map((v, i) => <button type="button" class:list={{ on: i === 0 }} data-v={v}>{T.s4o[v]}</button>)}</div></div>
+      </div>
+      <div class="card out" data-out>
+        <span class="eyebrow">{T.rec}</span>
+        <h3 data-o="model">—</h3>
+        <ul class="kv">
+          <li><span>{T.maxLoad}</span><b data-o="cap">—</b></li>
+          <li><span>{T.current}</span><b data-o="amp">—</b></li>
+          <li><span>{T.pvRec}</span><b data-o="pv">—</b></li>
+          <li><span>{T.battH}</span><b data-o="batt">—</b></li>
+          <li><span>{T.dimW}</span><b data-o="dim">—</b></li>
+        </ul>
+        <p class="note" data-o="note">{T.battNote}</p>
+        <p class="warn" data-o="big" hidden>{T.tooBig}</p>
+        <div class="send">
+          {SITE.whatsapp && <a class="btn primary" data-send="wa" href="#" target="_blank" rel="noopener">{T.sendWa}</a>}
+          {SITE.email && <a class="btn line" data-send="mail" href="#">{T.sendMail}</a>}
+        </div>
+      </div>
+      <details class="assume"><summary>{T.assumeH}</summary><ul>{T.assume.map((a) => <li>{a}</li>)}</ul></details>
+    </div>
+  </section>
+
+  <!-- 全系列 -->
+  <section class="block" id="range">
+    <div class="head"><span class="eyebrow">{T.rangeEyebrow}</span><h2>{T.rangeH}</h2></div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>{T.th.m}</th><th>{T.th.kva}</th><th>{T.th.pf}</th><th>{T.th.kw}</th><th>{T.th.pv}</th><th>{T.th.a}</th><th>{T.th.dim}</th><th>{T.th.kg}</th></tr></thead>
+        <tbody>
+          {SU_RANGE.map((r) => (
+            <tr data-row={r.m}>
+              <td><b>{r.m}</b></td><td class="num">{r.kva} kVA</td><td class="num">{num(r.pf)}</td><td class="num">{num(Math.round(r.kva * r.pf * 10) / 10)}</td>
+              <td class="num">{num(r.pv)} kW</td><td class="num">{r.a === '—' ? '—' : `${r.a} A`}</td><td class="num">{r.dim}</td><td class="num">{r.kg}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {models.length > 0 && (
+    <section class="block" id="models">
+      <div class="head"><span class="eyebrow">{T.modelsEyebrow}</span><h2>{T.modelsH}</h2></div>
+      <CatSearch lang={lang} facets={[{ k: 'cap', label: SF[lang].cap, unit: 'kVA' }]} ex="60kVA" />
+      <div class="grid">
+        {models.map(({ p, c }) => {
+          const img = p.images && p.images[0];
+          const rows = [specValue(p, 'outputVoltage', lang), specValue(p, 'efficiencyAcMode', lang)].filter(Boolean);
+          return (
+            <article class="pcard" data-cs={csData(p, { cap: c.va / 1000 })}>
+              <a class="pimg" href={`/${lang}/p/${p.slug}/`}>
+                <img src={img ? (img.thumb || img.src) : '/img/solar-ups/ups.webp'} alt={p.model} loading="lazy" />
+                <span class="tags"><span class="tag u">PV + UPS</span></span>
+              </a>
+              <div class="pbody">
+                <h3><a href={`/${lang}/p/${p.slug}/`}>{p.model}</a></h3>
+                {fmtCap(c) && <span class="va">{fmtCap(c)}</span>}
+                {rows.length > 0 && <ul>{rows.map((v) => <li><b>{v}</b></li>)}</ul>}
+                <div class="pact"><a class="btn sm line" href={`/${lang}/p/${p.slug}/`}>{T.details}</a></div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.featEyebrow}</span><h2>{T.featH}</h2></div>
+    <div class="feats">{T.feats.map(([a, b], i) => <div class="card feat"><span class="fi num">{String(i + 1).padStart(2, '0')}</span><h3>{a}</h3><p>{b}</p></div>)}</div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.specEyebrow}</span><h2>{T.specH}</h2></div>
+    <div class="specs">
+      {T.specs.map(([g, rows]) => (
+        <div class="card spec"><h3>{g}</h3><ul>{rows.map(([k, v]) => <li><span>{k}</span><b>{v}</b></li>)}</ul></div>
+      ))}
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.appsEyebrow}</span><h2>{T.appsH}</h2></div>
+    <div class="apps-wrap">
+      <div class="apps">{T.apps.map((a, i) => <div class="app"><svg viewBox="0 0 30 30" aria-hidden="true" set:html={APP_ICONS[i]} /><span>{a}</span></div>)}</div>
+      <div class="farm" style="background-image:url(/img/solar-ups/farm.webp)" role="img" aria-label={T.apps[0]}></div>
+    </div>
+    <p class="see"><a href={`/${lang}/industrial-ups/`}>{T.seeInd}</a> · <a href={`/${lang}/ci-ess/`}>{T.seeEss}</a></p>
+  </section>
+
+  <section class="block">
+    <div class="head"><span class="eyebrow">{T.projEyebrow}</span><h2>{T.projH}</h2></div>
+    <div class="oem">
+      <div class="oem-list">{T.proj.map(([a, b]) => <div><b>{a}</b><span>{b}</span></div>)}</div>
+      <div class="oem-cta">
+        <h3>{T.projCtaH}</h3>
+        <p>{T.projCtaP}</p>
+        {SITE.whatsapp && <div><a class="btn primary" href={wa(T.projMsg)} target="_blank" rel="noopener">{T.projCta}</a></div>}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-box">
+      <div><h2>{T.ctaH}</h2><p>{T.ctaP}</p></div>
+      <div class="btns">
+        {SITE.whatsapp && <a class="btn dark" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.whatsappDisplay}</a>}
+        {SITE.email && <a class="btn line" href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </div>
+    </div>
+  </section>
+</div>
+</Base>
+
+<script is:inline>
+  // 能量流：切换工作方式
+  (function () {
+    var box = document.querySelector('[data-flow]'); if (!box) return;
+    var order = ['sun', 'night', 'outage', 'peak'], timer = null, idx = 0;
+    function set(m) {
+      box.dataset.mode = m; idx = order.indexOf(m);
+      box.querySelectorAll('[data-mode-btn]').forEach(function (b) { b.classList.toggle('on', b.dataset.modeBtn === m); b.setAttribute('aria-selected', b.dataset.modeBtn === m); });
+      box.querySelectorAll('[data-mode-txt]').forEach(function (t) { t.hidden = t.dataset.modeTxt !== m; });
+    }
+    box.addEventListener('click', function (e) { var b = e.target.closest('[data-mode-btn]'); if (!b) return; clearInterval(timer); timer = null; set(b.dataset.modeBtn); });
+    // 没点过时自动轮播（减少动态效果的设置下不轮播）
+    if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) timer = setInterval(function () { set(order[(idx + 1) % order.length]); }, 5200);
+  })();
+
+  // 快速选型：负载 kW + 无电网小时数 → 机柜（不够就并机，最多 6 台）、电池（409.6 V，50 Ah 一档）、推荐光伏功率
+  (function () {
+    var box = document.querySelector('[data-sizer]'); if (!box) return;
+    var C = JSON.parse(box.dataset.cfg), T = C.t;
+    var loc = C.lang === 'en' ? 'en-US' : C.lang === 'ru' ? 'ru-RU' : C.lang === 'es' ? 'es-ES' : 'en-US';
+    var fmt = function (x, d) { return Number(x).toLocaleString(loc, { maximumFractionDigits: d == null ? 1 : d }); };
+    var st = { v: 380, m: 20 };
+    var q = function (s) { return box.querySelector(s); };
+    var out = function (k, v) { var el = q('[data-o="' + k + '"]'); if (el) el.textContent = v; };
+    box.querySelectorAll('.seg').forEach(function (seg) {
+      seg.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        st[seg.dataset.in] = +b.dataset.v; calc();
+      });
+    });
+    box.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', calc); });
+    function calc() {
+      var kw = Math.max(0, +q('[data-in="kw"]').value || 0), h = Math.max(0, +q('[data-in="h"]').value || 0);
+      var need = kw / (1 - st.m / 100);
+      var pick = null, n = 1;
+      for (var i = 0; i < C.range.length; i++) { var r = C.range[i]; if (r.kva * r.pf >= need) { pick = r; break; } }
+      if (!pick) { pick = C.range[C.range.length - 1]; n = Math.ceil(need / (pick.kva * pick.pf)); }
+      var big = n > C.maxPar;
+      q('[data-o="big"]').hidden = !big;
+      var name = n > 1 ? T.units.replace('{n}', n).replace('{m}', pick.m) : pick.m;
+      out('model', kw ? name : '—');
+      out('cap', kw ? fmt(pick.kva * pick.pf * n * (1 - st.m / 100)) + ' kW · ' + fmt(pick.kva * n, 0) + ' kVA' : '—');
+      var amp = pick.kva * n * 1000 / (Math.sqrt(3) * st.v);
+      out('amp', kw ? fmt(amp, 0) + ' A @ ' + st.v + ' V' : '—');
+      out('pv', kw ? fmt(pick.pv * n) + ' kW' : '—');
+      var kwhUse = kw * h, kwhBank = kwhUse / 0.9 / 0.95;
+      var ah = Math.ceil(kwhBank * 1000 / C.battV / 50) * 50;
+      var battTxt = h > 0 && kw ? T.battE.replace('{kwh}', fmt(kwhUse)).replace('{ah}', fmt(ah, 0)) : '—';
+      out('batt', battTxt);
+      out('dim', kw ? (n > 1 ? n + ' × ' : '') + pick.dim + ' mm · ' + fmt(pick.kg * n, 0) + ' kg' : '—');
+      document.querySelectorAll('[data-row]').forEach(function (tr) { tr.classList.toggle('hit', kw > 0 && tr.dataset.row === pick.m); });
+      var msg = T.msg.replace('{kw}', fmt(kw)).replace('{v}', st.v).replace('{h}', fmt(h)).replace('{rec}', name).replace('{kwh}', fmt(kwhUse)).replace('{ah}', fmt(ah, 0)).replace('{pv}', fmt(pick.pv * n));
+      var waA = q('[data-send="wa"]'), mA = q('[data-send="mail"]');
+      if (waA) waA.href = 'https://wa.me/' + C.wa + '?text=' + encodeURIComponent(msg);
+      if (mA) mA.href = 'mailto:' + C.email + '?subject=' + encodeURIComponent('Solar UPS · ' + name) + '&body=' + encodeURIComponent(msg);
+    }
+    calc();
+  })();
+</script>
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--body); font-size: 15px; }
+  .btn.primary { background: var(--charge); color: var(--ink); }
+  .btn.ghost { color: #fff; border-color: rgba(255,255,255,.4); background: transparent; }
+  .btn.dark { background: var(--accent); color: #fff; }
+  .btn.line { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+  .crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .crumbs a { color: var(--muted); }
+  .sups :global(.head) { display: grid; gap: 10px; margin-bottom: 22px; max-width: 780px; }
+  .sups :global(.head h2) { font-size: clamp(28px, 4.2vw, 42px); }
+  .sups :global(.head p) { margin: 0; color: var(--muted); }
+  .sups :global(section.block) { padding-block: 56px 0; }
+  .sups :global(.eyebrow) { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--charge); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+
+  /* 首屏 */
+  .hero { position: relative; overflow: hidden; margin-top: 14px; border-radius: 16px; color: #fff; background: #0c2338 var(--bg) center/cover no-repeat; }
+  .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,26,44,.94) 0%, rgba(7,26,44,.82) 46%, rgba(7,26,44,.25) 78%, rgba(7,26,44,.1)); }
+  :global(html[dir='rtl']) .hero::before { background: linear-gradient(270deg, rgba(7,26,44,.94) 0%, rgba(7,26,44,.82) 46%, rgba(7,26,44,.25) 78%, rgba(7,26,44,.1)); }
+  .hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 20px; padding: 44px 40px 0; align-items: end; }
+  .hero-in > div:first-child { padding-bottom: 40px; }
+  @media (max-width: 860px) { .hero-in { grid-template-columns: minmax(0, 1fr); padding: 28px 20px 0; } .hero::before { background: linear-gradient(180deg, rgba(7,26,44,.92), rgba(7,26,44,.6)); } }
+  .hero h1 { font-size: clamp(38px, 5.8vw, 66px); margin: 10px 0 14px; }
+  .hero h1 em { font-style: normal; color: var(--charge); display: block; }
+  .hero p { margin: 0; color: #d3e2ee; font-size: 17px; max-width: 590px; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 26px; max-width: 640px; }
+  @media (max-width: 560px) { .hero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .hero-facts div { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); border-radius: 12px; padding: 12px; }
+  .hero-facts b { display: block; font: 700 24px/1.05 var(--display); color: var(--charge); }
+  .hero-facts span { font-size: 12.5px; color: #b9cad8; }
+  .hero-img { display: flex; justify-content: center; align-items: flex-end; }
+  .hero-img img { width: auto; height: auto; max-height: 460px; max-width: 100%; filter: drop-shadow(0 20px 30px rgba(0,0,0,.45)); }
+  @media (max-width: 860px) { .hero-img img { max-height: 300px; } }
+
+  /* 能量流 */
+  .flow { padding: 16px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { font: 14px var(--body); padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .flow-in { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+  @media (max-width: 860px) { .flow-in { grid-template-columns: minmax(0, 1fr); } }
+  .fsvg { width: 100%; height: auto; display: block; }
+  .fsvg text { font: 600 15px var(--body); fill: var(--ink); }
+  .fsvg .upst { font-size: 17px; fill: #0c4a7d; }
+  .wires path { fill: none; stroke: #c9d5df; stroke-width: 6; stroke-linecap: round; }
+  .flows .f { fill: none; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 2 16; opacity: 0; transition: opacity .35s; animation: su-run 1s linear infinite; }
+  .f-pv { stroke: #e5a400; } .f-grid { stroke: #2f74c0; } .f-gen { stroke: #c2531c; } .f-chg, .f-dis { stroke: #1aa36f; } .f-load { stroke: #0c4a7d; }
+  @keyframes su-run { to { stroke-dashoffset: -18; } }
+  @media (prefers-reduced-motion: reduce) { .flows .f { animation: none; stroke-dasharray: none; } }
+  [data-mode="sun"] .f-pv, [data-mode="sun"] .f-chg, [data-mode="sun"] .f-load { opacity: 1; }
+  [data-mode="night"] .f-dis, [data-mode="night"] .f-load { opacity: 1; } [data-mode="night"] .f-grid { opacity: .35; }
+  [data-mode="outage"] .f-dis, [data-mode="outage"] .f-load, [data-mode="outage"] .f-pv { opacity: 1; } [data-mode="outage"] .f-gen { opacity: .45; }
+  [data-mode="peak"] .f-pv, [data-mode="peak"] .f-dis, [data-mode="peak"] .f-load { opacity: 1; }
+  .node { transition: opacity .35s; }
+  [data-mode="night"] .n-pv, [data-mode="outage"] .n-grid, [data-mode="sun"] .n-gen, [data-mode="night"] .n-gen, [data-mode="peak"] .n-gen, [data-mode="peak"] .n-grid { opacity: .4; }
+  .x path { stroke: #d33; stroke-width: 5; stroke-linecap: round; opacity: 0; transition: opacity .3s; }
+  [data-mode="outage"] .x path { opacity: 1; }
+  .sun { fill: #ffc533; transition: opacity .35s; } [data-mode="night"] .sun { opacity: .15; }
+  .pv { fill: #1d3d63; stroke: #0e2440; stroke-width: 2; } .pvl { stroke: #6d8fb6; stroke-width: 1.4; fill: none; } .stand { stroke: #7b8794; stroke-width: 4; fill: none; }
+  .ln { stroke: #55606b; stroke-width: 3; fill: none; stroke-linecap: round; }
+  .gen { fill: #e96a22; } .genw { fill: #2b2f35; }
+  .bat { fill: #1aa36f; } .batl { fill: #dff5ea; } .batp { stroke: #fff; stroke-width: 3; }
+  .upsbg { fill: #fff; stroke: #0c4a7d; stroke-width: 3; }
+  .ld { fill: #e9eef3; stroke: #55606b; stroke-width: 3; stroke-linejoin: round; } .ldw { fill: #ffd25e; }
+  .flow-txt h3 { font-size: 26px; margin: 0 0 8px; }
+  .flow-txt p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  /* 选型 */
+  .sizer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .sizer { grid-template-columns: minmax(0, 1fr); } }
+  .inputs { display: grid; gap: 16px; align-content: start; }
+  .fld { display: grid; gap: 6px; }
+  .fld > span { font-weight: 600; }
+  .fld small { color: var(--muted); font-size: 13px; }
+  .inp { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; overflow: hidden; max-width: 260px; }
+  .inp input { flex: 1; min-width: 0; border: 0; padding: 11px 12px; font: 600 20px var(--mono); outline: 0; background: transparent; }
+  .inp i { font-style: normal; padding: 0 12px; color: var(--muted); font-size: 14px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { font: 14px var(--body); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  .seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .out { background: #0c2338; color: #fff; border-color: #0c2338; display: grid; gap: 10px; align-content: start; }
+  .out h3 { font-size: 32px; margin: 0; }
+  .kv { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .kv li { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 8px; font-size: 14.5px; }
+  .kv span { color: #a9bccc; }
+  .kv b { font-weight: 600; }
+  @media (max-width: 460px) { .kv li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+  .out .note { margin: 0; font-size: 12.5px; color: #8fa6b9; }
+  .out .warn { margin: 0; font-size: 14px; color: #ffd27a; font-weight: 600; }
+  .send { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .assume { grid-column: 1 / -1; font-size: 14px; color: var(--muted); }
+  .assume summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+  .assume ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+
+  /* 全系列表 */
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .tbl table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 820px; }
+  :global(html[dir='rtl']) .sups :global(.eyebrow), :global(html[dir='rtl']) .tbl th, :global(html[dir='rtl']) .tag { letter-spacing: 0; font-family: inherit; }
+  :global(html[dir='rtl']) .tbl th { text-align: right; }
+  .tbl th { text-align: left; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); background: #f6f8fa; white-space: nowrap; }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tr.hit td { background: #fff6d6; }
+  .tbl tr.hit td:first-child { box-shadow: inset 4px 0 0 var(--charge); }
+
+  /* 型号卡片（同其他栏目） */
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+  .pcard[hidden] { display: none; }
+  .pimg { aspect-ratio: 1 / 1; overflow: hidden; background: #fff; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4%; box-sizing: border-box; }
+  .pimg .tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+  .tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; }
+  .tag.u { background: var(--ink); color: #fff; }
+  .pbody { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .pbody h3 { font-size: 24px; }
+  .pbody h3 a { color: inherit; text-decoration: none; }
+  .pbody .va { font: 600 15px var(--mono); }
+  .pbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  .pbody ul b { color: var(--ink); font-weight: 500; }
+  .pact { display: flex; gap: 8px; margin-top: 4px; }
+  .pact .btn { flex: 1; }
+
+  .feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+  .feat { display: grid; gap: 8px; align-content: start; }
+  .feat .fi { font: 700 14px var(--mono); color: #c28a00; }
+  .feat h3 { font-size: 21px; }
+  .feat p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  .specs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1000px) { .specs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 620px) { .specs { grid-template-columns: minmax(0, 1fr); } }
+  .spec h3 { font-size: 20px; margin: 0 0 10px; }
+  .spec ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; font-size: 14px; }
+  .spec li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; border-top: 1px dashed var(--line); padding-top: 7px; }
+  .spec li span { color: var(--muted); }
+  .spec li b { font-weight: 500; }
+
+  .apps-wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 14px; align-items: stretch; }
+  @media (max-width: 860px) { .apps-wrap { grid-template-columns: minmax(0, 1fr); } }
+  .apps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; font-size: 14px; }
+  .app svg { width: 30px; height: 30px; color: #c28a00; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .farm { border-radius: 12px; background: #9cc27a center/cover no-repeat; min-height: 240px; }
+  .see { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+
+  .oem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .oem { grid-template-columns: minmax(0, 1fr); } }
+  .oem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .oem-list div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); }
+  .oem-list b { display: block; font-size: 15px; }
+  .oem-list span { font-size: 13px; color: var(--muted); }
+  .oem-cta { background: #0c2338; color: #fff; border-radius: 12px; padding: 24px; display: grid; gap: 12px; align-content: center; }
+  .oem-cta h3 { font-size: 30px; }
+  .oem-cta p { margin: 0; color: #c9d8e4; }
+
+  .cta { padding-block: 56px; }
+  .cta-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .cta-box { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+  .cta-box h2 { font-size: clamp(26px, 3.6vw, 38px); }
+  .cta-box p { margin: 6px 0 0; color: var(--muted); }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>

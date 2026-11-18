@@ -47,7 +47,7 @@ const groups = catalog(lang).map((g) => ({
   ...g,
   items: g.items.map((it) => {
     const ps = it.f ? all.filter(it.f) : [];
-    const img = asset(`cat_${it.key}`) || (it.key === 'designer' ? { src: '/img/cat_designer.png' } : null) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
+    const img = asset(`cat_${it.key}`) || (it.key === 'designer' ? { src: '/img/cat_designer.png' } : null) || (it.key === 'solarups' && !ps.some((p) => p.images && p.images[0]) ? { src: '/img/solar-ups/ups.webp' } : null) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
     return { ...it, n: ps.length, range: it.tool ? '' : rangeOf(it, ps) || T.fallback[it.key] || '', img };
   }),
 }));
@@ -76,6 +76,7 @@ const ICONS = {
   rack: '<rect x="6" y="10" width="36" height="8" rx="1.5"/><rect x="6" y="20" width="36" height="8" rx="1.5"/><rect x="6" y="30" width="36" height="8" rx="1.5"/><path d="M10 14h.01M10 24h.01M10 34h.01M30 14h8M30 24h8M30 34h8"/>',
   modular: '<rect x="8" y="4" width="32" height="40" rx="2"/><path d="M12 10h24M12 17h24M12 24h24M12 31h24M12 38h24"/><path d="M33 10v1M33 17v1M33 24v1"/>',
   industrial: '<path d="M4 42V22l10 6v-6l10 6v-6l10 6V8h10v34z"/><path d="M38 14h2"/>',
+  solarups: '<rect x="22" y="14" width="18" height="30" rx="2"/><rect x="26" y="18" width="10" height="6" rx="1"/><path d="M2 30l5-12h12l-3 12zM8 18l-2 12M13 18l-1 12M3 24h14"/><circle cx="10" cy="8" r="3"/>',
   inverter: '<rect x="10" y="6" width="28" height="36" rx="3"/><rect x="15" y="11" width="18" height="9" rx="1"/><path d="M18 28l4 4 8-8"/>',
   homeess: '<path d="M6 22L24 8l18 14M10 19v23h28V19"/><rect x="19" y="26" width="10" height="16" rx="1"/><path d="M22 31h4M22 36h4"/>',
   ciess: '<rect x="6" y="10" width="15" height="30" rx="2"/><rect x="27" y="10" width="15" height="30" rx="2"/><path d="M13.5 14v22M34.5 14v22M4 42h40"/>',

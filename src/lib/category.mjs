@@ -191,6 +191,9 @@ export const isAio = pin('aio', (p) => has(p, AIO_TYPES) || typesOf(p).some((t) 
 // 工频机 UPS 栏目（Industrial UPS）：带输出隔离变压器的工频在线式
 export const INDUSTRIAL_TYPES = ['工频UPS'];
 export const isIndustrial = pin('industrial', (p) => has(p, INDUSTRIAL_TYPES));
+// 太阳能 UPS 栏目（Solar UPS）：光伏 + 储能 + UPS 一体机（晶闸管整流 + 输出隔离变压器），10–600 kVA 三进三出
+export const SOLAR_UPS_TYPES = ['太阳能UPS', '光伏UPS', '光伏储能UPS', 'Solar UPS'];
+export const isSolarUps = pin('solarups', (p) => has(p, SOLAR_UPS_TYPES));
 // 工频机的相数：'11' 单进单出 / '31' 三进单出 / '33' 三进三出。先看"相数"字段（3/3、3进3出、三进三出、Three phase in/out…），
 // 没填时看电压：输出是 380/400/415 V 的算三进三出，输入三相、输出 220–240 V 的算三进单出
 export function phaseOf(p) {
@@ -207,7 +210,7 @@ export function phaseOf(p) {
 // Mini DC UPS 栏目：品类是「迷你UPS」，或者属于 UPS 大类但不在其他任何 UPS 栏目里。
 // 以前是「不属于任何栏目的产品都算 Mini」，CRM 里新加的品类（比如新的逆变器型号）会混进 Mini 页面，现在只兜底「UPS 大类、没填品类」的产品。
 // 不属于任何栏目的产品，构建时会在日志里列出来（见首页 index.astro）
-export const isMini = pin('mini', (p) => has(p, ['迷你UPS']) || (isUpsCat(p) && !p.type && !isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
+export const isMini = pin('mini', (p) => has(p, ['迷你UPS']) || (isUpsCat(p) && !p.type && !isOffline(p) && !isRack(p) && !isModular(p) && !isIndustrial(p) && !isSolarUps(p) && !isOnline(p) && !isAio(p) && !isInverter(p) && !isBattery(p)
   && !isHomeEss(p) && !isCiEss(p) && !isWallBattery(p) && !isFloorBattery(p) && !isRackBattery(p) && !isHvCab(p) && !isPbReplace(p)));
 // 模块化 UPS 的功率模块：单模块容量（"50kVA/50kW"、"50KW"、"25"）和机柜最多能装几个模块
 export function moduleOf(p) {
@@ -254,10 +257,10 @@ export function capacityOf(p) {
   if (!w && va && pf > 0 && pf <= 1) w = Math.round(va * pf);
   // 模块化 UPS 没有 1 kVA 以下的：数字小于 1000 说明单位其实是 kVA / kW（CRM 里单位默认是 VA，容易漏改）
   // 工频机也一样（1–400 kVA）
-  if (isModular(p) || isIndustrial(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
+  if (isModular(p) || isIndustrial(p) || isSolarUps(p)) { if (va > 0 && va < 1000) va *= 1000; if (w > 0 && w < 1000) w *= 1000; }
   // 工频机：额定功率没写单位时按 kVA；输出功率因数默认 0.8
-  if (!va && isIndustrial(p)) { const m = String(p.ratedPower || p.outputPower || '').match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; }
-  if (!w && va) w = Math.round(va * (isRack(p) || isOnline(p) ? 0.9 : isAio(p) ? 1 : isModular(p) ? 1 : isIndustrial(p) ? 0.8 : 0.6));
+  if (!va && (isIndustrial(p) || isSolarUps(p))) { const m = String(p.ratedPower || p.outputPower || '').match(/^\s*(\d+(?:\.\d+)?)\s*$/); if (m) va = +m[1] * 1000; }
+  if (!w && va) w = Math.round(va * (isRack(p) || isOnline(p) ? 0.9 : isAio(p) ? 1 : isModular(p) ? 1 : isIndustrial(p) ? 0.8 : isSolarUps(p) ? 0.9 : 0.6));
   return { va, w };
 }
 

@@ -4,7 +4,7 @@ import { SITE } from '../config.mjs';
 import { OT, OEM_MOQ_OFFLINE } from '../lib/offline-i18n.mjs';
 import { SOCKET_IDS, SOCKET_ICON, SOCKET_NAME, SOCKET_MAX } from '../lib/sockets.mjs';
 import { RT } from '../lib/rack-i18n.mjs';
-import { isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, isPbReplace, isHomeEss, isCiEss, invPhase, phaseOf, primary } from '../lib/category.mjs';
+import { isRack, isModular, isIndustrial, isSolarUps, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, isPbReplace, isHomeEss, isCiEss, invPhase, phaseOf, primary } from '../lib/category.mjs';
 import { RB } from '../lib/rackbatt-i18n.mjs';
 import { AO } from '../lib/aio-i18n.mjs';
 import { WB } from '../lib/wallbatt-i18n.mjs';
@@ -24,7 +24,7 @@ const T = OT[lang];
 // 模块化 UPS：同样不选插座，选三相线电压，数量默认 1 套
 const modular = isModular(primary(p));
 // 工频机：同样不选插座，按相数选输出电压（三进三出 380/400/415 V，其余 220/230/240 V），数量默认 1 台
-const industrial = isIndustrial(primary(p));
+const industrial = isIndustrial(primary(p)) || isSolarUps(primary(p)); // 太阳能 UPS 询价同工频机（三相电压、按台）
 // 在线式高频：同样按相数选输出电压，数量默认 10 台
 // 一体式锂电 UPS 同在线式（单相选 220/230/240 V），备注提示写负载和电池节数
 const aio = isAio(primary(p));

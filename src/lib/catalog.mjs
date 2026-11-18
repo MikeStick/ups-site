@@ -5,6 +5,7 @@ import { OT } from './offline-i18n.mjs';
 import { RT } from './rack-i18n.mjs';
 import { MT } from './modular-i18n.mjs';
 import { IT } from './industrial-i18n.mjs';
+import { SU } from './solarups-i18n.mjs';
 import { OL } from './online-i18n.mjs';
 import { SL } from './solar-i18n.mjs';
 import { RB } from './rackbatt-i18n.mjs';
@@ -24,7 +25,7 @@ import { CAB } from './cab-i18n.mjs';
 import { IDMT } from './idm-i18n.mjs';
 import { DEMT } from './dem-i18n.mjs';
 import {
-  isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isInverter, isHomeEss, isCiEss,
+  isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isSolarUps, isInverter, isHomeEss, isCiEss,
   isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm, isDem,
 } from './category.mjs';
 
@@ -40,6 +41,7 @@ export function catalog(lang) {
       { key: 'rack', page: 'rack-ups/', label: RT[lang].nav, f: isRack, unit: 'va' },
       { key: 'modular', page: 'modular-ups/', label: MT[lang].nav, f: isModular, unit: 'va' },
       { key: 'industrial', page: 'industrial-ups/', label: IT[lang].nav, f: isIndustrial, unit: 'va' },
+      { key: 'solarups', page: 'solar-ups/', label: SU[lang].nav, f: isSolarUps, unit: 'va' },
     ] },
     { key: 'solar', h: NG.solar, items: [
       { key: 'inverter', page: 'solar-inverters/', label: SL[lang].nav, f: isInverter, unit: 'kw' },

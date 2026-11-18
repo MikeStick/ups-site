@@ -11,10 +11,11 @@ import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, isCiEss, ciSpec, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isSolarUps, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, isCiEss, ciSpec, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
+import { SU } from '../../../lib/solarups-i18n.mjs';
 import { OL } from '../../../lib/online-i18n.mjs';
 import { AO } from '../../../lib/aio-i18n.mjs';
 import { aioOptions } from '../../../lib/aio-engine.mjs';
@@ -67,8 +68,11 @@ const modular = isModular(P0);
 const M = MT[lang];
 const mod = modular ? moduleOf(p) : null;
 // 工频机 UPS：询价面板（按相数选电压）+ 工频机参数表，横幅链接到工频机配置器
-const industrial = isIndustrial(P0);
-const I = IT[lang];
+// 太阳能 UPS：参数表、询价面板同工频机（三相、输出隔离变压器），面包屑和横幅指向 /solar-ups/，参数表后面加上 CRM 里录的光伏 / 电池等附加参数
+const solarUps = isSolarUps(P0);
+const industrial = isIndustrial(P0) || solarUps;
+const I = solarUps ? { ...IT[lang], title: SU[lang].title, banner: SU[lang].banner, bannerCta: SU[lang].bannerCta } : IT[lang];
+const indPage = solarUps ? 'solar-ups/' : 'industrial-ups/';
 // 在线式高频 UPS：参数表同机架式（不含机架高度），询价面板按相数选电压，横幅链接到负载规划
 // 一体式锂电 UPS：参数表和询价同在线式高频 UPS，面包屑和横幅指向 /all-in-one-ups/，亮点里显示电池节数选项
 const aio = isAio(P0);
@@ -207,7 +211,8 @@ const rows = dem
   ? [[OH.spec.model, p.model], [OH.spec.variant, isLongRun(p) ? OH.lr : OH.std],
      ...RACK_SPEC_FIELDS.map((f) => [OH.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
   : industrial
-  ? [[M.spec.model, p.model], ...IND_SPEC_FIELDS.map((f) => [f === 'outputPower' ? I.specOutput : M.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
+  ? [[M.spec.model, p.model], ...IND_SPEC_FIELDS.map((f) => [f === 'outputPower' ? I.specOutput : M.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v),
+     ...(solarUps && Array.isArray(p.extraSpecs) ? p.extraSpecs.filter((x) => x && x.label && x.value && !/[\u4e00-\u9fff]/.test(`${x.label}${x.value}`)).map((x) => [x.label, String(x.value)]) : [])]
   : modular
   ? [[M.spec.model, p.model], ...MOD_SPEC_FIELDS.map((f) => [M.spec[f], (f === 'outputPower' && !specValue(p, f, lang) ? fmtCap(capacityOf(p)) : specValue(p, f, lang)).replace(/\*/g, ' × ')]).filter(([, v]) => v)]
   : rack
@@ -229,7 +234,7 @@ const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []).map(
 const catTitleIn = (lg) => {
   const RBx = cie ? { ...RB[lg], ...CI[lg] } : hess ? { ...RB[lg], ...HE[lg] } : pbr ? { ...RB[lg], ...PB[lg] } : hvcab ? { ...RB[lg], ...HV[lg] } : fbatt ? { ...RB[lg], ...FB[lg] } : wbatt ? { ...RB[lg], ...WB[lg] } : RB[lg];
   return dem ? DEMT[lg].title : idm ? IDMT[lg].title : cab ? CAB[lg].title : pac ? PAC[lg].title : vrla ? (cell2 ? V2[lg].title : VR[lg].title) : rbatt ? RBx.title
-    : inverter ? SL[lg].title : aio ? AO[lg].title : online ? OL[lg].title : industrial ? IT[lg].title : modular ? MT[lg].title : rack ? RT[lg].title : offline ? OT[lg].title : OT[lg].navMini;
+    : inverter ? SL[lg].title : aio ? AO[lg].title : online ? OL[lg].title : industrial ? (solarUps ? SU[lg].title : IT[lg].title) : modular ? MT[lg].title : rack ? RT[lg].title : offline ? OT[lg].title : OT[lg].navMini;
 };
 const dsItems = tplSeq.map((x) => (x.im ? { img: x.im.src } : { html: htmlUrl(x.html) }));
 const dsSeries = Array.isArray(p.templateHtml) && p.templateHtml.length > 0;
@@ -276,7 +281,7 @@ const highlights = dem ? ['8 × COM RS485/RS232', '8 × DI', '2 × ETH · SNMP',
 ].filter(Boolean) : industrial ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   `${I.phaseTag[phaseOf(p)]} · ${I.c.ph[phaseOf(p)][1]}`,
-  I.facts.iso,
+  solarUps ? 'PV + LiFePO4' : '', I.facts.iso,
 ].filter(Boolean) : modular ? [
   fmtCap(cap) || specValue(p, 'outputPower', lang),
   mod.va ? `${mod.n ? mod.n + ' × ' : ''}${+(mod.va / 1000).toFixed(1)} kVA` : '',
@@ -303,7 +308,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/industrial-ups/`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/${indPage}`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col">
@@ -384,7 +389,7 @@ const jsonLd = {
           <span>{OH.banner}</span><b>{OH.bannerCta} →</b>
         </a>
       ) : industrial ? (
-        <a class="custom-banner" href={`/${lang}/industrial-ups/#config`}>
+        <a class="custom-banner" href={`/${lang}/${solarUps ? 'solar-ups/#sizer' : 'industrial-ups/#config'}`}>
           <span>{I.banner}</span><b>{I.bannerCta} →</b>
         </a>
       ) : modular ? (
