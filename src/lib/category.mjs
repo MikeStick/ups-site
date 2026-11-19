@@ -1,3 +1,4 @@
+import { starterSpec } from './starter-specs.mjs';
 // 产品品类：客户档案系统里的细分品类决定产品出现在哪个栏目。
 // 一个产品可以同时属于多个品类：type（主品类，决定参数表 / 询价面板）+ extraTypes（同时属于，只影响出现在哪些栏目）
 export const typesOf = (p) => [p.type, ...(Array.isArray(p.extraTypes) ? p.extraTypes : [])].filter(Boolean);
@@ -61,7 +62,7 @@ export function invBattV(p) {
 }
 // 储能电池：大类 = 储能电池。已有栏目：机架式磷酸铁锂电池（/batteries/rack-lithium/）、壁挂式锂电池（/batteries/wall-lithium/）、落地式锂电池（/batteries/floor-lithium/）；
 // 铅酸、家庭储能系统的栏目还没做：不进任何列表，产品页照常生成
-export const isBattery = pin(['wall', 'floor', 'rackbatt', 'hvcab', 'pbr', 'vrla', 'vrla2', 'cab'], (p) => p.category === 'battery' || p.category === '储能电池');
+export const isBattery = pin(['wall', 'floor', 'rackbatt', 'hvcab', 'pbr', 'vrla', 'vrla2', 'cab', 'starter'], (p) => p.category === 'battery' || p.category === '储能电池');
 export const isUpsCat = (p) => p.category === 'ups' || p.category === 'UPS不间断电源';
 export const RACK_BATT_TYPES = ['机架式磷酸铁锂电池', '机架式锂电池'];
 export const isRackBattery = pin('rackbatt', (p) => has(p, RACK_BATT_TYPES));
@@ -143,7 +144,10 @@ export const skModel = (m) => String(m || '').replace(/[（(].*$/, '').trim().sp
 // 铅酸电池柜（电池箱）C-1 … C-40：型号 C-数字，或品类名带"电池柜 / 电池箱"（不含锂电、高压电池柜）。栏目 /batteries/battery-cabinet/，参数在 cab-engine.mjs
 export const isBattCab = pin('cab', (p) => /^\s*C\s*-?\s*\d{1,2}(?=$|[\s(（\u4e00-\u9fff])/i.test(String(p.model || '').normalize('NFKC'))
   || typesOf(p).some((t) => /电池柜|电池箱|battery\s*cabinet/i.test(t) && !/锂|磷酸铁|高压|储能柜/.test(t)));
-export const isVrla = pin(['vrla', 'vrla2'], (p) => !isBattCab(p) && (has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t)))));
+// 启动电池（汽车 / 卡车 / 驻车空调 EFB）：规格书里的型号（starter-specs.mjs），或品类名带"启动 / 起动 / 驻车 / 汽车电池"。栏目 /batteries/starter/
+export const STARTER_TYPES = ['启动电池', '起动电池', '汽车启动电池', '卡车启动电池', '驻车空调电池', '汽车电池', 'Starter Battery'];
+export const isStarter = pin('starter', (p) => !!starterSpec(p) || has(p, STARTER_TYPES) || typesOf(p).some((t) => /启动电池|起动电池|驻车|汽车电池|卡车电池|starter/i.test(t)));
+export const isVrla = pin(['vrla', 'vrla2'], (p) => !isBattCab(p) && !isStarter(p) && (has(p, VRLA_TYPES) || typesOf(p).some((t) => /铅酸|蓄电池|VRLA|AGM|胶体|阀控/i.test(t) && !/锂/.test(t)) || (/^SK\d{2,4}-(2|12)v?j?$/i.test(skModel(p.model)) && !typesOf(p).some((t) => /锂/.test(t)))));
 // 2V 单体（SK100-2v … SK3000-2v，或额定电压 2 V）单独一个栏目 /batteries/vrla-2v/；12V 栏目只放 12V 的
 export const isCell2v = (p) => /^SK\d{2,4}-2v?$/i.test(skModel(p.model)) || /^2(?:\.0+)?\s*V?$/i.test(String(p.moduleVoltage || p.batteryVoltage || '').trim());
 export const isVrla12 = pin('vrla', (p) => isVrla(p) && !isCell2v(p));

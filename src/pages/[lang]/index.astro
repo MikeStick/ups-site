@@ -14,6 +14,7 @@ import { catalog } from '../../lib/catalog.mjs';
 import { capacityOf, invKw, essSpec, ciSpec, battModule, hvModule, pbModule, isMini } from '../../lib/category.mjs';
 import { pacSpec } from '../../lib/pac-engine.mjs';
 import { cabSpec } from '../../lib/cab-engine.mjs';
+import { starterSpec } from '../../lib/starter-specs.mjs';
 import { vrlaModule } from '../../lib/vrla-engine.mjs';
 import all from '../../data/products.json';
 import site from '../../data/site.json';
@@ -37,6 +38,7 @@ function rangeOf(it, ps) {
   if (it.unit === 'kwh') return span(ps.map((p) => kwhOf(it.key, p)), (x) => `${+(+x).toFixed(1)} kWh`);
   if (it.unit === 'pac') { const r = span(ps.map((p) => (pacSpec(p) || {}).cool).filter(Boolean), (x) => `${x} kW`); return r; }
   if (it.unit === 'idm' || it.unit === 'dem') return '';
+  if (it.unit === 'cca') { const v = ps.map((p) => (starterSpec(p) || {}).cca).filter(Boolean); return v.length ? `12 V · ${span(v, (x) => `${x} A`)} CCA` : ''; }
   if (it.unit === 'cab') { const v = ps.map((p) => (cabSpec(p) || {}).dcv).filter(Boolean); return v.length ? span(v, (x) => `${x} V`) + ' DC' : ''; }
   if (it.unit === 'ah2') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `2 V · ${r}` : ''; }
   if (it.unit === 'ah') { const r = span(ps.map((p) => vrlaModule(p).ah), (x) => `${x} Ah`); return r ? `12 V · ${r}` : ''; }
@@ -47,7 +49,7 @@ const groups = catalog(lang).map((g) => ({
   ...g,
   items: g.items.map((it) => {
     const ps = it.f ? all.filter(it.f) : [];
-    const img = asset(`cat_${it.key}`) || (it.key === 'designer' ? { src: '/img/cat_designer.png' } : null) || (it.key === 'solarups' && !ps.some((p) => p.images && p.images[0]) ? { src: '/img/solar-ups/ups.webp' } : null) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
+    const img = asset(`cat_${it.key}`) || (it.key === 'designer' ? { src: '/img/cat_designer.png' } : null) || (it.key === 'solarups' && !ps.some((p) => p.images && p.images[0]) ? { src: '/img/solar-ups/ups.webp' } : null) || (it.key === 'starter' && !ps.some((p) => p.images && p.images[0]) ? { src: '/img/starter/n180.webp' } : null) || (FAM[it.key] && asset(FAM[it.key])) || (ps.find((p) => p.images && p.images[0]) || {}).images?.[0] || null;
     return { ...it, n: ps.length, range: it.tool ? '' : rangeOf(it, ps) || T.fallback[it.key] || '', img };
   }),
 }));
@@ -91,6 +93,7 @@ const ICONS = {
   idm: '<rect x="4" y="14" width="40" height="26" rx="2"/><path d="M4 20h40M12 20v20M20 20v20M28 20v20M36 20v20"/><path d="M10 14l4-6h20l4 6"/>',
   cab: '<rect x="10" y="4" width="28" height="40" rx="2"/><path d="M10 17h28M10 30h28"/><rect x="14" y="8" width="8" height="7" rx="1"/><rect x="26" y="8" width="8" height="7" rx="1"/><rect x="14" y="21" width="8" height="7" rx="1"/><rect x="26" y="21" width="8" height="7" rx="1"/><rect x="14" y="34" width="8" height="7" rx="1"/><rect x="26" y="34" width="8" height="7" rx="1"/>',
   vrla2: '<rect x="12" y="10" width="24" height="32" rx="2"/><path d="M12 16h24M17 10V6h5v4M26 10V6h5v4M19 28h10"/>',
+  starter: '<rect x="5" y="16" width="38" height="24" rx="2"/><path d="M11 16v-4h6v4M31 16v-4h6v4M12 25h6M15 22v6M30 25h6"/><path d="M24 22l-3 6h6l-3 6"/>',
   vrla: '<rect x="5" y="15" width="38" height="25" rx="2"/><path d="M5 21h38M11 15v-4h6v4M31 15v-4h6v4M15 30h18"/>',
 };
 const APP_ICONS = {

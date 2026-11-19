@@ -42,6 +42,9 @@ import { idmKey } from '../../../lib/idm-engine.mjs';
 import { DEMT } from '../../../lib/dem-i18n.mjs';
 import { DEM } from '../../../lib/dem-data.mjs';
 import { cabSpec } from '../../../lib/cab-engine.mjs';
+import { starterSpec } from '../../../lib/starter-specs.mjs';
+import { STB, starterSpecRows, stCap, stSize } from '../../../lib/starter-i18n.mjs';
+import { isStarter } from '../../../lib/category.mjs';
 import products from '../../../data/products.json';
 import { addAr } from '../../../lib/ar.mjs';
 
@@ -102,7 +105,10 @@ const idmK = !pac && !dem && isIdm(P0) ? idmKey(P0.model) : '';
 const idm = !!idmK;
 const cabS = !pac && !idm && !dem && isBattCab(P0) ? cabSpec(P0) : null;
 const cab = !!cabS;
-const vrla = !pac && !cab && !idm && !dem && isVrla(P0);
+// 启动电池（汽车 / 卡车 / 驻车空调 EFB）：参数按型号查规格书数据（starter-specs），面包屑和横幅指向 /batteries/starter/
+const stS = !pac && !idm && !dem && !cab && isStarter(P0) ? starterSpec(P0) : null;
+const starter = !!stS;
+const vrla = !pac && !cab && !starter && !idm && !dem && isVrla(P0);
 const cell2 = vrla && isCell2v(P0); // 2V 单体：面包屑和横幅指向 /batteries/vrla-2v/
 const vrlaPage = cell2 ? 'batteries/vrla-2v/' : 'batteries/vrla/';
 const vm = vrla ? vrlaModule(p) : null;
@@ -184,6 +190,8 @@ const series = dem
   ? products.filter(isIdm).sort((a, b) => ['IDM-S', 'IDM-R', 'IDM2-D'].indexOf(idmKey(a.model)) - ['IDM-S', 'IDM-R', 'IDM2-D'].indexOf(idmKey(b.model)))
   : cab
   ? products.map((x) => ({ x, s: isBattCab(x) ? cabSpec(x) : null })).filter((o) => o.s).sort((a, b) => a.s.n - b.s.n).map((o) => o.x)
+  : starter
+  ? products.map((x) => ({ x, s: isStarter(x) ? starterSpec(x) : null })).filter((o) => o.s && o.s.g === stS.g).sort((a, b) => a.s.cca - b.s.cca).map((o) => o.x)
   : pac
   ? products.map((x) => ({ x, s: pacSpec(x) })).filter((o) => o.s && o.s.series === pacS.series && o.s.rh === pacS.rh).sort((a, b) => a.s.cool - b.s.cool).map((o) => o.x)
   : vrla
@@ -198,6 +206,8 @@ const rows = dem
   ? [[IDMT[lang].spec.model, p.model], [IDMT[lang].spec.format, IDMT[lang].forms[idmK][0]], ...IDM.bom[idmK].flatMap((g) => g.items.map((it) => [`${idmTr(g.sys)} · ${idmTr(it.name)}`, `${it.qty !== '1' ? it.qty + ' × ' : ''}${idmTr(it.val)}`]))]
   : cab
   ? cabSpecRows(p, cabS, lang)
+  : starter
+  ? starterSpecRows(p, stS, lang)
   : pac
   ? pacSpecRows(p, pacS, lang)
   : vrla
@@ -233,7 +243,7 @@ const detailAll = [...(Array.isArray(p.detailImages) ? p.detailImages : []).map(
 // 文件名：英文类目 + 型号 + Datasheet + (页面语言)，型号里的 "/" 换成外观相同的 "∕"（文件名里不能有 /）
 const catTitleIn = (lg) => {
   const RBx = cie ? { ...RB[lg], ...CI[lg] } : hess ? { ...RB[lg], ...HE[lg] } : pbr ? { ...RB[lg], ...PB[lg] } : hvcab ? { ...RB[lg], ...HV[lg] } : fbatt ? { ...RB[lg], ...FB[lg] } : wbatt ? { ...RB[lg], ...WB[lg] } : RB[lg];
-  return dem ? DEMT[lg].title : idm ? IDMT[lg].title : cab ? CAB[lg].title : pac ? PAC[lg].title : vrla ? (cell2 ? V2[lg].title : VR[lg].title) : rbatt ? RBx.title
+  return dem ? DEMT[lg].title : idm ? IDMT[lg].title : cab ? CAB[lg].title : starter ? STB[lg].title : pac ? PAC[lg].title : vrla ? (cell2 ? V2[lg].title : VR[lg].title) : rbatt ? RBx.title
     : inverter ? SL[lg].title : aio ? AO[lg].title : online ? OL[lg].title : industrial ? (solarUps ? SU[lg].title : IT[lg].title) : modular ? MT[lg].title : rack ? RT[lg].title : offline ? OT[lg].title : OT[lg].navMini;
 };
 const dsItems = tplSeq.map((x) => (x.im ? { img: x.im.src } : { html: htmlUrl(x.html) }));
@@ -257,7 +267,7 @@ const typeName = term(p.type, lang);
 // 型号下方的关键参数：没写介绍时右侧也有内容，客户一眼看到功率/电池/输出口
 const portTypes = (Array.isArray(p.outputPorts) ? p.outputPorts : []).map((o) => o.type).filter(Boolean);
 const cap = capacityOf(p);
-const highlights = dem ? ['8 × COM RS485/RS232', '8 × DI', '2 × ETH · SNMP', '1U 19"'] : idm ? [IDMT[lang].forms[idmK][0], IDMT[lang].forms[idmK][1], IDMT[lang].forms[idmK][3], 'PUE < 1.5'] : cab ? [
+const highlights = dem ? ['8 × COM RS485/RS232', '8 × DI', '2 × ETH · SNMP', '1U 19"'] : idm ? [IDMT[lang].forms[idmK][0], IDMT[lang].forms[idmK][1], IDMT[lang].forms[idmK][3], 'PUE < 1.5'] : starter ? [`${stS.cca} ${STB[lang].u.a} CCA`, `${stS.ah ? STB[lang].cap : STB[lang].rc} ${stCap(stS, lang)}`, `${stSize(stS, lang)} ${STB[lang].u.mm}`, STB[lang].groupName[stS.g]] : cab ? [
   `${cabS.dcv} ${CAB[lang].u.v} DC`, CAB[lang].hl.replace('{n}', cabS.n), `12 ${CAB[lang].u.v} ≤ ${cabS.maxAh} ${CAB[lang].u.ah}`, `${cabS.size.replace(/×/g, ' × ')} ${CAB[lang].u.mm}`,
 ] : pac ? [
   `${lang === 'en' ? pacS.cool : String(pacS.cool).replace('.', ',')} ${lang === 'ru' ? 'кВт' : 'kW'}`, PAC[lang].seriesName[pacS.series], pacS.rh ? PAC[lang].spec.kindRh : PAC[lang].spec.kindCool, '±1 °C · R410A',
@@ -308,7 +318,7 @@ const jsonLd = {
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
-  <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/${indPage}`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
+  <nav class="crumbs">{dem ? <a href={`/${lang}/dcim-monitoring/`}>{DEMT[lang].title}</a> : idm ? <a href={`/${lang}/micro-data-center/`}>{IDMT[lang].title}</a> : cab ? <a href={`/${lang}/batteries/battery-cabinet/`}>{CAB[lang].title}</a> : starter ? <a href={`/${lang}/batteries/starter/`}>{STB[lang].title}</a> : pac ? <a href={`/${lang}/precision-ac/`}>{PAC[lang].title}</a> : vrla ? <a href={`/${lang}/${vrlaPage}`}>{cell2 ? V2[lang].title : VR[lang].title}</a> : rbatt ? <a href={`/${lang}/${battPage}`}>{RBT.title}</a> : inverter ? <a href={`/${lang}/solar-inverters/`}>{S.title}</a> : aio ? <a href={`/${lang}/all-in-one-ups/`}>{AOT.title}</a> : online ? <a href={`/${lang}/online-ups/`}>{OH.title}</a> : industrial ? <a href={`/${lang}/${indPage}`}>{I.title}</a> : modular ? <a href={`/${lang}/modular-ups/`}>{M.title}</a> : rack ? <a href={`/${lang}/rack-ups/`}>{R.title}</a> : offline ? <a href={`/${lang}/offline-ups/`}>{O.title}</a> : <a href={`/${lang}/mini-ups/`}>{O.navMini}</a>} / <span>{p.model}</span></nav>
 
   <div class="layout">
     <div class="gallery-col">
@@ -352,6 +362,10 @@ const jsonLd = {
       ) : idm ? (
         <a class="custom-banner" href={`/${lang}/micro-data-center/?m=${idmK}#configurator`}>
           <span>{IDMT[lang].banner}</span><b>{IDMT[lang].bannerCta} →</b>
+        </a>
+      ) : starter ? (
+        <a class="custom-banner" href={`/${lang}/batteries/starter/#finder`}>
+          <span>{STB[lang].banner}</span><b>{STB[lang].bannerCta} →</b>
         </a>
       ) : cab ? (
         <a class="custom-banner" href={`/${lang}/batteries/battery-cabinet/?dc=${cabS.dcv}#planner`}>
@@ -413,7 +427,7 @@ const jsonLd = {
       <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
-        {!vrla && !rbatt && !pac && !cab && !idm && !dem && <p class="plug">{t.plugNote}</p>}
+        {!vrla && !rbatt && !pac && !cab && !starter && !idm && !dem && <p class="plug">{t.plugNote}</p>}
         <div class="cta">
           {wa && <a class="btn primary" href={wa} target="_blank" rel="noopener">{t.askQuote}</a>}
           {SITE.email && <a class="btn" href={`mailto:${SITE.email}?subject=${encodeURIComponent(p.model)}`}>{t.askEmail}</a>}
@@ -429,7 +443,7 @@ const jsonLd = {
         <ul class="features">{features.map((f) => <li>{f}</li>)}</ul>
       </section>
     )}
-    {!offline && !vrla && !pac && !cab && !idm && !dem && <RuntimeCalc p={p} lang={lang} />}
+    {!offline && !vrla && !pac && !cab && !starter && !idm && !dem && <RuntimeCalc p={p} lang={lang} />}
     <section class="card">
       <h2>{t.specs}</h2>
       <dl class="specs">

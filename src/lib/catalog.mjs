@@ -24,9 +24,10 @@ import { PAC } from './pac-i18n.mjs';
 import { CAB } from './cab-i18n.mjs';
 import { IDMT } from './idm-i18n.mjs';
 import { DEMT } from './dem-i18n.mjs';
+import { STB } from './starter-i18n.mjs';
 import {
   isMini, isOffline, isOnline, isAio, isRack, isModular, isIndustrial, isSolarUps, isInverter, isHomeEss, isCiEss,
-  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm, isDem,
+  isWallBattery, isFloorBattery, isRackBattery, isHvCab, isPbReplace, isVrla12, isVrla2, isPac, isBattCab, isIdm, isDem, isStarter,
 } from './category.mjs';
 
 export function catalog(lang) {
@@ -57,7 +58,8 @@ export function catalog(lang) {
       { key: 'pbr', page: 'batteries/lead-acid-replacement/', label: PB[lang].nav, f: isPbReplace, unit: 'v' },
       { key: 'vrla', page: 'batteries/vrla/', label: VR[lang].nav, f: isVrla12, unit: 'ah' },
       { key: 'vrla2', page: 'batteries/vrla-2v/', label: V2[lang].nav, f: isVrla2, unit: 'ah2' },
-      { key: 'cab', page: 'batteries/battery-cabinet/', label: CAB[lang].nav, f: isBattCab, unit: 'cab' }, // 铅酸电池柜：电池一栏最后
+      { key: 'cab', page: 'batteries/battery-cabinet/', label: CAB[lang].nav, f: isBattCab, unit: 'cab' }, // 铅酸电池柜
+      { key: 'starter', page: 'batteries/starter/', label: STB[lang].nav, f: isStarter, unit: 'cca' }, // 启动电池（汽车 / 卡车 / 驻车空调）：电池一栏最后
     ] },
     // 第四栏：制冷与数据中心（电池右侧）——精密空调、微模块数据中心、动环监控系统
     { key: 'dc', h: NG.dc, items: [
