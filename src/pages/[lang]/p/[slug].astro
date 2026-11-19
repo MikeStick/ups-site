@@ -62,6 +62,8 @@ const BRT = addAr({
   ru: { h: 'Технический паспорт', open: 'Открыть полностью / печать', dl: 'Скачать' },
 });
 const brochure = p.brochures && (p.brochures[lang] || p.brochures.en);
+// HTML 彩页点"下载"时在访客浏览器里转成 PDF（lib/datasheet-pdf.mjs，和左侧"下载参数表"同一套）；本来就是 PDF 的直接下载
+const brName = `${String(p.model).trim()} ${(BRT[lang] || BRT.en).h} (${lang}).pdf`.replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
 // 离线式 / 在线互动式 UPS：询价面板 + 专用参数表；其余（Mini UPS）走原来的下单面板
 // 机架式 UPS 也走询价面板（选输出电压，不选插座）+ 机架式专用参数表
 const P0 = primary(p); // 产品页按主品类决定参数表和询价面板（同时属于的其他品类只影响出现在哪些栏目）
@@ -469,7 +471,9 @@ const jsonLd = {
           <h2>{(BRT[lang] || BRT.en).h}</h2>
           <div class="br-btns">
             <a class="btn sm line" href={brochure.src} target="_blank" rel="noopener">{(BRT[lang] || BRT.en).open}</a>
-            <a class="btn sm line" href={brochure.src} download={`${p.model}-${(BRT[lang] || BRT.en).h}.${brochure.type || 'html'}`}>{(BRT[lang] || BRT.en).dl}</a>
+            {brochure.type === 'pdf'
+              ? <a class="btn sm line" href={brochure.src} download={`${p.model}-${(BRT[lang] || BRT.en).h}.pdf`}>{(BRT[lang] || BRT.en).dl}</a>
+              : <button type="button" class="btn sm line" data-ds={JSON.stringify({ items: [{ html: brochure.src }], series: false, name: brName, title: `${p.model} ${(BRT[lang] || BRT.en).h}`, busy: DST.busy, fail: DST.fail })}><span>{(BRT[lang] || BRT.en).dl}</span></button>}
           </div>
         </div>
         <iframe class="br-frame" title={`${p.model} ${(BRT[lang] || BRT.en).h}`} src={brochure.src} loading="lazy" sandbox="allow-scripts allow-popups allow-modals"></iframe>
@@ -587,5 +591,7 @@ const jsonLd = {
   .br-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .br-head h2 { margin: 0; }
   .br-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .br-btns button { font: inherit; font-weight: 600; cursor: pointer; }
+  .br-btns button:disabled { opacity: .7; cursor: progress; }
   .br-frame { display: block; width: 100%; height: min(80vh, 1100px); margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: #8a8a8a; }
 </style>
