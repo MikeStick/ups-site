@@ -75,9 +75,13 @@ const L10N = Object.fromEntries(LANGS.map((L) => {
 const catImgs = Object.fromEntries(Object.keys(counts).map((k) => [k, catImg(k)]).filter((x) => x[1]));
 const cfg = { lang, wa: SITE.whatsapp, email: SITE.email, list, L10N, catImgs, t: {
   dl: T.dl, groupAll: T.groupAll, busyStart: T.busyStart, busyTpl: T.busy('{a}', '{b}'), cancel: T.cancel, done: T.done, fail: T.fail, original: T.original,
-  noneHTpl: T.noneH('{q}'), noneP: T.noneP, noneWa: T.noneWa, noneMail: T.noneMail, noneMsgTpl: T.noneMsg('{q}', '{l}'),
+  noneHTpl: T.noneH('{q}'), notFoundTpl: T.autoNotFound('{q}'), noneP: T.noneP, noneWa: T.noneWa, noneMail: T.noneMail, noneMsgTpl: T.noneMsg('{q}', '{l}'),
 } };
 const total = list.length;
+// 其他资料（客户档案 → 产品目录里勾了"在网站显示"的 PDF）：当前页面语言的排前面，其次是不分语言的
+const docs = (Array.isArray(site.docs) ? site.docs : []).filter((d) => d && d.src).slice().sort((a, b) => ((a.lang === lang ? 0 : a.lang ? 2 : 1) - (b.lang === lang ? 0 : b.lang ? 2 : 1)) || String(a.title).localeCompare(String(b.title), 'en', { numeric: true }));
+const fmtSize = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
+const docName = (d) => String(d.title || 'SKE document').replace(/[^\p{L}\p{N} ._()+&,-]+/gu, '-').trim() + (d.lang ? ' (' + d.lang + ')' : '') + '.pdf';
 const catTotal = Object.keys(counts).length;
 ---
 <Base lang={lang} title={T.title} description={T.lead.slice(0, 155)} path="downloads/">
@@ -143,6 +147,22 @@ const catTotal = Object.keys(counts).length;
         <div class="prog" data-prog hidden><div class="bar"><i data-bar></i></div><span data-ptext></span><button type="button" class="link" data-cancel>{T.cancel}</button></div>
       </section>
     </div>
+
+    {docs.length > 0 && (
+      <section class="docs" id="documents">
+        <h2>{T.docsH}</h2>
+        <p>{T.docsP}</p>
+        <ul class="doc-list">
+          {docs.map((d) => (
+            <li class="doc">
+              <span class="d-ic" aria-hidden="true">PDF</span>
+              <span class="d-txt"><b>{d.title}</b><small>{d.lang && <em>{d.lang.toUpperCase()}</em>}{d.size ? fmtSize(d.size) : ''}</small></span>
+              <a class="pdf-btn sm" href={d.src} download={docName(d)} target="_blank" rel="noopener"><i aria-hidden="true">PDF</i><span>{T.docsDl}</span></a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
   </div>
 </Base>
 
@@ -270,6 +290,30 @@ const catTotal = Object.keys(counts).length;
       }
     }
     root.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => run(b.dataset.go, null, b)));
+
+    // ---------- 链接直接生成（客户档案 → 产品目录 的"导出参数表"用）----------
+    // ?model=C10K   单个型号      ?cat=<类目key> / ?group=<大类key>   类目目录      ?all=1   整本目录
+    // 可选：&intro=1（公司介绍）&details=0/1（全部系列）
+    const qs = new URLSearchParams(location.search);
+    const flag = (card, k) => { if (!qs.has(k)) return; const el = card.querySelector(`[data-opt="${k}"]`); if (el) el.checked = !/^(0|false|no)$/i.test(qs.get(k)); };
+    const auto = (kind, arg) => {
+      const card = $(`[data-card="${kind}"]`); if (!card) return;
+      flag(card, 'intro'); flag(card, 'details');
+      card.scrollIntoView({ block: 'center' });
+      setTimeout(() => run(kind, arg, card.querySelector('[data-prog]')), 300);
+    };
+    const qModel = (qs.get('model') || '').trim();
+    if (qModel) {
+      const nq = norm(qModel);
+      const p = c.list.find((x) => norm(x.m) === nq) || c.list.find((x) => x.s === qModel.toLowerCase());
+      qIn.value = p ? p.m : qModel; drawResults();
+      if (p) auto('one', p.s);
+      else $('[data-card="one"]').scrollIntoView({ block: 'center' });
+    } else if (qs.get('cat') || qs.get('group')) {
+      const kind = qs.get('group') ? 'group' : 'cat', key = qs.get('group') || qs.get('cat');
+      const r = root.querySelector(`input[name="dl-cat"][value="${kind}:${CSS.escape(key)}"]`);
+      if (r) { r.checked = true; r.dispatchEvent(new Event('change')); auto('cat'); }
+    } else if (/^(1|true|yes)$/i.test(qs.get('all') || '')) auto('all');
   }
 </script>
 
@@ -345,6 +389,18 @@ const catTotal = Object.keys(counts).length;
   .none-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 16px; border-radius: 10px; font: 700 14.5px var(--body); text-decoration: none; border: 1px solid transparent; }
   .btn.wa { background: #25d366; color: #06301a; } .btn.line { border-color: var(--line); color: var(--ink); background: #fff; }
+  .docs { margin-top: 30px; }
+  .docs h2 { font-size: 26px; margin: 0 0 6px; }
+  .docs > p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
+  .doc-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .doc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .d-ic { flex: none; display: grid; place-items: center; width: 42px; height: 50px; border-radius: 7px; background: #fff5f4; border: 1px solid #f3c4c1; color: #E2231A; font: 700 11px Arial, sans-serif; }
+  .d-txt { display: grid; gap: 3px; flex: 1; min-width: 0; }
+  .d-txt b { font-size: 15px; overflow-wrap: anywhere; }
+  .d-txt small { color: var(--muted); font: 600 12px var(--mono); display: flex; gap: 8px; align-items: center; }
+  .d-txt em { font-style: normal; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+  .doc .pdf-btn { text-decoration: none; flex: none; }
+  @media (max-width: 900px) { .doc-list { grid-template-columns: 1fr; } }
   @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } .c-cat { grid-row: auto; } }
   @media (max-width: 640px) { .card { padding: 18px 16px; } .results :global(.res) { flex-wrap: wrap; } .results :global(.r-act) { width: 100%; justify-content: flex-start; } }
 </style>

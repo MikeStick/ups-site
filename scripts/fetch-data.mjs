@@ -259,7 +259,7 @@ async function saveArticleMedia(n) {
 
 // 网站管理的图片和动态。
 async function fetchSite() {
-  let site = { assets: {}, news: [] };
+  let site = { assets: {}, news: [], docs: [] };
   try {
     const raw = await getJson(`${API}/api/public/site`);
     const assets = {};
@@ -283,8 +283,24 @@ async function fetchSite() {
       if (n && n.kind === 'article') { const a = await saveArticleMedia(n); if (a) news.push(a); }
       else news.push(n);
     }
-    site = { assets, news };
-    console.log(`[fetch-data] 网站管理：${Object.keys(assets).length} 个图片位，${site.news.length} 条动态`);
+    // 客户档案 → 产品目录里勾了"在网站显示"的 PDF：下载到 /media/docs/，Downloads 页"其他资料"列出
+    const docs = [];
+    for (const d of Array.isArray(raw.docs) ? raw.docs : []) {
+      if (!d || !d.url || !/^[A-Za-z0-9_-]+$/.test(String(d.id || ''))) continue;
+      try {
+        const r = await fetch(d.url, { headers: { 'x-site-key': KEY } });
+        if (!r.ok) { console.warn(`[fetch-data] 资料下载失败 ${d.id} → HTTP ${r.status}`); continue; }
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (buf.slice(0, 4).toString() !== '%PDF') { console.warn(`[fetch-data] 资料不是 PDF，跳过 ${d.id}`); continue; }
+        const dir = path.join(MEDIA_DIR, 'docs');
+        await fs.mkdir(dir, { recursive: true });
+        const name = `${d.id}-${hashOf(buf)}.pdf`;
+        await fs.writeFile(path.join(dir, name), buf);
+        docs.push({ id: d.id, title: String(d.title || '').slice(0, 200), lang: /^[a-z]{2}$/.test(d.lang || '') ? d.lang : '', cat: String(d.cat || '').slice(0, 80), size: buf.length, src: `/media/docs/${name}` });
+      } catch (e) { console.warn(`[fetch-data] 资料处理失败 ${d.id}：${e.message}`); }
+    }
+    site = { assets, news, docs };
+    console.log(`[fetch-data] 网站管理：${Object.keys(assets).length} 个图片位，${site.news.length} 条动态，${docs.length} 份资料`);
   } catch (e) {
     // 接口返回 404（CRM 还没有这个接口）时按默认内容构建；其它失败（超时、500）让构建失败，
     // 网站保持上一个版本——否则首页视频、新闻会全部丢失
