@@ -9,7 +9,7 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
-import { htmlUrl } from '../../../lib/detail-html.mjs';
+import { htmlUrl, rawTplHtmlsOf } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
 import { isOffline, isRack, isModular, isIndustrial, isSolarUps, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, isCiEss, ciSpec, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
@@ -148,6 +148,7 @@ function tableSeries() {
   const me = nmModel(p.model);
   const lists = [];
   for (const tp of Array.isArray(p.templateHtml) ? p.templateHtml : []) {
+    if (tp.raw) continue; // 原样显示的单页规格：不是系列表，不从里面找同系列型号
     const h = tp.html && (tp.html[lang] || tp.html.en);
     for (const b of tplHtmlBlocks(h || '')) {
       if (b.t === 'table' && Array.isArray(b.models)) lists.push(b.models);
@@ -248,8 +249,11 @@ const catTitleIn = (lg) => {
   return dem ? DEMT[lg].title : idm ? IDMT[lg].title : cab ? CAB[lg].title : starter ? STB[lg].title : pac ? PAC[lg].title : vrla ? (cell2 ? V2[lg].title : VR[lg].title) : rbatt ? RBx.title
     : inverter ? SL[lg].title : aio ? AO[lg].title : online ? OL[lg].title : industrial ? (solarUps ? SU[lg].title : IT[lg].title) : modular ? MT[lg].title : rack ? RT[lg].title : offline ? OT[lg].title : OT[lg].navMini;
 };
-const dsItems = tplSeq.map((x) => (x.im ? { img: x.im.src } : { html: htmlUrl(x.html) }));
-const dsSeries = Array.isArray(p.templateHtml) && p.templateHtml.length > 0;
+// HTML 内容分两种：带 <style> 的单页规格（raw）原样放进 iframe；其余是系列参数表，按网站样式重新排版
+const rawHtmls = rawTplHtmlsOf(p, lang);
+const seriesHtmls = (Array.isArray(p.templateHtml) ? p.templateHtml : []).filter((tp) => !tp.raw);
+const dsItems = [...rawHtmls.map((h) => ({ html: htmlUrl(h) })), ...tplSeq.map((x) => (x.im ? { img: x.im.src } : { html: htmlUrl(x.html) }))];
+const dsSeries = seriesHtmls.length > 0;
 const dsName = `${String(catTitleIn('en') || '').trim()} ${String(p.model).trim()} Datasheet (${lang}).pdf`.replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
 const DST = addAr({
   en: { btn: 'Download datasheet (PDF)', busy: 'Preparing PDF…', fail: 'Could not create the PDF, please try again.' },
@@ -479,6 +483,11 @@ const jsonLd = {
         <iframe class="br-frame" title={`${p.model} ${(BRT[lang] || BRT.en).h}`} src={brochure.src} loading="lazy" sandbox="allow-scripts allow-popups allow-modals"></iframe>
       </section>
     )}
+    {rawHtmls.map((h, i) => (
+      <section class="card raw-html">
+        <iframe class="detail-html" title={`${p.model} ${t.details} ${i + 1}`} sandbox="allow-scripts allow-popups" src={htmlUrl(h)} loading="lazy" data-detail-html></iframe>
+      </section>
+    ))}
     {detailAll.length > 0 && (
       <section class="card detail-imgs">
         <h2>{t.details}</h2>
@@ -491,7 +500,7 @@ const jsonLd = {
         </div>
       </section>
     )}
-    {(Array.isArray(p.templateHtml) ? p.templateHtml : []).map((tp) => (
+    {seriesHtmls.map((tp) => (
       <SeriesHtml html={(tp.html && (tp.html[lang] || tp.html.en)) || ''} model={p.model} lang={lang} />
     ))}
   </div>
@@ -577,6 +586,8 @@ const jsonLd = {
   .ds-ico { flex: none; }
   .ds-btn[disabled] { opacity: .65; cursor: progress; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
+  .raw-html { padding: 0; overflow: hidden; }
+  .raw-html .detail-html { width: 100%; height: 900px; border: 0; display: block; background: #fff; }
   /* HTML 片段铺满详情区（图片仍居中、最宽 900px） */
   .detail-stack:has(.detail-html) { max-width: none; }
   .detail-stack:has(.detail-html) img { max-width: 900px; margin-inline: auto; }

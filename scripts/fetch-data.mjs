@@ -208,6 +208,13 @@ async function main() {
       }
       p.templateDetail = seq;
     }
+    // 原样显示的 HTML 内容（带 <style> 的单页规格，CRM 里标了 raw）：里面的图片同样下载到本地，换成网站地址
+    if (Array.isArray(p.templateHtml)) {
+      for (const tp of p.templateHtml) {
+        if (!tp || !tp.raw || !tp.html || typeof tp.html !== 'object') continue;
+        tp.html = Object.fromEntries(await Promise.all(Object.entries(tp.html).map(async ([k, v]) => [k, await localizeHtml(v, htmlImgCache, htmlImgCounters)])));
+      }
+    }
     // 多语言原版彩页（HTML / PDF）：原样下载到 /media/<slug>/，产品页按页面语言嵌入显示
     if (p.brochures && typeof p.brochures === 'object') {
       const br = {};

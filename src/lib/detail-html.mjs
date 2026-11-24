@@ -28,12 +28,20 @@ export function htmlDoc(h) {
 export const htmlHash = (doc) => createHash('sha256').update(doc).digest('hex').slice(0, 16);
 export const htmlUrl = (h) => `/h/${htmlHash(htmlDoc(h))}.html`;
 
-// 某个产品在某种语言下的 HTML 片段原文（和产品页取法一致）
-export function detailHtmlsOf(p, lang) {
-  return (Array.isArray(p.templateDetail) ? p.templateDetail : [])
-    .filter((x) => !x.img && x.html)
+// 原样显示的 HTML 内容（CRM 模板"HTML 内容"里带 <style> 的单页规格，接口里 raw: true）：和详情片段一样放进 iframe
+export function rawTplHtmlsOf(p, lang) {
+  return (Array.isArray(p.templateHtml) ? p.templateHtml : [])
+    .filter((x) => x && x.raw && x.html)
     .map((x) => (typeof x.html === 'string' ? x.html : (x.html[lang] || x.html.en || '')))
     .filter(Boolean);
+}
+
+// 某个产品在某种语言下的 HTML 片段原文（和产品页取法一致）：详情里的片段 + 原样显示的 HTML 内容
+export function detailHtmlsOf(p, lang) {
+  return [...(Array.isArray(p.templateDetail) ? p.templateDetail : [])
+    .filter((x) => !x.img && x.html)
+    .map((x) => (typeof x.html === 'string' ? x.html : (x.html[lang] || x.html.en || '')))
+    .filter(Boolean), ...rawTplHtmlsOf(p, lang)];
 }
 
 // 全站所有不重复的片段文件：[{ hash, doc }]
