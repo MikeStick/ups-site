@@ -450,12 +450,14 @@ const jsonLd = {
       </section>
     )}
     {!offline && !vrla && !pac && !cab && !starter && !idm && !dem && <RuntimeCalc p={p} lang={lang} />}
-    <section class="card">
-      <h2>{t.specs}</h2>
-      <dl class="specs">
-        {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
-      </dl>
-    </section>
+    {rawHtmls.length === 0 && (
+      <section class="card">
+        <h2>{t.specs}</h2>
+        <dl class="specs">
+          {rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      </section>
+    )}
     {vTables.length > 0 && (
       <section class="card vdis">
         <h2>{VR_P_DIS}</h2>
