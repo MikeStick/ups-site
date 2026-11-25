@@ -4,6 +4,7 @@ import Gallery from '../../../components/Gallery.astro';
 import OrderConsole from '../../../components/OrderConsole.astro';
 import RuntimeCalc from '../../../components/RuntimeCalc.astro';
 import { LANGS, SITE } from '../../../config.mjs';
+import { parseQuery } from '../../../lib/search-core.mjs';
 import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
@@ -314,6 +315,14 @@ const highlights = dem ? ['8 × COM RS485/RS232', '8 × DI', '2 × ETH · SNMP',
   p.batterySpec && String(p.batterySpec).replace(/\*/g, '×'),
   portTypes.length && portTypes.join(' / '),
 ].filter((x) => x && !/[\u4e00-\u9fff]/.test(x));
+// 顶部 Products 菜单搜索用的索引条目：构建完成后由 astro.config 里的 product-search 汇总成 /<lang>/search.json（不含价格、备注、内部 id）
+const siCover = p.images && p.images[0];
+const siNum = parseQuery(highlights.join(' ')).targets;
+const siEntry = {
+  m: String(p.model), u: `/${lang}/p/${p.slug}/`, i: siCover ? siCover.thumb || siCover.src : '', t: catTitleIn(lang) || '', s: highlights[0] || '',
+  h: [p.model, p.brand, ...LANGS.map((l) => catTitleIn(l)), ...LANGS.map((l) => term(p.type, l)), ...highlights].filter(Boolean).join(' | ').normalize('NFKC').toLowerCase(),
+  ...Object.fromEntries(Object.entries(siNum).map(([k, v]) => [k, Math.round(v * 1e4) / 1e4])),
+};
 const title = `${p.model}${typeName ? ' ' + typeName : ''} · ${SITE.name}`;
 const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(t.quoteMsg(p.model))}` : '';
 const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
@@ -508,6 +517,7 @@ const jsonLd = {
   </div>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script type="application/json" data-search-item set:html={JSON.stringify(siEntry).replace(/</g, '\\u003c')} />
   <script>
     import { initDatasheet } from '../../../lib/datasheet-pdf.mjs';
     initDatasheet();

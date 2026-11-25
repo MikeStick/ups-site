@@ -36,6 +36,13 @@ const PRODUCT_PATHS = NAV.flatMap((g) => g.items.map(([h]) => h)).filter(Boolean
 import { VT } from '../lib/visit-i18n.mjs';
 import { SUP } from '../lib/service-i18n.mjs';
 import { DL } from '../lib/downloads-i18n.mjs';
+// 顶部 Products 菜单里的产品搜索（索引 /<lang>/search.json 在构建结束时生成，见 astro.config.mjs）
+const PS = ({
+  en: { ph: 'Search all products — model, type or rating (e.g. POE-30N, 10kVA, 100Ah, 48V)', clear: 'Clear', models: 'Models', n: '{n} results', n1: '1 result', more: 'top 8 of {n}', none: 'No product matches "{q}"', hint: 'Try a model number, a product type or a rating such as 3kVA or 200Ah.', ask: 'Ask our engineers', keys: '↑ ↓ to select · Enter to open · Esc to close' },
+  es: { ph: 'Buscar todos los productos: modelo, tipo o valor (p. ej. POE-30N, 10kVA, 100Ah, 48V)', clear: 'Borrar', models: 'Modelos', n: '{n} resultados', n1: '1 resultado', more: '8 primeros de {n}', none: 'Ningún producto coincide con "{q}"', hint: 'Pruebe con un modelo, un tipo de producto o un valor como 3kVA o 200Ah.', ask: 'Consulte a nuestros ingenieros', keys: '↑ ↓ para elegir · Enter para abrir · Esc para cerrar' },
+  ru: { ph: 'Поиск по всей продукции: модель, тип или параметр (напр. POE-30N, 10kVA, 100Ah, 48V)', clear: 'Сбросить', models: 'Модели', n: 'Найдено: {n}', n1: 'Найдено: 1', more: 'первые 8 из {n}', none: 'Ничего не найдено по запросу «{q}»', hint: 'Введите модель, тип продукции или параметр, например 3kVA или 200Ah.', ask: 'Спросить инженеров', keys: '↑ ↓ — выбор · Enter — открыть · Esc — закрыть' },
+  ar: { ph: 'ابحث في جميع المنتجات — الطراز أو النوع أو القيمة (مثل POE-30N، 10kVA، 100Ah، 48V)', clear: 'مسح', models: 'الطرازات', n: '{n} نتيجة', n1: 'نتيجة واحدة', more: 'أول 8 من {n}', none: 'لا يوجد منتج يطابق "{q}"', hint: 'جرّب رقم الطراز أو نوع المنتج أو قيمة مثل 3kVA أو 200Ah.', ask: 'اسأل مهندسينا', keys: '↑ ↓ للاختيار · Enter للفتح · Esc للإغلاق' },
+})[lang];
 const CONTACT_US = { en: 'Contact us', es: 'Contáctenos', ru: 'Связаться с нами', ar: 'اتصل بنا' };
 const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín · Shenzhen · fábrica de Dongguan', ru: 'Пекин · Шэньчжэнь · завод в Дунгуане', ar: 'بكين · شنتشن · مصنع دونغقوان' };
 ---
@@ -139,6 +146,38 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
       .nav-gh { padding-bottom: 4px; }
     }
     .nav-list a[aria-current="page"] { background: var(--ok-soft); font-weight: 600; }
+    /* Products 菜单顶部的产品搜索 */
+    .ps-q { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 12px; margin-bottom: 6px; border: 1.5px solid var(--accent); border-radius: 9px; background: var(--surface); cursor: text; }
+    .ps-q svg { width: 19px; height: 19px; color: var(--accent); flex: none; }
+    .ps-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 15px var(--body); color: var(--ink); }
+    .ps-q input::placeholder { color: #8a9794; }
+    .ps-q input::-webkit-search-cancel-button { display: none; }
+    .ps-q:focus-within { box-shadow: 0 0 0 3px rgba(15,107,92,.14); }
+    .ps-k { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+    .ps-x { border: 0; background: var(--bg); width: 24px; height: 24px; border-radius: 50%; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex: none; }
+    .ps-out { grid-column: 1 / -1; }
+    .nav-list.ps-on .nav-col { display: none; }
+    .ps-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 4px 4px 8px; }
+    .ps-h b { font: 500 12px var(--body); text-transform: none; letter-spacing: 0; }
+    .ps-res { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; }
+    .nav-list a.ps-r { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 7px 8px; border-radius: 9px; }
+    .nav-list a.ps-r:hover, .nav-list a.ps-r.sel { background: var(--ok-soft); }
+    .ps-th { width: 52px; height: 52px; border-radius: 7px; background: #eef2f1; overflow: hidden; }
+    .ps-th img { width: 100%; height: 100%; object-fit: cover; }
+    .ps-r b { display: block; font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+    .ps-r mark { background: var(--charge-soft); color: inherit; border-radius: 3px; padding: 0 1px; }
+    .ps-r small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+    .ps-r em { font: 500 12px var(--mono); font-style: normal; color: var(--accent); white-space: nowrap; }
+    .ps-none { text-align: center; padding: 22px 10px; color: var(--muted); font-size: 14px; }
+    .ps-none b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; overflow-wrap: anywhere; }
+    .nav-list .ps-none a { display: inline-block; margin-top: 10px; background: var(--accent); color: #fff !important; padding: 7px 14px; border-radius: 7px; font-weight: 600; }
+    .ps-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 10px; padding: 10px 4px 0; font-size: 12.5px; color: var(--muted); }
+    .nav-list .ps-foot a { color: var(--accent) !important; font-weight: 600; font-size: 12.5px; padding: 0; }
+    @media (max-width: 700px) {
+      .ps-res { grid-template-columns: minmax(0, 1fr); }
+      .ps-k, .ps-foot > span { display: none; }
+      .nav-list a.ps-r em { white-space: normal; text-align: end; max-width: 9em; }
+    }
     /* 语言：一个下拉菜单 */
     .lang-menu { position: relative; }
     .lang-menu summary { list-style: none; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff; font: 600 13px var(--body); padding: 6px 10px; border-radius: 6px; border: 1px solid #4b5f5b; user-select: none; }
@@ -164,7 +203,19 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
       <nav class="nav" aria-label="Main">
         <details class="nav-menu" data-nav-menu>
           <summary aria-current={path === '' || PRODUCT_PATHS.includes(path) || path.startsWith('batteries/') || path.startsWith('p/') ? 'page' : undefined}>{t.products} <i aria-hidden="true">▾</i></summary>
-          <div class="nav-list">
+          <div class="nav-list" data-ps-root data-ps-t={JSON.stringify(PS)}>
+            <label class="ps-q">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input type="search" data-ps-q placeholder={PS.ph} aria-label={PS.ph} autocomplete="off" enterkeyhint="go" role="combobox" aria-expanded="false" aria-controls="ps-res" />
+              <kbd class="ps-k" aria-hidden="true">/</kbd>
+              <button type="button" class="ps-x" data-ps-x aria-label={PS.clear} hidden>×</button>
+            </label>
+            <div class="ps-out" data-ps-out hidden>
+              <div class="ps-h"><span>{PS.models}</span><b data-ps-n></b></div>
+              <div class="ps-res" id="ps-res" role="listbox" data-ps-res></div>
+              <div class="ps-none" data-ps-none hidden><b data-ps-nt></b>{PS.hint}<br /><a href={`/${lang}/contact/`}>{PS.ask}</a></div>
+              <div class="ps-foot" data-ps-foot><span>{PS.keys}</span><a href={`/${lang}/contact/`}>{PS.ask} →</a></div>
+            </div>
             {NAV.map((g) => (
               <div class="nav-col">
                 <span class="nav-gh">{g.h}</span>
@@ -234,6 +285,70 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
   </main>
   <SiteFooter lang={lang} altHref={altHref} />
   <ChatWidget lang={lang} />
+  <script>
+    // Products 菜单顶部的产品搜索：打开菜单时才下载 /<lang>/search.json；最多显示 8 条，↑↓ 选择、回车打开、Esc 先清空再关闭
+    import { runSearch, parseQuery } from '../lib/search-core.mjs';
+    const root = document.querySelector('[data-ps-root]');
+    const menu = root && root.closest('[data-nav-menu]');
+    const q = root && root.querySelector('[data-ps-q]');
+    if (root && menu && q) {
+      const T = JSON.parse(root.dataset.psT || '{}');
+      const out = root.querySelector('[data-ps-out]'), res = root.querySelector('[data-ps-res]'), none = root.querySelector('[data-ps-none]');
+      const foot = root.querySelector('[data-ps-foot]'), cnt = root.querySelector('[data-ps-n]'), x = root.querySelector('[data-ps-x]');
+      const lang = document.documentElement.lang || 'en';
+      let index = null, loading = null, sel = 0, links = [];
+      const load = () => loading || (loading = fetch(`/${lang}/search.json`).then((r) => r.json()).then((d) => { index = d; }).catch(() => { loading = null; }));
+      const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+      const mark = (m, words) => {
+        const lm = m.toLowerCase();
+        for (const w of words) { const i = w && lm.indexOf(w); if (w && i >= 0) return `${esc(m.slice(0, i))}<mark>${esc(m.slice(i, i + w.length))}</mark>${esc(m.slice(i + w.length))}`; }
+        return esc(m);
+      };
+      const setSel = (i) => { links.forEach((a, k) => { a.classList.toggle('sel', k === i); a.setAttribute('aria-selected', k === i ? 'true' : 'false'); }); sel = i; };
+      function render() {
+        const v = q.value.trim();
+        x.hidden = !v;
+        root.classList.toggle('ps-on', !!v);
+        out.hidden = !v;
+        q.setAttribute('aria-expanded', v ? 'true' : 'false');
+        if (!v) return;
+        if (!index) { load().then(render); return; }
+        // 型号里本身带 "48V" 这类写法时，按参数解析可能搜不到：型号包含输入内容的也算命中（排在后面）
+        const flat = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u0400-\u04ff]+/g, '');
+        const fq = flat(v);
+        const hit = runSearch(index, { q: v }).list;
+        const list = fq ? [...hit, ...index.items.filter((it) => !hit.includes(it) && flat(it.m).includes(fq))] : hit;
+        const { words } = parseQuery(v);
+        const top = list.slice(0, 8);
+        res.innerHTML = top.map((it) => `<a class="ps-r" role="option" href="${esc(it.u)}"><span class="ps-th">${it.i ? `<img src="${esc(it.i)}" alt="" loading="lazy" />` : ''}</span><span><b dir="ltr">${mark(it.m, [v.toLowerCase(), ...words])}</b><small>${esc(it.t)}</small></span><em>${esc(it.s)}</em></a>`).join('');
+        links = [...res.querySelectorAll('a')];
+        setSel(0);
+        cnt.textContent = list.length > 8 ? T.more.replace('{n}', list.length) : list.length === 1 ? T.n1 : T.n.replace('{n}', list.length);
+        res.hidden = !top.length; foot.hidden = !top.length; cnt.hidden = !top.length;
+        root.querySelector('.ps-h').hidden = !top.length;
+        none.hidden = !!top.length;
+        if (!top.length) root.querySelector('[data-ps-nt]').textContent = T.none.replace('{q}', v);
+      }
+      let tm;
+      q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(render, 80); });
+      q.addEventListener('focus', load);
+      q.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' && links.length) { e.preventDefault(); setSel((sel + 1) % links.length); }
+        else if (e.key === 'ArrowUp' && links.length) { e.preventDefault(); setSel((sel - 1 + links.length) % links.length); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (links[sel]) location.href = links[sel].href; }
+        else if (e.key === 'Escape' && q.value) { e.stopPropagation(); q.value = ''; render(); }
+      });
+      x.addEventListener('click', () => { q.value = ''; render(); q.focus(); });
+      // 打开菜单：电脑上直接把光标放进搜索框（手机上不自动弹键盘）
+      menu.addEventListener('toggle', () => { if (menu.open) { load(); if (matchMedia('(pointer: fine)').matches) q.focus({ preventScroll: true }); } });
+      // 电脑上在页面任意位置按 "/" 打开搜索
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+        const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        e.preventDefault(); menu.open = true; q.focus();
+      });
+    }
+  </script>
   <script is:inline>
     (function () {
       // 点菜单外面或按 Esc 收起下拉菜单（语言、产品）
