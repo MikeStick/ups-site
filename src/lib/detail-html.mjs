@@ -36,12 +36,19 @@ export function rawTplHtmlsOf(p, lang) {
     .filter(Boolean);
 }
 
+// 系列总表（CRM 模板里上传的完整系列参数 HTML）：只用于"下载系列参数表"按钮，也生成 /h/ 文件
+export function seriesSheetOf(p, lang) {
+  const h = p && p.series && p.series.sheet && p.series.sheet.html;
+  if (!h) return '';
+  return typeof h === 'string' ? h : (h[lang] || h.en || '');
+}
+
 // 某个产品在某种语言下的 HTML 片段原文（和产品页取法一致）：详情里的片段 + 原样显示的 HTML 内容
 export function detailHtmlsOf(p, lang) {
   return [...(Array.isArray(p.templateDetail) ? p.templateDetail : [])
     .filter((x) => !x.img && x.html)
     .map((x) => (typeof x.html === 'string' ? x.html : (x.html[lang] || x.html.en || '')))
-    .filter(Boolean), ...rawTplHtmlsOf(p, lang)];
+    .filter(Boolean), ...rawTplHtmlsOf(p, lang), ...(seriesSheetOf(p, lang) ? [seriesSheetOf(p, lang)] : [])];
 }
 
 // 全站所有不重复的片段文件：[{ hash, doc }]

@@ -215,6 +215,10 @@ async function main() {
         tp.html = Object.fromEntries(await Promise.all(Object.entries(tp.html).map(async ([k, v]) => [k, await localizeHtml(v, htmlImgCache, htmlImgCounters)])));
       }
     }
+    // 系列总表（CRM 模板里上传的完整系列参数 HTML，只用于"下载系列参数表"）：图片同样下载到本地
+    if (p.series && p.series.sheet && p.series.sheet.html && typeof p.series.sheet.html === 'object') {
+      p.series.sheet.html = Object.fromEntries(await Promise.all(Object.entries(p.series.sheet.html).map(async ([k, v]) => [k, await localizeHtml(v, htmlImgCache, htmlImgCounters)])));
+    }
     // 多语言原版彩页（HTML / PDF）：原样下载到 /media/<slug>/，产品页按页面语言嵌入显示
     if (p.brochures && typeof p.brochures === 'object') {
       const br = {};

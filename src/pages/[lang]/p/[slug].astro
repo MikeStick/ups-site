@@ -10,9 +10,9 @@ import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
-import { htmlUrl, rawTplHtmlsOf } from '../../../lib/detail-html.mjs';
+import { htmlUrl, rawTplHtmlsOf, seriesSheetOf } from '../../../lib/detail-html.mjs';
 import PackingList from '../../../components/PackingList.astro';
-import { isOffline, isRack, isModular, isIndustrial, isSolarUps, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, isCiEss, ciSpec, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
+import { isOffline, isRack, isModular, isIndustrial, isSolarUps, isOnline, isAio, isInverter, isRackBattery, isWallBattery, isFloorBattery, isHvCab, hvModule, isPbReplace, pbModule, isHomeEss, essSpec, essMount, essVolt, isCiEss, ciSpec, battModule, invKind, invKw, invPhase, invBattV, phaseOf, primary, isMini, moduleOf, isLongRun, rackKind, rackUnits, capacityOf, fmtCap, seriesOf } from '../../../lib/category.mjs';
 import { RT, RACK_SPEC_FIELDS } from '../../../lib/rack-i18n.mjs';
 import { MT, MOD_SPEC_FIELDS } from '../../../lib/modular-i18n.mjs';
 import { IT, IND_SPEC_FIELDS } from '../../../lib/industrial-i18n.mjs';
@@ -257,11 +257,23 @@ const dsItems = [...rawHtmls.map((h) => ({ html: htmlUrl(h) })), ...tplSeq.map((
 const dsSeries = seriesHtmls.length > 0;
 const dsName = `${String(catTitleIn('en') || '').trim()} ${String(p.model).trim()} Datasheet (${lang}).pdf`.replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
 const DST = addAr({
-  en: { btn: 'Download datasheet (PDF)', busy: 'Preparing PDF…', fail: 'Could not create the PDF, please try again.' },
-  es: { btn: 'Descargar ficha técnica (PDF)', busy: 'Preparando PDF…', fail: 'No se pudo crear el PDF, inténtelo de nuevo.' },
-  ru: { btn: 'Скачать техническое описание (PDF)', busy: 'Готовим PDF…', fail: 'Не удалось создать PDF, попробуйте ещё раз.' },
-  ar: { btn: 'تنزيل ورقة البيانات (PDF)', busy: 'جارٍ تجهيز ملف PDF…', fail: 'تعذّر إنشاء ملف PDF، يرجى المحاولة مرة أخرى.' },
+  en: { btn: 'Download datasheet (PDF)', one: 'Download {m} datasheet (PDF)', ser: 'Download {s} series datasheet (PDF)', busy: 'Preparing PDF…', fail: 'Could not create the PDF, please try again.' },
+  es: { btn: 'Descargar ficha técnica (PDF)', one: 'Descargar ficha técnica de {m} (PDF)', ser: 'Descargar ficha técnica de la serie {s} (PDF)', busy: 'Preparando PDF…', fail: 'No se pudo crear el PDF, inténtelo de nuevo.' },
+  ru: { btn: 'Скачать техническое описание (PDF)', one: 'Скачать техническое описание {m} (PDF)', ser: 'Скачать техническое описание серии {s} (PDF)', busy: 'Готовим PDF…', fail: 'Не удалось создать PDF, попробуйте ещё раз.' },
+  ar: { btn: 'تنزيل ورقة البيانات (PDF)', one: 'تنزيل ورقة بيانات {m} (PDF)', ser: 'تنزيل ورقة بيانات سلسلة {s} (PDF)', busy: 'جارٍ تجهيز ملف PDF…', fail: 'تعذّر إنشاء ملف PDF، يرجى المحاولة مرة أخرى.' },
 })[lang];
+// 两个下载按钮：① 本型号参数表（上面的 dsItems）；② 整个系列的参数总表 = CRM 模板里上传的"系列总表"。
+// 没上传系列总表时不显示②；迷你 UPS 例外：合并 Mini DC UPS 栏目下所有型号各自的参数页（每个型号一页）
+const fileSafe = (x) => String(x).replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+const mini = isMini(P0);
+const serName = (p.series && p.series.name) || (mini ? 'Mini UPS' : '');
+const serSheet = seriesSheetOf(p, lang);
+const serItems = serSheet ? [{ html: htmlUrl(serSheet) }]
+  : mini ? products.filter((x) => isMini(primary(x))).sort((a, b) => String(a.model).localeCompare(String(b.model), undefined, { numeric: true }))
+    .flatMap((x) => rawTplHtmlsOf(x, lang).map((h) => ({ html: htmlUrl(h) }))) : [];
+const serBtn = serItems.length > 0 && serName ? DST.ser.replace('{s}', serName) : '';
+const serFile = fileSafe(`${serName} Series Datasheet (${lang}).pdf`);
+const oneBtn = DST.one.replace('{m}', serName ? `${p.model} ${serName}` : p.model);
 // HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面。
 // 片段是独立文件 /h/<内容哈希>.html，多个型号共用同一个片段时只下载一次（见 lib/detail-html.mjs）
 const group = p.sale && p.sale.mode === 'group';
@@ -341,7 +353,13 @@ const jsonLd = {
       {(dsItems.length > 0 || dsSeries) && (
         <button type="button" class="ds-btn" data-ds={JSON.stringify({ items: dsItems, series: dsSeries, name: dsName, title: `${p.model} Datasheet`, busy: DST.busy, fail: DST.fail })}>
           <svg class="ds-ico" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M8 2h12l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#E2231A" stroke-width="1.6"/><path d="M20 2v6a2 2 0 0 0 2 2h6" fill="none" stroke="#E2231A" stroke-width="1.6"/><rect x="2" y="15" width="22" height="10" rx="2" fill="#E2231A"/><text x="13" y="22.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="700" fill="#fff" letter-spacing=".3">PDF</text></svg>
-          <span>{DST.btn}</span>
+          <span>{oneBtn}</span>
+        </button>
+      )}
+      {serBtn && (
+        <button type="button" class="ds-btn ds-ser" data-ds={JSON.stringify({ items: serItems, series: false, name: serFile, title: `${serName} Series Datasheet`, busy: DST.busy, fail: DST.fail })}>
+          <svg class="ds-ico" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M8 2h12l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#E2231A" stroke-width="1.6"/><path d="M20 2v6a2 2 0 0 0 2 2h6" fill="none" stroke="#E2231A" stroke-width="1.6"/><rect x="2" y="15" width="22" height="10" rx="2" fill="#E2231A"/><text x="13" y="22.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="700" fill="#fff" letter-spacing=".3">PDF</text></svg>
+          <span>{serBtn}</span>
         </button>
       )}
     </div>
@@ -595,6 +613,8 @@ const jsonLd = {
   .detail-stack img { width: 100%; height: auto; display: block; }
   .ds-btn { margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: #E2231A; font: 600 15px var(--body); cursor: pointer; transition: border-color .15s, background .15s; }
   .ds-btn:hover { border-color: #E2231A; background: #fff5f4; }
+  .ds-btn.ds-ser { margin-top: 10px; }
+  .ds-btn span { text-align: center; }
   .ds-ico { flex: none; }
   .ds-btn[disabled] { opacity: .65; cursor: progress; }
   .detail-stack .detail-html { width: 100%; height: 600px; border: 0; display: block; background: #fff; }
