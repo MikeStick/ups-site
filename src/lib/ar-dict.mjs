@@ -1,5 +1,11 @@
 // 阿拉伯语译文：英文原文 → 阿拉伯语（lib/ar.mjs 按英文查这里）。由 Claude 翻译；缺的句子构建时会列出来补。
 export const AR = {
+"Tell us the model and quantity you need and we will advise the best option. In-stock models ship as soon as your order is confirmed.": "أخبرنا بالطراز والكمية التي تحتاجها وسننصحك بأفضل خيار. الطرازات المتوفرة في المخزون تُشحن فور تأكيد الطلب.",
+"In-stock models": "طرازات متوفرة في المخزون",
+"Selected models are in stock and ship as soon as your order is confirmed.": "عدد من الطرازات متوفر في المخزون ويُشحن فور تأكيد الطلب.",
+"Mini DC UPS for routers, ONTs and cameras": "UPS صغير للتيار المستمر لأجهزة الراوتر وONT والكاميرات",
+"Keep routers, fibre ONTs, cameras and Starlink online through power cuts. Ask us for a quote — in-stock models ship as soon as your order is confirmed.": "حافظ على عمل أجهزة الراوتر وأجهزة ONT للألياف والكاميرات وStarlink أثناء انقطاع الكهرباء. اطلب عرض سعر — الطرازات المتوفرة في المخزون تُشحن فور تأكيد الطلب.",
+"View all Mini UPS": "عرض جميع أجهزة UPS الصغيرة",
 "Web / SNMP monitoring over Ethernet, e-mail and trap alarms": "مراقبة عبر الويب / SNMP عبر الإيثرنت، وإنذارات بالبريد الإلكتروني وTrap",
 "Modbus RTU / TCP to BMS, DCIM or SCADA": "Modbus RTU / TCP إلى BMS أو DCIM أو SCADA",
 "Relay outputs: mains failure, low battery, bypass, alarm": "مخارج مرحّلات: انقطاع الشبكة، انخفاض البطارية، المسار الجانبي، الإنذار",

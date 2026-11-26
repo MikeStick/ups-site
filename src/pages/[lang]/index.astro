@@ -1,4 +1,5 @@
 ---
+import { STOCK_LABEL } from '../../lib/stock.mjs';
 // 首页（/）：让客户一进来就知道 SKE 做哪些产品。
 // 顺序：开场动画（HomeHero）→ 产品总览（UPS / 光伏与储能 / 电池 三组，每个栏目一张卡片：图、名称、一句话、规格范围、型号数）
 // → 按场景找产品 → 在线选型工具 → Mini UPS 在线订购（以前首页就是 Mini UPS 列表，现在在 /mini-ups/）→ 为什么选择 SKE。
@@ -198,7 +199,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
           const cover = p.images && p.images[0];
           return (
             <li><a href={`/${lang}/p/${p.slug}/`}>
-              <span class="mimg">{cover ? <img src={cover.thumb} alt={p.model} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS.mini} />}</span>
+              <span class="mimg">{cover ? <img src={cover.thumb} alt={p.model} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS.mini} />}{p.inStock && <span class="stock-badge">{STOCK_LABEL[lang] || STOCK_LABEL.en}</span>}</span>
               <b>{p.model}</b>
               {p.outputPower && <small class="num">{p.outputPower}</small>}
             </a></li>
@@ -307,7 +308,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
   .minis { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .minis a { display: grid; gap: 4px; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; height: 100%; box-sizing: border-box; }
   .minis a:hover { border-color: var(--accent); }
-  .mimg { aspect-ratio: 1; border-radius: 10px; background: #f1f4f3; display: grid; place-items: center; overflow: hidden; margin-bottom: 6px; }
+  .mimg { aspect-ratio: 1; border-radius: 10px; background: #f1f4f3; display: grid; place-items: center; overflow: hidden; margin-bottom: 6px; position: relative; }
   .mimg img { width: 100%; height: 100%; object-fit: contain; } .mimg svg { width: 56px; height: 56px; fill: none; stroke: var(--accent); stroke-width: 2; }
   .minis small { color: var(--muted); font-size: 13px; } .minis .price { color: var(--accent); font-weight: 700; font-size: 14px; }
   /* —— 为什么选择 SKE —— */
