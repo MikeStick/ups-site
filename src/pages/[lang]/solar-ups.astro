@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 太阳能 UPS 栏目页（Solar UPS）：首屏 → 能量流示意（晴天 / 夜间 / 停电 / 削峰）→ 快速选型（负载 + 无电网小时数 → 机柜、电池、光伏）
 // → 全系列 15 个机柜参数 → 已发布型号 → 卖点 → 通用参数 → 应用 → 项目报价。只询价，不显示价格。
 // 产品来自客户档案系统：细分品类 = 太阳能UPS（或模板选了网站类目"太阳能 UPS"）。全系列数据见 src/lib/solarups-i18n.mjs
@@ -16,7 +17,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = SU[lang];
-const models = all.filter(isSolarUps).map((p) => ({ p, c: capacityOf(p) })).sort((a, b) => a.c.va - b.c.va);
+const models = all.filter(isSolarUps).map((p) => ({ p, c: capacityOf(p) })).sort((a, b) => stockFirst(a, b) || a.c.va - b.c.va);
 const wa = (msg: string) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const num = (x: number) => (lang === 'en' ? String(x) : String(x).replace('.', ','));
 const cfg = { range: SU_RANGE, battV: SU_BATT_V, maxPar: SU_MAX_PAR, wa: SITE.whatsapp || '', email: SITE.email || '', lang,

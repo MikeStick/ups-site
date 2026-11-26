@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 落地式锂电池栏目页（/batteries/floor-lithium/）：结构同壁挂式页面；配置器 kind="floor"（电池立在地上）→ 电池列表 → 卖点 → 落地 vs 壁挂 → 参数对比 → 应用 → 常见问题 → 询价。
 // 产品来自客户档案系统，细分品类 = 落地式锂电池（或 落地式磷酸铁锂电池），例如 SK-FM 系列。参数表标签和机架式共用 RB[lang].spec。
 import CatSearch from '../../../components/CatSearch.astro';
@@ -18,7 +19,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = FB[lang], SP = RB[lang].spec;
-const list = all.filter(isFloorBattery).map((p) => ({ p, b: battModule(p), s: seriesName(p) })).sort((a, b) => a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
+const list = all.filter(isFloorBattery).map((p) => ({ p, b: battModule(p), s: seriesName(p) })).sort((a, b) => stockFirst(a, b) || a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
 const ks = list.map((x) => x.b.kwh).filter(Boolean);
 const kTxt = ks.length ? (Math.min(...ks) === Math.max(...ks) ? `${ks[0]} kWh` : `${Math.min(...ks)}–${Math.max(...ks)} kWh`) : '10–24 kWh';
 const pars = list.map((x) => x.b.par).filter(Boolean);

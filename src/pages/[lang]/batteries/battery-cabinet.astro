@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 铅酸电池柜栏目页（/batteries/battery-cabinet/）：首屏 → 电池 + 电池柜联动选型（按负载和后备时间 / 按已选电池）→ 型号卡片（按层数筛选）
 // → 内部结构与接线图 → 参数对照表 → 特点 → 常见问题 → 询价。只询价，不显示价格。
 // 产品来自客户档案系统：型号 C-1 … C-40（或品类名带"电池柜 / 电池箱"）。参数按型号查 cab-specs.mjs（由画册抄录）。
@@ -19,7 +20,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = CAB[lang];
-const list = all.filter(isBattCab).map((p) => ({ p, c: cabSpec(p) })).filter((x) => x.c);
+const list = all.filter(isBattCab).map((p) => ({ p, c: cabSpec(p) })).filter((x) => x.c).sort(stockFirst);
 const slugOf = Object.fromEntries(list.map(({ p, c }) => [c.model, p.slug]));
 const imgOf = Object.fromEntries(list.map(({ p, c }) => [c.model, p.images && p.images[0] ? p.images[0].thumb || p.images[0].src : '']));
 const pic = (m: string) => imgOf[m] || `/img/cab/${m.toLowerCase()}.webp`;

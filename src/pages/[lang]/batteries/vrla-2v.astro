@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 2V 单体铅酸电池栏目页（/batteries/vrla-2v/）：首屏 → 电池组计算器（系统电压 + 负载 + 后备时间 → 型号 × 节数 × 串数）→ 型号大卡片 → 规格对照表
 // → 设计特点 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统：铅酸类品类里型号为 SK…-2v（或额定电压 2 V）的产品。参数在 vrla-engine.mjs（vrlaModule / SK_SPECS / cellBank）。
@@ -16,7 +17,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = V2[lang];
-const list = all.filter(isVrla2).map((p) => ({ p, b: vrlaModule(p) })).filter((x) => x.b.ah > 0).sort((a, b) => a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
+const list = all.filter(isVrla2).map((p) => ({ p, b: vrlaModule(p) })).filter((x) => x.b.ah > 0).sort((a, b) => stockFirst(a, b) || a.b.ah - b.b.ah || String(a.p.model).localeCompare(String(b.p.model)));
 const ahs = list.map((x) => x.b.ah);
 const ahTxt = ahs.length ? `${Math.min(...ahs)}–${Math.max(...ahs)} Ah` : '100–3000 Ah';
 const terms = [...new Set(list.map((x) => (x.b.terminal || '').split(' ')[0]).filter(Boolean))].join(' / ') || 'B5 / B6';

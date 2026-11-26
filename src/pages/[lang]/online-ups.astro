@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 在线式高频 UPS 栏目页（塔式，真双变换在线式）：负载规划（含长机外接电池估算）+ 型号列表（按相数 / 电池 / 容量筛选）+ 工作原理图 + 卖点 + 类型对比 + 参数表 + 应用 + 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 在线式高频UPS。页面结构和机架式 UPS 页一致，文字在 src/lib/online-i18n.mjs。
 import CatSearch from '../../components/CatSearch.astro';
@@ -23,7 +24,7 @@ const dcV = (p) => { const m = String(p.batteryVoltage || '').match(/(\d{2,3})(?
 const list = all.filter(isOnline).map((p) => {
   const c = capacityOf(p);
   return { p, va: c.va, w: c.w, lr: isLongRun(p), k: rackKind(p), ph: phaseOf(p), pf: pfOf(p), wh: Math.round(batteryWh(p)), vb: dcV(p), s: seriesName(p) };
-}).sort((a, b) => a.ph.localeCompare(b.ph) || a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按相数、系列分组，系列内容量从小到大，同容量标机在前
+}).sort((a, b) => stockFirst(a, b) || a.ph.localeCompare(b.ph) || a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按相数、系列分组，系列内容量从小到大，同容量标机在前
 const vas = list.map((x) => x.va).filter(Boolean);
 const kva = (v) => v / 1000;
 // 首屏的容量范围写整个系列（1–30 kVA），已发布的型号范围更大时用已发布的

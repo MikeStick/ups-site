@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 精密空调栏目页（/precision-ac/）：首屏 → 五个系列卡片 → 选型工具（热负荷 + 场景 + 是否恒温恒湿 + N+1 → 型号 × 台数）
 // → 型号大卡片（系列 + 单冷/恒温恒湿两个筛选）→ 各系列参数对照表 → 设计特点 → 常见问题 → 询价。只询价，不显示价格。
 // 产品来自客户档案系统：型号 SK-FAJ… / SK-LAJ… / SK-RMJ…（或品类名带"精密空调"）。参数按型号查 pac-specs.mjs（由画册抄录）。
@@ -20,7 +21,7 @@ const { lang } = Astro.params;
 const T = PAC[lang];
 const ORD = Object.fromEntries(PAC_SERIES.map((s, i) => [s, i]));
 const list = all.filter(isPac).map((p) => ({ p, s: pacSpec(p) })).filter((x) => x.s)
-  .sort((a, b) => ORD[a.s.series] - ORD[b.s.series] || (a.s.rh ? 1 : 0) - (b.s.rh ? 1 : 0) || a.s.cool - b.s.cool);
+  .sort((a, b) => stockFirst(a, b) || ORD[a.s.series] - ORD[b.s.series] || (a.s.rh ? 1 : 0) - (b.s.rh ? 1 : 0) || a.s.cool - b.s.cool);
 const SERS = PAC_SERIES.filter((s) => list.some((x) => x.s.series === s));
 // 选型用全部型号（含 CRM 里还没上架的），有产品页的带链接
 const slugOf = Object.fromEntries(list.map(({ p, s }) => [s.model, p.slug]));

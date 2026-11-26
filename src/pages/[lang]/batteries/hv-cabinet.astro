@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 高压磷酸铁锂电池柜栏目页（/batteries/hv-cabinet/）：电池柜配置器（UPS / 高压逆变器 + 电压 + 负载 + 备电时间，机房示意）→ 电池柜列表（按 204.8 V / 409.6 V 分组排序）
 // → 卖点 → 锂电柜 vs 铅酸电池组 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 磷酸铁锂储能柜（或 高压锂电池柜 / 高压磷酸铁锂电池柜），例如 R204.8V100AH。参数表标签用 RB[lang].spec。
@@ -20,7 +21,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = HV[lang], SP = RB[lang].spec;
-const list = all.filter(isHvCab).map((p) => ({ p, b: hvModule(p), s: seriesName(p) })).sort((a, b) => a.b.v - b.b.v || a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
+const list = all.filter(isHvCab).map((p) => ({ p, b: hvModule(p), s: seriesName(p) })).sort((a, b) => stockFirst(a, b) || a.b.v - b.b.v || a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
 const ks = list.map((x) => x.b.kwh).filter(Boolean);
 const kTxt = ks.length ? (Math.min(...ks) === Math.max(...ks) ? `${ks[0]} kWh` : `${Math.min(...ks)}–${Math.max(...ks)} kWh`) : '10–41 kWh';
 const vs = [...new Set(list.map((x) => x.b.v).filter(Boolean))].sort((a, b) => a - b);

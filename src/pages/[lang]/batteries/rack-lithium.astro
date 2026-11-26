@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 机架式磷酸铁锂电池栏目页（/batteries/rack-lithium/）：电池组配置器（按能量 / 按负载 + 19 英寸机柜示意）→ 模块列表 → 卖点 → 锂电 vs 铅酸 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 机架式磷酸铁锂电池。以后电池总页做在 /batteries/，其他电池（壁挂式、铅酸、家庭储能）各自一个分类页。
 import CatSearch from '../../../components/CatSearch.astro';
@@ -17,7 +18,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = RB[lang];
-const list = all.filter(isRackBattery).map((p) => ({ p, b: battModule(p), s: seriesName(p) })).sort((a, b) => a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
+const list = all.filter(isRackBattery).map((p) => ({ p, b: battModule(p), s: seriesName(p) })).sort((a, b) => stockFirst(a, b) || a.b.kwh - b.b.kwh || a.s.localeCompare(b.s));
 const vs = [...new Set(list.map((x) => x.b.v).filter(Boolean))].sort((a, b) => a - b);
 const vTxt = vs.length ? vs.map((v) => `${v} V`).join(' / ') : '48 V / 51.2 V';
 const us = [...new Set(list.map((x) => x.b.u).filter(Boolean))].sort((a, b) => a - b);

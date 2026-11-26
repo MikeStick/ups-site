@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 一体式锂电 UPS 栏目页（/all-in-one-ups/）：备电配置器（负载 + 备电小时 → 型号 + 电池节数，塔式 UPS 剖面示意）→ 型号列表 → 卖点 → 一体式 vs 外接电池 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 一体式锂电UPS（例如 C1K-Pro / C2K-Pro / C3K-Pro，一个型号一条，电池节数写成"2/4/6节"）。
 import CatSearch from '../../components/CatSearch.astro';
@@ -19,7 +20,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = AO[lang], SP = OL[lang].spec;
-const list = all.filter(isAio).map((p) => ({ p, c: capacityOf(p), o: aioOptions(p), s: seriesName(p) })).sort((a, b) => a.c.va - b.c.va || a.s.localeCompare(b.s));
+const list = all.filter(isAio).map((p) => ({ p, c: capacityOf(p), o: aioOptions(p), s: seriesName(p) })).sort((a, b) => stockFirst(a, b) || a.c.va - b.c.va || a.s.localeCompare(b.s));
 const vas = list.map((x) => x.c.va).filter(Boolean);
 const kva = (v) => +(v / 1000).toFixed(1);
 const capTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? `${kva(vas[0])} kVA` : `${kva(Math.min(...vas))}–${kva(Math.max(...vas))} kVA`) : '1–3 kVA';

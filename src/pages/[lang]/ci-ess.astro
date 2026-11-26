@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 工商业户外储能柜栏目页（/ci-ess/，菜单"光伏与储能"栏）：储能柜配置器（用途 + 功率 + 小时 + 冷却 → 型号 × 柜数，厂区示意）→ 型号卡片（风冷 / 液冷页签）
 // → 卖点 → 风冷 vs 液冷 → 参数对比 → 应用 → 常见问题（FAQ 结构化数据）→ 询价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 风冷工商业储能柜 / 液冷工商业储能柜（例如 DZ105215B、DZ105233L2）。
@@ -17,7 +18,7 @@ export function getStaticPaths() {
 }
 const { lang } = Astro.params;
 const T = CI[lang];
-const list = all.filter(isCiEss).map((p) => ({ p, e: ciSpec(p), s: seriesName(p) })).sort((a, b) => (a.e.cool === b.e.cool ? 0 : a.e.cool === 'air' ? -1 : 1) || a.e.kwh - b.e.kwh || a.s.localeCompare(b.s));
+const list = all.filter(isCiEss).map((p) => ({ p, e: ciSpec(p), s: seriesName(p) })).sort((a, b) => stockFirst(a, b) || (a.e.cool === b.e.cool ? 0 : a.e.cool === 'air' ? -1 : 1) || a.e.kwh - b.e.kwh || a.s.localeCompare(b.s));
 const COOLS = ['air', 'liquid'].filter((m) => list.some((x) => x.e.cool === m));
 const rng = (arr, u) => { const a = arr.filter(Boolean); if (!a.length) return ''; const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? `${lo} ${u}` : `${lo}–${hi} ${u}`; };
 const kwhTxt = rng(list.map((x) => x.e.kwh), 'kWh') || '107–233 kWh';

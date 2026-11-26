@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 离线式 / 在线互动式 UPS 栏目页：选型助手 + 型号列表（来自客户档案系统，类型 = 离线式UPS / 在线互动式UPS）+ 插座 + 对比 + 参数表 + OEM。只询价，不显示价格。
 import CatSearch from '../../components/CatSearch.astro';
 import { SF, csData } from '../../lib/search-i18n.mjs';
@@ -19,7 +20,7 @@ const T = OT[lang];
 const list = all.filter(isOffline).map((p) => {
   const c = capacityOf(p);
   return { p, va: c.va, w: c.w, li: isLineInteractive(p), k: offKind(p), wh: Math.round(batteryWh(p)), s: seriesName(p) };
-}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va || a.w - b.w); // 默认：按系列分组（GF 全部在前，GS 在后），系列内容量从小到大
+}).sort((a, b) => stockFirst(a, b) || a.s.localeCompare(b.s) || a.va - b.va || a.w - b.w); // 默认：按系列分组（GF 全部在前，GS 在后），系列内容量从小到大
 const fmtVA = (x) => fmtCap(x);
 const vaMin = list.length ? Math.min(...list.map((x) => x.va).filter(Boolean)) : 600;
 const vaMax = list.length ? Math.max(...list.map((x) => x.va).filter(Boolean)) : 3000;

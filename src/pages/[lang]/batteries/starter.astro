@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../../lib/stock.mjs';
 // 启动电池栏目页（/batteries/starter/）：首屏 → 按车型三张卡片 → 尺寸匹配 + JIS 型号解读 → 型号卡片（按车型筛选）
 // → 端子类型 → 外形图（逐个型号）→ 参数表 → 特点 → 常见问题 → 询价。只询价，不显示价格。
 // 型号参数来自规格书（starter-specs.mjs）；客户档案系统里发布了同型号产品时，卡片 / 表格链到产品页并用产品主图。
@@ -15,7 +16,7 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const T = STB[lang];
 const U = T.u;
-const pub = all.filter(isStarter);
+const pub = all.filter(isStarter).sort(stockFirst);
 const slugOf = Object.fromEntries(pub.map((p) => [starterKey(p.model), p.slug]).filter(([k]) => k));
 const imgOf = Object.fromEntries(pub.map((p) => [starterKey(p.model), p.images && p.images[0] ? p.images[0].thumb || p.images[0].src : '']).filter(([k]) => k));
 const pic = (m: string) => imgOf[m] || `/img/starter/${m.toLowerCase()}.webp`;

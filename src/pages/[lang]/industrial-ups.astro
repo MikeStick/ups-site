@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 工频机 UPS 栏目页（Industrial UPS）：配置器（供电 / 负载 / 电机启动 / 整流 / 冗余 / 选配 / 电池 + 机柜内部示意）→ 已发布型号 → 卖点 → 工频 vs 高频 → 应用 → 项目报价。只询价，不显示价格。
 // 产品来自客户档案系统，细分品类 = 工频UPS。选型计算：src/lib/industrial-engine.mjs
 import CatSearch from '../../components/CatSearch.astro';
@@ -17,7 +18,7 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const T = IT[lang];
 const models = all.filter(isIndustrial).map((p) => ({ p, c: capacityOf(p), ph: phaseOf(p), s: seriesName(p) }))
-  .sort((a, b) => a.ph.localeCompare(b.ph) || a.s.localeCompare(b.s) || a.c.va - b.c.va);
+  .sort((a, b) => stockFirst(a, b) || a.ph.localeCompare(b.ph) || a.s.localeCompare(b.s) || a.c.va - b.c.va);
 const phases = [...new Set(models.map((x) => x.ph))].sort();
 // 首屏的容量范围写整个系列（1–400 kVA），不按已发布的型号算：发布的通常只是一部分
 const rangeTxt = '1–400 kVA';

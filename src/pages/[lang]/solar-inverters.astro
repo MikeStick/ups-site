@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 光伏逆变器栏目页：系统选型器（目标 / 用电器 / 地区日照 / 电网电压 + 白天·夜间·停电实景）→ 型号列表（按类型 / 相数筛选）→ 卖点 → 混网·并网·离网对比 → 参数对比 → 应用 → 询价。只询价，不显示价格。
 // 产品来自客户档案系统，大类 = 光伏逆变器（细分：太阳能混网逆变器、并网/离网逆变器）。选型计算：src/lib/solar-engine.mjs
 import CatSearch from '../../components/CatSearch.astro';
@@ -19,7 +20,7 @@ const { lang } = Astro.params;
 const T = SL[lang];
 const KORD = { hybrid: 0, off: 1, grid: 2 };
 const list = all.filter(isInverter).map((p) => ({ p, kind: invKind(p), kw: invKw(p), ph: invPhase(p), bv: invBattV(p), s: seriesName(p) }))
-  .sort((a, b) => KORD[a.kind] - KORD[b.kind] || a.s.localeCompare(b.s) || a.kw - b.kw);
+  .sort((a, b) => stockFirst(a, b) || KORD[a.kind] - KORD[b.kind] || a.s.localeCompare(b.s) || a.kw - b.kw);
 const kinds = [...new Set(list.map((x) => x.kind))].sort((a, b) => KORD[a] - KORD[b]);
 const phases = [...new Set(list.map((x) => x.ph))];
 const kws = list.map((x) => x.kw).filter(Boolean);

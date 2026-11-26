@@ -1,4 +1,5 @@
 ---
+import { stockFirst } from '../../lib/stock.mjs';
 // 机架式 UPS 栏目页（真双变换在线式）：机柜负载规划（含长机外接电池估算）+ 型号列表 + 工作原理图 + 卖点 + 类型对比 + 参数表 + 应用 + OEM。只询价，不显示价格。
 // 产品来自客户档案系统，类型 = 机架式UPS。
 import CatSearch from '../../components/CatSearch.astro';
@@ -22,7 +23,7 @@ const dcV = (p) => { const m = String(p.batteryVoltage || '').match(/(\d{2,3})(?
 const list = all.filter(isRack).map((p) => {
   const c = capacityOf(p);
   return { p, va: c.va, w: c.w, lr: isLongRun(p), k: rackKind(p), u: rackUnits(p), pf: pfOf(p), wh: Math.round(batteryWh(p)), vb: dcV(p), s: seriesName(p) };
-}).sort((a, b) => a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按系列分组，系列内容量从小到大，同容量标机在前
+}).sort((a, b) => stockFirst(a, b) || a.s.localeCompare(b.s) || a.va - b.va || Number(a.lr) - Number(b.lr)); // 默认：按系列分组，系列内容量从小到大，同容量标机在前
 const vas = list.map((x) => x.va).filter(Boolean);
 const kva = (v) => v / 1000;
 const rangeTxt = vas.length ? (Math.min(...vas) === Math.max(...vas) ? fmtCap({ va: vas[0] }) : `${kva(Math.min(...vas))}–${kva(Math.max(...vas))} kVA`) : '1–10 kVA';
