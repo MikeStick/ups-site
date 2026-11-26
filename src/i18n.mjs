@@ -17,10 +17,6 @@ export const UI = {
     unitPrice: 'Precio unitario (USD)',
     from: (n) => `desde ${n} uds`,
     stock: 'En stock',
-    stockQty: (n) => `${n} uds listas para enviar`,
-    stockRules: 'Pedido mínimo 20 uds, en múltiplos de 20. Lo que exceda el stock se fabrica y se envía en 30 días.',
-    group: 'Compra grupal',
-    groupRules: 'Pedido mínimo 100 uds, en múltiplos de 100. El lote entra en producción al llegar a 1000 uds entre todos los compradores; cada uno elige su enchufe.',
     plugNote: 'Entrada universal 100–240V. Enchufe a elección: US, EU, UK, AU, India u otro.',
     askQuote: 'Pedir cotización por WhatsApp',
     askEmail: 'Escribir por email',
@@ -46,10 +42,6 @@ export const UI = {
     unitPrice: 'Unit price (USD)',
     from: (n) => `from ${n} pcs`,
     stock: 'In stock',
-    stockQty: (n) => `${n} pcs ready to ship`,
-    stockRules: 'Minimum order 20 pcs, in steps of 20. Anything above stock is produced and ships within 30 days.',
-    group: 'Group buy',
-    groupRules: 'Minimum order 100 pcs, in steps of 100. The batch goes into production once all buyers together reach 1000 pcs; each buyer picks their own plug.',
     plugNote: 'Universal 100–240V input. Plug of your choice: US, EU, UK, AU, India or other.',
     askQuote: 'Get a quote on WhatsApp',
     askEmail: 'Send an email',
@@ -75,10 +67,6 @@ export const UI = {
     unitPrice: 'Цена за шт. (USD)',
     from: (n) => `от ${n} шт.`,
     stock: 'В наличии',
-    stockQty: (n) => `${n} шт. готовы к отправке`,
-    stockRules: 'Минимальный заказ 20 шт., кратно 20. Сверх наличия — производство и отгрузка в течение 30 дней.',
-    group: 'Совместная закупка',
-    groupRules: 'Минимальный заказ 100 шт., кратно 100. Партия запускается в производство, когда все покупатели вместе набирают 1000 шт.; вилку каждый выбирает сам.',
     plugNote: 'Универсальный вход 100–240В. Вилка на выбор: US, EU, UK, AU, India или другая.',
     askQuote: 'Запросить цену в WhatsApp',
     askEmail: 'Написать на email',
@@ -189,25 +177,6 @@ export function specRows(p, lang) {
     push(x.label, x.value);
   }
   return rows;
-}
-
-// 阶梯价：客户档案系统只填起订量单价（minPrice）和1000台单价（maxPrice），中间档位按数量线性插值。
-// 公式与客户档案系统 App.jsx 里的 webTiers() 保持一致。
-export function tiersOf(p) {
-  const sale = p.sale || {};
-  const pMin = Number(sale.minPrice), pMax = Number(sale.maxPrice);
-  if (pMin > 0) {
-    const moq = sale.mode === 'group' ? 100 : 20;
-    if (!(pMax > 0)) return [{ qty: moq, price: pMin }];
-    const pts = [moq];
-    for (let q = 100; q <= 1000; q += 100) if (q > moq) pts.push(q);
-    return pts.map((q) => ({ qty: q, price: Math.round((pMin + (pMax - pMin) * (q - moq) / (1000 - moq)) * 100) / 100 }));
-  }
-  // 兼容旧格式：逐档填写的 tiers
-  return (Array.isArray(sale.tiers) ? sale.tiers : [])
-    .map((t) => ({ qty: Number(t.qty), price: Number(t.price) }))
-    .filter((t) => t.qty > 0 && t.price > 0)
-    .sort((a, b) => a.qty - b.qty);
 }
 
 // 阿拉伯语：按英文自动补 ar（见 lib/ar.mjs）

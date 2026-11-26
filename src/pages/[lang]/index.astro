@@ -7,7 +7,7 @@
 import Base from '../../layouts/Base.astro';
 import HomeHero from '../../components/HomeHero.astro';
 import { LANGS, SITE } from '../../config.mjs';
-import { UI, tiersOf } from '../../i18n.mjs';
+import { UI } from '../../i18n.mjs';
 import { HM } from '../../lib/home-i18n.mjs';
 import { AT, STATS } from '../../lib/about-i18n.mjs';
 import { catalog } from '../../lib/catalog.mjs';
@@ -195,7 +195,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
       </div>
       <ul class="minis">
         {minis.map((p) => {
-          const tiers = tiersOf(p), cover = p.images && p.images[0];
+          const cover = p.images && p.images[0];
           return (
             <li><a href={`/${lang}/p/${p.slug}/`}>
               <span class="mimg">{cover ? <img src={cover.thumb} alt={p.model} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS.mini} />}</span>

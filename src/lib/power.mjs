@@ -70,7 +70,7 @@ export const CALC_T = {
     none: 'Add a device to see the backup time.', note: 'Estimate based on battery capacity and {e}% conversion efficiency. Actual time depends on the devices.',
     h: 'h', min: 'min',
     filterTitle: 'Find the right model', outputs: 'Outputs needed', capacity: 'Battery capacity', mah: 'mAh', avail: 'Availability', any: 'Any',
-    stock: 'In stock', group: 'Group buy', load: 'My devices', clear: 'Clear filters', count: '{n} models', count1: '1 model', noMatch: 'No model matches these filters.',
+    stock: 'In stock', load: 'My devices', clear: 'Clear filters', count: '{n} models', count1: '1 model', noMatch: 'No model matches these filters.',
     canPower: 'Only models that can power my devices', runs: '≈ {t} backup',
   },
   es: {
@@ -80,7 +80,7 @@ export const CALC_T = {
     none: 'Agregue un equipo para ver la autonomía.', note: 'Estimación según la capacidad de la batería y {e}% de eficiencia de conversión. El tiempo real depende de los equipos.',
     h: 'h', min: 'min',
     filterTitle: 'Encuentre el modelo adecuado', outputs: 'Salidas necesarias', capacity: 'Capacidad de batería', mah: 'mAh', avail: 'Disponibilidad', any: 'Todas',
-    stock: 'En stock', group: 'Compra grupal', load: 'Mis equipos', clear: 'Quitar filtros', count: '{n} modelos', count1: '1 modelo', noMatch: 'Ningún modelo coincide con estos filtros.',
+    stock: 'En stock', load: 'Mis equipos', clear: 'Quitar filtros', count: '{n} modelos', count1: '1 modelo', noMatch: 'Ningún modelo coincide con estos filtros.',
     canPower: 'Solo modelos que pueden alimentar mis equipos', runs: '≈ {t} de autonomía',
   },
   ru: {
@@ -90,7 +90,7 @@ export const CALC_T = {
     none: 'Добавьте устройство, чтобы увидеть время работы.', note: 'Оценка по ёмкости батареи и КПД преобразования {e}%. Реальное время зависит от устройств.',
     h: 'ч', min: 'мин',
     filterTitle: 'Подбор модели', outputs: 'Нужные выходы', capacity: 'Ёмкость батареи', mah: 'мАч', avail: 'Наличие', any: 'Все',
-    stock: 'В наличии', group: 'Совместная закупка', load: 'Мои устройства', clear: 'Сбросить фильтры', count: 'Моделей: {n}', count1: 'Моделей: 1', noMatch: 'Нет моделей по этим фильтрам.',
+    stock: 'В наличии', load: 'Мои устройства', clear: 'Сбросить фильтры', count: 'Моделей: {n}', count1: 'Моделей: 1', noMatch: 'Нет моделей по этим фильтрам.',
     canPower: 'Только модели, которые потянут мои устройства', runs: '≈ {t} работы',
   },
 };

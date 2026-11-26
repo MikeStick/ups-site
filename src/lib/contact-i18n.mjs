@@ -32,7 +32,7 @@ export const CO = {
     toolsH: 'Prefer to size it yourself first?',
     faqH: 'Before you ask',
     faq: [
-      ['Can I order small quantities?', 'Mini UPS can be bought online in small quantities through shared group orders. For other products, tell us the quantity you need and we will advise the best option.'],
+      ['Can I order small quantities?', 'Tell us the model and quantity you need and we will advise the best option. In-stock models ship as soon as your order is confirmed.'],
       ['Can you put my brand on the product?', 'Yes. Mini UPS OEM (your logo, box and manual) from 1000 pcs. Rack-mount UPS OEM from 50 pcs with a US$2,000 customization fee.'],
       ['Can you design a new Mini UPS for my devices?', 'Yes — ODM. You choose outputs, voltages and battery; the sample development fee is US$2,000 and is refunded in your mass-production order.'],
       ['Do I need to buy solar panels from you?', 'No. Buy panels locally if that is cheaper — our inverters work with standard panels. We supply inverters, batteries and energy storage.'],
@@ -71,7 +71,7 @@ export const CO = {
     toolsH: '¿Prefiere dimensionarlo usted primero?',
     faqH: 'Antes de preguntar',
     faq: [
-      ['¿Puedo pedir cantidades pequeñas?', 'Los Mini UPS se pueden comprar en línea en pocas unidades mediante pedidos grupales. Para otros productos, díganos la cantidad que necesita y le recomendamos la mejor opción.'],
+      ['¿Puedo pedir cantidades pequeñas?', 'Indíquenos el modelo y la cantidad que necesita y le recomendamos la mejor opción. Los modelos en stock se envían en cuanto se confirma el pedido.'],
       ['¿Pueden poner mi marca en el producto?', 'Sí. Mini UPS OEM (su logo, caja y manual) desde 1000 uds. UPS de rack OEM desde 50 uds con un cargo de personalización de US$2.000.'],
       ['¿Pueden diseñar un Mini UPS nuevo para mis equipos?', 'Sí, ODM. Usted elige salidas, voltajes y batería; el desarrollo de la muestra cuesta US$2.000 y se descuenta en su pedido de producción.'],
       ['¿Debo comprarles los paneles solares?', 'No. Compre los paneles localmente si le sale más barato: nuestros inversores funcionan con paneles estándar. Nosotros suministramos inversores, baterías y almacenamiento.'],
@@ -110,7 +110,7 @@ export const CO = {
     toolsH: 'Хотите сначала подобрать сами?',
     faqH: 'Частые вопросы',
     faq: [
-      ['Можно заказать небольшую партию?', 'Mini UPS можно купить онлайн небольшой партией через совместные заказы. Для других товаров укажите нужное количество — подскажем лучший вариант.'],
+      ['Можно заказать небольшую партию?', 'Укажите модель и нужное количество — подскажем лучший вариант. Модели в наличии отгружаем сразу после подтверждения заказа.'],
       ['Можно нанести мой бренд?', 'Да. OEM для Mini UPS (ваш логотип, коробка и инструкция) — от 1000 шт. OEM для стоечных ИБП — от 50 шт., плата за кастомизацию 2000 $.'],
       ['Можете разработать новый Mini UPS под мои устройства?', 'Да, ODM. Вы выбираете выходы, напряжения и батарею; разработка образца — 2000 $, сумма засчитывается в серийный заказ.'],
       ['Нужно ли покупать солнечные панели у вас?', 'Нет. Покупайте панели на месте, если так дешевле, — наши инверторы работают со стандартными панелями. Мы поставляем инверторы, батареи и накопители.'],

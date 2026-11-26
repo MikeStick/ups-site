@@ -1,11 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import Gallery from '../../../components/Gallery.astro';
-import OrderConsole from '../../../components/OrderConsole.astro';
 import RuntimeCalc from '../../../components/RuntimeCalc.astro';
 import { LANGS, SITE } from '../../../config.mjs';
 import { parseQuery } from '../../../lib/search-core.mjs';
-import { UI, term, specRows, tiersOf } from '../../../i18n.mjs';
+import { UI, term, specRows } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
@@ -236,8 +235,7 @@ const rows = dem
   ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
      ...(socketsText(p.sockets) ? [[O.spec.sockets, socketsText(p.sockets)]] : [])]
   : specRows(p, lang);
-// 迷你UPS 不再在网站上显示价格 / 下单 / 拼单：只留询价（WhatsApp / 邮件）
-const tiers = isMini(P0) ? [] : tiersOf(p);
+// 网站不显示价格、没有拼单和在线下单：所有产品都只询价
 // 产品自己的详情图在前，引用的详情模板图片（工厂、认证、包装等）接在后面，无缝拼成一整列
 // 模板里有 HTML 片段时按 templateDetail 的顺序（图片和 HTML 穿插），否则沿用 templateImages
 const tplSeq = Array.isArray(p.templateDetail) && p.templateDetail.length
@@ -277,8 +275,6 @@ const serFile = fileSafe(`${serName} Series Datasheet (${lang}).pdf`);
 const oneBtn = DST.one.replace('{m}', serName ? `${p.model} ${serName}` : p.model);
 // HTML 片段放进隔离的 iframe（sandbox 只允许脚本、不同源）：保留原来的排版样式，又碰不到网站本身；高度由片段里注入的小脚本报给父页面。
 // 片段是独立文件 /h/<内容哈希>.html，多个型号共用同一个片段时只下载一次（见 lib/detail-html.mjs）
-const group = p.sale && p.sale.mode === 'group';
-const stock = p.sale && !group ? Number(p.sale.stock) || 0 : 0;
 const desc = (p.description && (p.description[lang] || p.description.en)) || '';
 // 卖点：优先用接口给的当前语言译文，没有就退回英文
 const features = ((p.sellingPointsI18n && (p.sellingPointsI18n[lang] || p.sellingPointsI18n.en)) ||
@@ -343,7 +339,6 @@ const site = Astro.site ? Astro.site.toString().replace(/\/$/, '') : '';
 const jsonLd = {
   '@context': 'https://schema.org', '@type': 'Product', name: p.model, brand: p.brand ? { '@type': 'Brand', name: p.brand } : undefined,
   description: desc || undefined, image: (p.images || []).map((im) => site + im.src),
-  offers: !offline && tiers.length ? { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: tiers[tiers.length - 1].price, highPrice: tiers[0].price } : undefined,
 };
 ---
 <Base lang={lang} title={title} description={desc.slice(0, 155)} path={`p/${p.slug}/`}>
@@ -380,15 +375,6 @@ const jsonLd = {
       {highlights.length > 0 && <ul class="highlights">{highlights.map((h) => <li>{h}</li>)}</ul>}
       {desc && <p class="desc">{desc}</p>}
 
-      {p.sale && !offline && !isMini(P0) && (
-        <div class={`sale ${group ? 'group' : 'stock'}`}>
-          <div class="sale-head">
-            <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>
-            {!group && stock > 0 && <span class="stock-qty">{t.stockQty(stock)}</span>}
-          </div>
-          <p>{group ? t.groupRules : t.stockRules}</p>
-        </div>
-      )}
 
       {dem ? (
         <a class="custom-banner" href={`/${lang}/dcim-monitoring/#planner`}>
@@ -458,8 +444,6 @@ const jsonLd = {
 
     {offline ? (
       <QuoteConsole p={p} lang={lang} />
-    ) : tiers.length > 0 ? (
-      <OrderConsole p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
         {!vrla && !rbatt && !pac && !cab && !starter && !idm && !dem && <p class="plug">{t.plugNote}</p>}
@@ -582,19 +566,10 @@ const jsonLd = {
   .custom-banner { display: flex; justify-content: space-between; align-items: center; gap: 6px 14px; flex-wrap: wrap; padding: 11px 14px; border-radius: 10px; border: 1px dashed var(--accent); text-decoration: none; color: var(--ink); font-size: 14px; }
   .custom-banner b { color: var(--accent); white-space: nowrap; }
   .custom-banner:hover { background: var(--surface); }
-  .sale { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
-  .sale p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
-  .sale-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .stock-qty { font-size: 14px; font-weight: 500; color: var(--ok); }
   .pill { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; }
   .pill.stock { background: var(--ok-soft); color: var(--ok); }
-  .pill.group { background: var(--charge-soft); color: var(--warn); }
-  .tiers h2, .details h2 { font-size: 22px; margin: 0 0 10px; }
-  .tiers table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .tiers th, .tiers td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); }
-  .tiers th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
-  .tiers td:last-child, .tiers th:last-child { text-align: right; }
-  .tiers tr:last-child td { border-bottom: 0; }
+  .details h2 { font-size: 22px; margin: 0 0 10px; }
   .note { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
   .plug { margin: 0; font-size: 14px; padding-left: 12px; border-left: 3px solid var(--charge); }
   .cta { display: flex; gap: 10px; flex-wrap: wrap; }
