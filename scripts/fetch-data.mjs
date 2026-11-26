@@ -156,8 +156,12 @@ async function main() {
     return;
   }
 
-  const list = await getJson(`${API}/api/public/products`);
-  console.log(`[fetch-data] 拉取到 ${list.length} 个已发布产品`);
+  // noai=1：CRM 这次不调用 AI，直接用已有译文返回（没翻译的先显示英文）；没翻完的由 CRM 后台继续翻，翻完自动再构建一次。
+  // 这样构建时间不受"新内容要翻译多久"影响，英文版始终能按时上线
+  const t0 = Date.now();
+  const lap = (msg) => console.log(`[fetch-data] ${msg}（${Math.round((Date.now() - t0) / 1000)} 秒）`);
+  const list = await getJson(`${API}/api/public/products?noai=1`);
+  lap(`拉取到 ${list.length} 个已发布产品`);
   // 模板图片缓存：多个产品引用同一个模板时只下载、压缩一次，网站上也是同一个文件（浏览器缓存可复用）
   const tplCache = new Map();
   const tplCounters = new Map();
@@ -175,7 +179,10 @@ async function main() {
     return job;
   }
   const htmlImgCache = new Map(), htmlImgCounters = new Map();
-  for (const p of list) {
+  // 产品图片并发处理（以前一个一个下载，产品多了构建会超时）；缓存和计数都是同步登记的，并发安全
+  let done = 0;
+  const pool = async (items, n, fn) => { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const x = items[i++]; await fn(x); } })); };
+  await pool(list, 6, async (p) => {
     const imgs = [];
     for (const [i, url] of (p.images || []).entries()) {
       const saved = await saveImage(url, p.slug, i);
@@ -238,9 +245,12 @@ async function main() {
       }
       if (Object.keys(br).length) p.brochures = br; else delete p.brochures;
     }
-  }
+    if (++done % 50 === 0) lap(`图片已处理 ${done}/${list.length} 个产品`);
+  });
+  lap('产品图片全部处理完');
   await fs.writeFile(OUT_JSON, JSON.stringify(list, null, 2));
   await fetchSite();
+  lap('网站管理数据处理完');
 }
 
 // 新闻文章：封面、正文图片下载到 /media/news-<slug>/（封面 1600 px，正文 1200 px），YouTube 封面也存到本地
