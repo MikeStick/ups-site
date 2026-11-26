@@ -236,7 +236,8 @@ const rows = dem
   ? [[O.spec.model, p.model], ...SPEC_FIELDS.map((f) => [O.spec[f], specValue(p, f, lang).replace(/\*/g, ' × ')]).filter(([, v]) => v),
      ...(socketsText(p.sockets) ? [[O.spec.sockets, socketsText(p.sockets)]] : [])]
   : specRows(p, lang);
-const tiers = tiersOf(p);
+// 迷你UPS 不再在网站上显示价格 / 下单 / 拼单：只留询价（WhatsApp / 邮件）
+const tiers = isMini(P0) ? [] : tiersOf(p);
 // 产品自己的详情图在前，引用的详情模板图片（工厂、认证、包装等）接在后面，无缝拼成一整列
 // 模板里有 HTML 片段时按 templateDetail 的顺序（图片和 HTML 穿插），否则沿用 templateImages
 const tplSeq = Array.isArray(p.templateDetail) && p.templateDetail.length
@@ -379,7 +380,7 @@ const jsonLd = {
       {highlights.length > 0 && <ul class="highlights">{highlights.map((h) => <li>{h}</li>)}</ul>}
       {desc && <p class="desc">{desc}</p>}
 
-      {p.sale && !offline && (
+      {p.sale && !offline && !isMini(P0) && (
         <div class={`sale ${group ? 'group' : 'stock'}`}>
           <div class="sale-head">
             <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>

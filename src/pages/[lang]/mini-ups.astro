@@ -20,7 +20,9 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const t = UI[lang];
 const C = CALC_T[lang];
-const items = products.map((p) => ({ p, tags: outputTags(p), wh: batteryWh(p), w: powerW(p), mah: totalMah(p) }));
+// 现货（CRM 里勾选"现货"）排在前面，其余保持原顺序
+const items = products.map((p, i) => ({ p, i, tags: outputTags(p), wh: batteryWh(p), w: powerW(p), mah: totalMah(p) }))
+  .sort((a, b) => (b.p.inStock ? 1 : 0) - (a.p.inStock ? 1 : 0) || a.i - b.i);
 // 筛选项只列出现有产品里真实出现过的输出口
 const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
   const o = (t) => (t === 'USB' ? 0 : t.startsWith('PoE') ? 1000 + parseFloat(t.slice(4)) : parseFloat(t));
@@ -28,8 +30,9 @@ const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
 });
 // 电池容量：每个出现过的总容量各一个选项，从小到大；以后新增更小或更大容量的型号会自动出现
 const caps = [...new Set(items.map((x) => x.mah).filter((v) => v > 0))].sort((a, b) => a - b);
-const hasStock = products.some((p) => p.sale && p.sale.mode !== 'group');
-const hasGroup = products.some((p) => p.sale && p.sale.mode === 'group');
+// 迷你UPS 不再有拼单和网站报价：只按"现货"筛选（有现货、也有非现货的型号时才显示这个筛选）
+const hasStock = products.some((p) => p.inStock);
+const hasGroup = products.some((p) => !p.inStock);
 // Mini UPS 定制入口（OEM 贴牌 / ODM 完全定制）——以前在顶部菜单，现在放在 Mini DC UPS 栏目里
 const CB = addAr({
   en: ['Custom Mini UPS — OEM & ODM', 'Your outputs, battery and brand. OEM from 1000 pcs; ODM sample fee US$2,000, refunded in your mass-production order.', 'Design yours'],
@@ -83,7 +86,6 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
               <div class="chips">
                 <label class="chip"><input type="radio" name={`avail-${lang}`} value="" checked data-avail /> <span>{C.any}</span></label>
                 <label class="chip"><input type="radio" name={`avail-${lang}`} value="stock" data-avail /> <span>{C.stock}</span></label>
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="group" data-avail /> <span>{C.group}</span></label>
               </div>
             </fieldset>
           )}
@@ -106,12 +108,11 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
             const cover = p.images && p.images[0];
             const group = p.sale && p.sale.mode === 'group';
             return (
-              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.sale ? (group ? 'group' : 'stock') : ''} data-wh={wh} data-w={w} data-mah={mah || ''}>
+              <li class="card" data-card data-tags={tags.join('|')} data-mode={p.inStock ? 'stock' : ''} data-wh={wh} data-w={w} data-mah={mah || ''}>
                 <a href={`/${lang}/p/${p.slug}/`}>
                   <div class="thumb">
                     {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
-                    {p.sale && <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>}
-                    {p.inStock && !(p.sale && !group) && <span class="stock-badge">{STOCK_LABEL[lang] || STOCK_LABEL.en}</span>}
+                    {p.inStock && <span class="stock-badge">{STOCK_LABEL[lang] || STOCK_LABEL.en}</span>}
                     <span class="runs num" data-runs hidden></span>
                   </div>
                   <div class="info">
@@ -123,7 +124,6 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
                       wh > 0 && `${Math.round(wh)}Wh`,
                     ].filter(Boolean).join(' · ')}</span>
                     {tags.length > 0 && <span class="tags">{tags.map((x) => <i>{x}</i>)}</span>}
-                    {tiers.length > 0 && <span class="price"><span class="num">${tiers[tiers.length - 1].price.toFixed(2)}–${tiers[0].price.toFixed(2)}</span></span>}
                   </div>
                 </a>
               </li>

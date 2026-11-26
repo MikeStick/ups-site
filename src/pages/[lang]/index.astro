@@ -65,7 +65,7 @@ const byKey0 = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.ke
 const strip = groups.map((g) => ({ key: g.key, n: g.items.filter((x) => !x.tool).length, pics: STRIP_PICK[g.key].map((k) => byKey0[k]).filter(Boolean),
   names: g.items.filter((x) => !x.tool).map((x) => x.label) }));
 const byKey = Object.fromEntries(groups.flatMap((g) => g.items.map((x) => [x.key, x])));
-const minis = all.filter(isMini).sort((a, b) => (b.images && b.images.length ? 1 : 0) - (a.images && a.images.length ? 1 : 0)).slice(0, 4);
+const minis = all.filter(isMini).sort((a, b) => (b.inStock ? 1 : 0) - (a.inStock ? 1 : 0) || (b.images && b.images.length ? 1 : 0) - (a.images && a.images.length ? 1 : 0)).slice(0, 4);
 const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const statPick = STATS.filter((s) => ['years', 'area', 'countries'].includes(s.k));
 
@@ -201,7 +201,6 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SI
               <span class="mimg">{cover ? <img src={cover.thumb} alt={p.model} loading="lazy" /> : <svg viewBox="0 0 48 48" aria-hidden="true" set:html={ICONS.mini} />}</span>
               <b>{p.model}</b>
               {p.outputPower && <small class="num">{p.outputPower}</small>}
-              {tiers.length > 0 && (() => { const ps = tiers.map((x) => x.price), lo = Math.min(...ps), hi = Math.max(...ps); return <span class="price num">${lo.toFixed(2)}{hi > lo ? `–$${hi.toFixed(2)}` : ''}</span>; })()}
             </a></li>
           );
         })}
