@@ -1,4 +1,5 @@
 ---
+import { STOCK_LABEL } from '../../lib/stock.mjs';
 import Base from '../../layouts/Base.astro';
 import DevicePicker from '../../components/DevicePicker.astro';
 import { LANGS, SITE } from '../../config.mjs';
@@ -110,6 +111,7 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
                   <div class="thumb">
                     {cover ? <img src={cover.thumb} alt={p.model} loading="lazy" width="480" height="480" /> : <div class="noimg" />}
                     {p.sale && <span class={`pill ${group ? 'group' : 'stock'}`}>{group ? t.group : t.stock}</span>}
+                    {p.inStock && !(p.sale && !group) && <span class="stock-badge">{STOCK_LABEL[lang] || STOCK_LABEL.en}</span>}
                     <span class="runs num" data-runs hidden></span>
                   </div>
                   <div class="info">

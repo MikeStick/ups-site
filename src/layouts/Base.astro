@@ -1,6 +1,7 @@
 ---
 import { SITE, LANGS, DEFAULT_LANG , RTL_LANGS } from '../config.mjs';
 import { UI } from '../i18n.mjs';
+import { STOCK_LABEL, STOCK_ONLY } from '../lib/stock.mjs';
 import { CO } from '../lib/contact-i18n.mjs';
 import { CS } from '../lib/cases-i18n.mjs';
 import { AT } from '../lib/about-i18n.mjs';
@@ -64,6 +65,11 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   {RTL_LANGS.includes(lang) && <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />}
   <style is:global>
+    /* 现货标记：产品图右上角（栏目卡片、产品详情页主图、顶部搜索结果） */
+    .stock-badge { position: absolute; top: 10px; inset-inline-end: 10px; z-index: 2; pointer-events: none; font: 700 11px/1 var(--body); letter-spacing: .05em; text-transform: uppercase; color: #fff; background: #15803d; padding: 5px 9px; border-radius: 99px; box-shadow: 0 2px 6px rgba(0,0,0,.18); white-space: nowrap; }
+    .stock-badge.big { top: 14px; inset-inline-end: 14px; font-size: 12.5px; padding: 7px 12px; }
+    .stock-badge.mini { top: 3px; inset-inline-end: 3px; font-size: 8.5px; padding: 3px 5px; letter-spacing: 0; }
+    .pimg, li.card .thumb { position: relative; }
     :root {
       --bg: #f3f5f4; --surface: #ffffff; --ink: #15211f; --muted: #5d6b68; --line: #d6dedb;
       --accent: #0f6b5c; --accent-ink: #ffffff; --charge: #e0a800; --charge-soft: #fbefc6;
@@ -148,6 +154,9 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
     .nav-list a[aria-current="page"] { background: var(--ok-soft); font-weight: 600; }
     /* Products 菜单顶部的产品搜索 */
     .ps-q { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 12px; margin-bottom: 6px; border: 1.5px solid var(--accent); border-radius: 9px; background: var(--surface); cursor: text; }
+    .ps-stock { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 12.5px; font-weight: 600; color: #15803d; background: #ecfdf3; border: 1px solid #bbe5c8; border-radius: 99px; padding: 4px 10px 4px 8px; cursor: pointer; white-space: nowrap; }
+    .ps-stock input { accent-color: #15803d; margin: 0; }
+    .ps-th { position: relative; }
     .ps-q svg { width: 19px; height: 19px; color: var(--accent); flex: none; }
     .ps-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 15px var(--body); color: var(--ink); }
     .ps-q input::placeholder { color: #8a9794; }
@@ -176,6 +185,9 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
     @media (max-width: 700px) {
       .ps-res { grid-template-columns: minmax(0, 1fr); }
       .ps-k, .ps-foot > span { display: none; }
+      .ps-q { flex-wrap: wrap; height: auto; min-height: 46px; padding: 4px 12px 8px; row-gap: 2px; }
+      .ps-q input { height: 36px; flex: 1 1 calc(100% - 70px); }
+      .ps-stock { order: 5; margin-inline-start: 29px; }
       .nav-list a.ps-r em { white-space: normal; text-align: end; max-width: 9em; }
     }
     /* 语言：一个下拉菜单 */
@@ -203,13 +215,14 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
       <nav class="nav" aria-label="Main">
         <details class="nav-menu" data-nav-menu>
           <summary aria-current={path === '' || PRODUCT_PATHS.includes(path) || path.startsWith('batteries/') || path.startsWith('p/') ? 'page' : undefined}>{t.products} <i aria-hidden="true">▾</i></summary>
-          <div class="nav-list" data-ps-root data-ps-t={JSON.stringify(PS)}>
-            <label class="ps-q">
+          <div class="nav-list" data-ps-root data-ps-t={JSON.stringify({ ...PS, stock: STOCK_LABEL[lang] || STOCK_LABEL.en, stockOnly: STOCK_ONLY[lang] || STOCK_ONLY.en })}>
+            <div class="ps-q" data-ps-box>
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               <input type="search" data-ps-q placeholder={PS.ph} aria-label={PS.ph} autocomplete="off" enterkeyhint="go" role="combobox" aria-expanded="false" aria-controls="ps-res" />
               <kbd class="ps-k" aria-hidden="true">/</kbd>
               <button type="button" class="ps-x" data-ps-x aria-label={PS.clear} hidden>×</button>
-            </label>
+              <label class="ps-stock"><input type="checkbox" data-ps-stock /><span>{STOCK_ONLY[lang] || STOCK_ONLY.en}</span></label>
+            </div>
             <div class="ps-out" data-ps-out hidden>
               <div class="ps-h"><span>{PS.models}</span><b data-ps-n></b></div>
               <div class="ps-res" id="ps-res" role="listbox" data-ps-res></div>
@@ -295,6 +308,9 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
       const T = JSON.parse(root.dataset.psT || '{}');
       const out = root.querySelector('[data-ps-out]'), res = root.querySelector('[data-ps-res]'), none = root.querySelector('[data-ps-none]');
       const foot = root.querySelector('[data-ps-foot]'), cnt = root.querySelector('[data-ps-n]'), x = root.querySelector('[data-ps-x]');
+      const stockBox = root.querySelector('[data-ps-stock]');
+      // 点搜索框空白处也把光标放进输入框（"只看现货"勾选框除外）
+      root.querySelector('[data-ps-box]').addEventListener('click', (e) => { if (!e.target.closest('.ps-stock, .ps-x')) q.focus(); });
       const lang = document.documentElement.lang || 'en';
       let index = null, loading = null, sel = 0, links = [];
       const load = () => loading || (loading = fetch(`/${lang}/search.json`).then((r) => r.json()).then((d) => { index = d; }).catch(() => { loading = null; }));
@@ -307,31 +323,35 @@ const VISIT_SUB = { en: 'Beijing · Shenzhen · Dongguan factory', es: 'Pekín �
       const setSel = (i) => { links.forEach((a, k) => { a.classList.toggle('sel', k === i); a.setAttribute('aria-selected', k === i ? 'true' : 'false'); }); sel = i; };
       function render() {
         const v = q.value.trim();
+        const only = !!(stockBox && stockBox.checked);
+        const on = !!v || only;
         x.hidden = !v;
-        root.classList.toggle('ps-on', !!v);
-        out.hidden = !v;
-        q.setAttribute('aria-expanded', v ? 'true' : 'false');
-        if (!v) return;
+        root.classList.toggle('ps-on', on);
+        out.hidden = !on;
+        q.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (!on) return;
         if (!index) { load().then(render); return; }
         // 型号里本身带 "48V" 这类写法时，按参数解析可能搜不到：型号包含输入内容的也算命中（排在后面）
         const flat = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u0400-\u04ff]+/g, '');
         const fq = flat(v);
-        const hit = runSearch(index, { q: v }).list;
-        const list = fq ? [...hit, ...index.items.filter((it) => !hit.includes(it) && flat(it.m).includes(fq))] : hit;
+        const hit = v ? runSearch(index, { q: v }).list : index.items.slice();
+        let list = fq ? [...hit, ...index.items.filter((it) => !hit.includes(it) && flat(it.m).includes(fq))] : hit;
+        if (only) list = list.filter((it) => it.k);
         const { words } = parseQuery(v);
         const top = list.slice(0, 8);
-        res.innerHTML = top.map((it) => `<a class="ps-r" role="option" href="${esc(it.u)}"><span class="ps-th">${it.i ? `<img src="${esc(it.i)}" alt="" loading="lazy" />` : ''}</span><span><b dir="ltr">${mark(it.m, [v.toLowerCase(), ...words])}</b><small>${esc(it.t)}</small></span><em>${esc(it.s)}</em></a>`).join('');
+        res.innerHTML = top.map((it) => `<a class="ps-r" role="option" href="${esc(it.u)}"><span class="ps-th">${it.i ? `<img src="${esc(it.i)}" alt="" loading="lazy" />` : ''}${it.k ? `<span class="stock-badge mini">${esc(T.stock)}</span>` : ''}</span><span><b dir="ltr">${mark(it.m, [v.toLowerCase(), ...words])}</b><small>${esc(it.t)}</small></span><em>${esc(it.s)}</em></a>`).join('');
         links = [...res.querySelectorAll('a')];
         setSel(0);
         cnt.textContent = list.length > 8 ? T.more.replace('{n}', list.length) : list.length === 1 ? T.n1 : T.n.replace('{n}', list.length);
         res.hidden = !top.length; foot.hidden = !top.length; cnt.hidden = !top.length;
         root.querySelector('.ps-h').hidden = !top.length;
         none.hidden = !!top.length;
-        if (!top.length) root.querySelector('[data-ps-nt]').textContent = T.none.replace('{q}', v);
+        if (!top.length) root.querySelector('[data-ps-nt]').textContent = T.none.replace('{q}', v ? (only ? `${v} · ${T.stockOnly}` : v) : T.stockOnly);
       }
       let tm;
       q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(render, 80); });
       q.addEventListener('focus', load);
+      if (stockBox) stockBox.addEventListener('change', () => { load(); render(); });
       q.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' && links.length) { e.preventDefault(); setSel((sel + 1) % links.length); }
         else if (e.key === 'ArrowUp' && links.length) { e.preventDefault(); setSel((sel - 1 + links.length) % links.length); }

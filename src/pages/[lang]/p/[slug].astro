@@ -333,6 +333,7 @@ const siNum = parseQuery(highlights.join(' ')).targets;
 const siEntry = {
   m: String(p.model), u: `/${lang}/p/${p.slug}/`, i: siCover ? siCover.thumb || siCover.src : '', t: catTitleIn(lang) || '', s: highlights[0] || '',
   h: [p.model, p.brand, ...LANGS.map((l) => catTitleIn(l)), ...LANGS.map((l) => term(p.type, l)), ...highlights].filter(Boolean).join(' | ').normalize('NFKC').toLowerCase(),
+  ...(p.inStock ? { k: 1 } : {}),
   ...Object.fromEntries(Object.entries(siNum).map(([k, v]) => [k, Math.round(v * 1e4) / 1e4])),
 };
 const title = `${p.model}${typeName ? ' ' + typeName : ''} · ${SITE.name}`;
@@ -349,7 +350,7 @@ const jsonLd = {
 
   <div class="layout">
     <div class="gallery-col">
-      <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} />
+      <Gallery images={p.images} youtube={p.youtube} alt={p.model} lang={lang} inStock={!!p.inStock} />
       {(dsItems.length > 0 || dsSeries) && (
         <button type="button" class="ds-btn" data-ds={JSON.stringify({ items: dsItems, series: dsSeries, name: dsName, title: `${p.model} Datasheet`, busy: DST.busy, fail: DST.fail })}>
           <svg class="ds-ico" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M8 2h12l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#E2231A" stroke-width="1.6"/><path d="M20 2v6a2 2 0 0 0 2 2h6" fill="none" stroke="#E2231A" stroke-width="1.6"/><rect x="2" y="15" width="22" height="10" rx="2" fill="#E2231A"/><text x="13" y="22.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="700" fill="#fff" letter-spacing=".3">PDF</text></svg>

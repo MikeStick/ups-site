@@ -2,7 +2,8 @@
 // 主图区：最多 6 张图 + 1 个 YouTube 视频。
 // 视频只在点击后才加载 iframe（先显示缩略图），页面首屏不需要下载 YouTube 的脚本。
 import { UI } from '../i18n.mjs';
-const { images = [], youtube = null, alt = '', lang } = Astro.props;
+import { STOCK_LABEL } from '../lib/stock.mjs';
+const { images = [], youtube = null, alt = '', lang, inStock = false } = Astro.props;
 const t = UI[lang];
 const items = [
   ...images.map((im) => ({ kind: 'img', src: im.src, thumb: im.thumb })),
@@ -11,6 +12,7 @@ const items = [
 const first = items[0];
 ---
 <div class="gallery" data-gallery>
+  {inStock && <span class="stock-badge big">{STOCK_LABEL[lang] || STOCK_LABEL.en}</span>}
   <div class="stage" data-stage>
     {first && first.kind === 'img' && <img src={first.src} alt={alt} width="1400" height="1400" fetchpriority="high" />}
     {first && first.kind === 'video' && (
@@ -64,7 +66,7 @@ const first = items[0];
 </script>
 
 <style>
-  .gallery { display: grid; gap: 10px; min-width: 0; }
+  .gallery { display: grid; gap: 10px; min-width: 0; position: relative; }
   .stage { aspect-ratio: 1; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
   .stage :global(img) { width: 100%; height: 100%; object-fit: contain; }
   .stage :global(iframe) { width: 100%; height: 100%; border: 0; aspect-ratio: 1; }

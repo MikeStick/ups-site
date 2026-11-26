@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import fs from 'node:fs';
+import { STOCK_LABEL } from './src/lib/stock.mjs';
 import path from 'node:path';
 
 // 阿拉伯语页面从右往左排：页面里写死的箭头 "→"（"查看更多 →"）改成 "←"，方向才对
@@ -47,6 +48,20 @@ const productSearch = {
         }
         items.sort((a, b) => a.m.localeCompare(b.m, undefined, { numeric: true })).forEach((x, i) => { x.o = i; });
         fs.writeFileSync(path.join(root, lang, 'search.json'), JSON.stringify({ items }));
+        // 现货标记：栏目页的产品卡片图（<a class="pimg">）右上角加 "In stock"（迷你UPS卡片在 mini-ups.astro 里直接加）
+        const stock = new Set(items.filter((x) => x.k).map((x) => x.u));
+        if (stock.size) {
+          const label = (STOCK_LABEL[lang] || STOCK_LABEL.en).replace(/[&<>"]/g, '');
+          const badge = `<span class="stock-badge">${label}</span>`;
+          const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.html') ? [path.join(d, e.name)] : []));
+          for (const f of walk(path.join(root, lang))) {
+            if (f.includes(`${path.sep}p${path.sep}`)) continue;
+            const s = fs.readFileSync(f, 'utf8');
+            const t = s
+              .replace(/(<a class="pimg" href="([^"]+)"[^>]*>)/g, (m, open, u) => (stock.has(u) ? open + badge : m));
+            if (t !== s) fs.writeFileSync(f, t);
+          }
+        }
       }
     },
   },
