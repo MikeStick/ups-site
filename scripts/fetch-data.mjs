@@ -39,7 +39,13 @@ async function getJson(url, tries = 4) {
   }
 }
 
-async function saveImage(url, slug, idx) {
+// 主图最多 20 张，很多型号共用同一组模板主图：同一个地址只下载、压缩一次，其他型号直接用同一个文件
+const mainImgCache = new Map();
+function saveImage(url, slug, idx) {
+  if (!mainImgCache.has(url)) mainImgCache.set(url, saveImageOnce(url, slug, idx).catch((e) => { console.warn(`[fetch-data] 主图处理失败 ${url}：${e.message}`); return null; }));
+  return mainImgCache.get(url);
+}
+async function saveImageOnce(url, slug, idx) {
   const r = await fetch(url, { headers: { 'x-site-key': KEY } });
   if (!r.ok) { console.warn(`[fetch-data] 图片下载失败 ${url} → HTTP ${r.status}`); return null; }
   const buf = Buffer.from(await r.arrayBuffer());
