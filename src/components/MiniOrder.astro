@@ -1,6 +1,6 @@
 ---
 // 迷你 UPS 询价面板（不显示价格）：数量 → 插头分配（可混搭）→ 定制项（仅非现货）→ WhatsApp / 邮件询价。
-// 现货（CRM 勾了"现货"）：起订 20 台，+/− 每次 100 台，可手动输入 ≥20 的整数，不限上限；不支持定制 logo / 包装盒。
+// 现货（CRM 勾了"现货"）：起订 20 台，+/− 按 100 的整数倍（20 → 100 → 200），可手动输入 ≥20 的整数，不限上限；不支持定制 logo / 包装盒。
 // 非现货（定制款）：起订 1000 台，上限 50000 台，+/− 每次 1000 台，可手动输入 1000–50000 的整数；
 //   可选：定制品牌（上传 logo 或手动输入品牌名）、定制包装盒。logo 上传到 CRM（/api/chat/brand-logo），询价消息里带下载链接。
 import { SITE, CHAT } from '../config.mjs';
@@ -16,7 +16,7 @@ const pstep = stock ? 10 : 100; // 插头混搭时每次挪动的数量
 const T = ({
   en: {
     qty: 'Quantity', required: 'required',
-    hintStock: 'Minimum 20 pcs. + / − changes the quantity by 100, or type any whole number from 20.',
+    hintStock: 'Minimum 20 pcs. + / − moves in steps of 100 (20 → 100 → 200 …), or type any whole number from 20.',
     hintCustom: 'Minimum 1,000 pcs, maximum 50,000 pcs. + / − changes the quantity by 1,000, or type any whole number from 1,000 to 50,000.',
     stockTag: 'In stock', customTag: 'Made to order',
     customNote: 'This is a made-to-order model with no stock. Please contact our sales team to confirm your order.',
@@ -37,7 +37,7 @@ const T = ({
   },
   es: {
     qty: 'Cantidad', required: 'obligatorio',
-    hintStock: 'Mínimo 20 uds. + / − cambia la cantidad de 100 en 100, o escriba cualquier número entero desde 20.',
+    hintStock: 'Mínimo 20 uds. + / − avanza de 100 en 100 (20 → 100 → 200 …), o escriba cualquier número entero desde 20.',
     hintCustom: 'Mínimo 1.000 uds, máximo 50.000 uds. + / − cambia la cantidad de 1.000 en 1.000, o escriba cualquier número entero de 1.000 a 50.000.',
     stockTag: 'En stock', customTag: 'Bajo pedido',
     customNote: 'Este es un modelo bajo pedido, sin stock. Contacte a nuestro equipo de ventas para confirmar su pedido.',
@@ -58,7 +58,7 @@ const T = ({
   },
   ru: {
     qty: 'Количество', required: 'обязательно',
-    hintStock: 'Минимум 20 шт. Кнопки + / − меняют количество на 100, или введите любое целое число от 20.',
+    hintStock: 'Минимум 20 шт. Кнопки + / − меняют количество шагами по 100 (20 → 100 → 200 …), или введите любое целое число от 20.',
     hintCustom: 'Минимум 1000 шт., максимум 50 000 шт. Кнопки + / − меняют количество на 1000, или введите любое целое число от 1000 до 50 000.',
     stockTag: 'В наличии', customTag: 'Под заказ',
     customNote: 'Это модель под заказ, на складе её нет. Свяжитесь с отделом продаж, чтобы подтвердить заказ.',
@@ -79,7 +79,7 @@ const T = ({
   },
   ar: {
     qty: 'الكمية', required: 'مطلوب',
-    hintStock: 'الحد الأدنى 20 قطعة. يغيّر الزرّان + / − الكمية بمقدار 100، أو اكتب أي عدد صحيح من 20 فأكثر.',
+    hintStock: 'الحد الأدنى 20 قطعة. يغيّر الزرّان + / − الكمية بخطوات من 100 (20 ← 100 ← 200 …)، أو اكتب أي عدد صحيح من 20 فأكثر.',
     hintCustom: 'الحد الأدنى 1,000 قطعة والحد الأقصى 50,000 قطعة. يغيّر الزرّان + / − الكمية بمقدار 1,000، أو اكتب أي عدد صحيح من 1,000 إلى 50,000.',
     stockTag: 'متوفر', customTag: 'حسب الطلب',
     customNote: 'هذا الطراز يُصنع حسب الطلب وغير متوفر في المخزون. يرجى التواصل مع فريق المبيعات لتأكيد طلبك.',
@@ -209,8 +209,9 @@ const fmtN = (n) => n.toLocaleString('en-US');
       render();
     }
     function step(dir) {
-      // 现货：20 → 120 → 220 …；定制：1000 → 2000 …（手动输入的非整步数量，按步长继续加减）
-      setQty(qty + dir * c.step);
+      // 按步长的整数倍走：现货 20 → 100 → 200 …（减到 100 以下回到 20）；定制 1000 → 2000 …
+      // 手动输入的非整步数量（如 1234）：+ 到下一个整步（2000），− 到上一个整步（1000）
+      setQty(dir > 0 ? Math.floor(qty / c.step) * c.step + c.step : Math.ceil(qty / c.step) * c.step - c.step);
     }
 
     function render() {
