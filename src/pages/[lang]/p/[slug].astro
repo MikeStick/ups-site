@@ -265,10 +265,15 @@ const DST = addAr({
 // 没上传系列总表时不显示②；迷你 UPS 例外：合并 Mini DC UPS 栏目下所有型号各自的参数页（每个型号一页）
 const fileSafe = (x) => String(x).replace(/\//g, '\u2215').replace(/[\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
 const mini = isMini(P0);
+// 迷你 UPS 系列总表：这两个型号不放进去；POE-36E-LFP-48V 排第一（其余按型号排序）
+const MINI_SER_SKIP = ['B600T-19', 'B600T-24'];
+const MINI_SER_FIRST = ['POE-36E-LFP-48V'];
+const miniSerRank = (x) => { const i = MINI_SER_FIRST.indexOf(String(x.model).toUpperCase()); return i === -1 ? MINI_SER_FIRST.length : i; };
 const serName = (p.series && p.series.name) || (mini ? 'Mini UPS' : '');
 const serSheet = seriesSheetOf(p, lang);
 const serItems = serSheet ? [{ html: htmlUrl(serSheet) }]
-  : mini ? products.filter((x) => isMini(primary(x))).sort((a, b) => String(a.model).localeCompare(String(b.model), undefined, { numeric: true }))
+  : mini ? products.filter((x) => isMini(primary(x)) && !MINI_SER_SKIP.includes(String(x.model).toUpperCase()))
+    .sort((a, b) => miniSerRank(a) - miniSerRank(b) || String(a.model).localeCompare(String(b.model), undefined, { numeric: true }))
     .flatMap((x) => rawTplHtmlsOf(x, lang).map((h) => ({ html: htmlUrl(h) }))) : [];
 const serBtn = serItems.length > 0 && serName ? DST.ser.replace('{s}', serName) : '';
 const serFile = fileSafe(`${serName} Series Datasheet (${lang}).pdf`);
