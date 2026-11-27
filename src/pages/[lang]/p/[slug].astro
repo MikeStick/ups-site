@@ -7,6 +7,7 @@ import { parseQuery } from '../../../lib/search-core.mjs';
 import { UI, term, specRows } from '../../../i18n.mjs';
 import { CT } from '../../../lib/custom-i18n.mjs';
 import QuoteConsole from '../../../components/QuoteConsole.astro';
+import MiniOrder from '../../../components/MiniOrder.astro';
 import SeriesHtml from '../../../components/SeriesHtml.astro';
 import { tplHtmlBlocks } from '../../../lib/tpl-html.mjs';
 import { htmlUrl, rawTplHtmlsOf, seriesSheetOf } from '../../../lib/detail-html.mjs';
@@ -449,6 +450,8 @@ const jsonLd = {
 
     {offline ? (
       <QuoteConsole p={p} lang={lang} />
+    ) : mini ? (
+      <MiniOrder p={p} lang={lang} />
     ) : (
       <div class="buy-fallback">
         {!vrla && !rbatt && !pac && !cab && !starter && !idm && !dem && <p class="plug">{t.plugNote}</p>}

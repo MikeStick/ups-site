@@ -1,0 +1,387 @@
+---
+// 迷你 UPS 询价面板（不显示价格）：数量 → 插头分配（可混搭）→ 定制项（仅非现货）→ WhatsApp / 邮件询价。
+// 现货（CRM 勾了"现货"）：起订 20 台，+/− 每次 100 台，可手动输入 ≥20 的整数，不限上限；不支持定制 logo / 包装盒。
+// 非现货（定制款）：起订 1000 台，上限 50000 台，+/− 每次 1000 台，可手动输入 1000–50000 的整数；
+//   可选：定制品牌（上传 logo 或手动输入品牌名）、定制包装盒。logo 上传到 CRM（/api/chat/brand-logo），询价消息里带下载链接。
+import { SITE, CHAT } from '../config.mjs';
+import { PLUGS, PLUG_ICON } from '../lib/plugs.mjs';
+
+const { p, lang } = Astro.props;
+const stock = !!p.inStock;
+const moq = stock ? 20 : 1000;
+const step = stock ? 100 : 1000;
+const max = stock ? 0 : 50000; // 0 = 不限
+const pstep = stock ? 10 : 100; // 插头混搭时每次挪动的数量
+
+const T = ({
+  en: {
+    qty: 'Quantity', required: 'required',
+    hintStock: 'Minimum 20 pcs. + / − changes the quantity by 100, or type any whole number from 20.',
+    hintCustom: 'Minimum 1,000 pcs, maximum 50,000 pcs. + / − changes the quantity by 1,000, or type any whole number from 1,000 to 50,000.',
+    stockTag: 'In stock', customTag: 'Made to order',
+    customNote: 'This is a made-to-order model with no stock. Please contact our sales team to confirm your order.',
+    stockLink: 'Need Mini UPS from stock?', stockLinkCta: 'See in-stock models',
+    plugs: 'Plug', plugHint: 'Tap a plug to choose it. Use + / − to mix several.', assign: 'Left to assign: {n} pcs', assigned: 'All units assigned', over: 'Assigned {n} pcs more than the quantity',
+    otherName: 'Other type', otherWhere: 'Type J, L, M, N or another standard',
+    otherLabel: 'Which plug do you need?', otherPh: 'e.g. Type L (Chile), Type M (South Africa)', otherReq: 'Enter the plug type to continue',
+    where: { US: 'Venezuela, Colombia, Ecuador, Mexico, USA', EU: 'Europe, Russia, CIS, Middle East', UK: 'UK, Nigeria, UAE, Malaysia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka' },
+    typeWord: 'Type',
+    custTitle: 'Customization (optional)', brand: 'Custom brand', box: 'Custom packaging box',
+    logo: 'Upload your logo', logoHint: 'PNG, JPG, WEBP, GIF or PDF, up to 5 MB', brandText: 'Or type your brand name', brandPh: 'Your brand name',
+    brandReq: 'Upload a logo or type your brand name', uploading: 'Uploading logo…', uploaded: 'Logo uploaded: {f}', remove: 'Remove',
+    upFail: 'Logo upload failed. You can send the logo file in the WhatsApp or email chat.', tooBig: 'The file is larger than 5 MB.', badType: 'Please choose a PNG, JPG, WEBP, GIF or PDF file.',
+    order: 'Send inquiry on WhatsApp', email: 'Send inquiry by email',
+    msgHead: "Hello, I'd like to order the {m} ({k}).", msgQty: 'Quantity: {q} pcs', msgPlugs: 'Plugs: {p}',
+    msgBrand: 'Custom brand: {b}', msgLogo: 'Logo: {u}', msgLogoLater: 'Logo: I will send the file in this chat', msgBox: 'Custom packaging box: yes', msgEnd: 'Could you confirm?',
+    kStock: 'in stock', kCustom: 'made to order',
+  },
+  es: {
+    qty: 'Cantidad', required: 'obligatorio',
+    hintStock: 'Mínimo 20 uds. + / − cambia la cantidad de 100 en 100, o escriba cualquier número entero desde 20.',
+    hintCustom: 'Mínimo 1.000 uds, máximo 50.000 uds. + / − cambia la cantidad de 1.000 en 1.000, o escriba cualquier número entero de 1.000 a 50.000.',
+    stockTag: 'En stock', customTag: 'Bajo pedido',
+    customNote: 'Este es un modelo bajo pedido, sin stock. Contacte a nuestro equipo de ventas para confirmar su pedido.',
+    stockLink: '¿Necesita Mini UPS en stock?', stockLinkCta: 'Ver modelos en stock',
+    plugs: 'Enchufe', plugHint: 'Toque un enchufe para elegirlo. Use + / − para combinar varios.', assign: 'Por asignar: {n} uds', assigned: 'Cantidad asignada completa', over: 'Asignó {n} uds más que la cantidad',
+    otherName: 'Otro tipo', otherWhere: 'Tipo J, L, M, N u otro estándar',
+    otherLabel: '¿Qué enchufe necesita?', otherPh: 'Ej.: Tipo L (Chile), Tipo M (Sudáfrica)', otherReq: 'Indique el tipo de enchufe para continuar',
+    where: { US: 'Venezuela, Colombia, Ecuador, México, EE. UU.', EU: 'Europa, Rusia, CEI, Medio Oriente', UK: 'Reino Unido, Nigeria, Emiratos, Malasia', AU: 'Australia, Argentina, China', IN: 'India, Nepal, Sri Lanka' },
+    typeWord: 'Tipo',
+    custTitle: 'Personalización (opcional)', brand: 'Marca propia', box: 'Caja de embalaje personalizada',
+    logo: 'Suba su logo', logoHint: 'PNG, JPG, WEBP, GIF o PDF, hasta 5 MB', brandText: 'O escriba el nombre de su marca', brandPh: 'Nombre de su marca',
+    brandReq: 'Suba un logo o escriba el nombre de su marca', uploading: 'Subiendo logo…', uploaded: 'Logo subido: {f}', remove: 'Quitar',
+    upFail: 'No se pudo subir el logo. Puede enviar el archivo en el chat de WhatsApp o por email.', tooBig: 'El archivo supera 5 MB.', badType: 'Elija un archivo PNG, JPG, WEBP, GIF o PDF.',
+    order: 'Consultar por WhatsApp', email: 'Consultar por email',
+    msgHead: 'Hola, quiero pedir el {m} ({k}).', msgQty: 'Cantidad: {q} uds', msgPlugs: 'Enchufes: {p}',
+    msgBrand: 'Marca propia: {b}', msgLogo: 'Logo: {u}', msgLogoLater: 'Logo: enviaré el archivo en este chat', msgBox: 'Caja de embalaje personalizada: sí', msgEnd: '¿Me pueden confirmar?',
+    kStock: 'en stock', kCustom: 'bajo pedido',
+  },
+  ru: {
+    qty: 'Количество', required: 'обязательно',
+    hintStock: 'Минимум 20 шт. Кнопки + / − меняют количество на 100, или введите любое целое число от 20.',
+    hintCustom: 'Минимум 1000 шт., максимум 50 000 шт. Кнопки + / − меняют количество на 1000, или введите любое целое число от 1000 до 50 000.',
+    stockTag: 'В наличии', customTag: 'Под заказ',
+    customNote: 'Это модель под заказ, на складе её нет. Свяжитесь с отделом продаж, чтобы подтвердить заказ.',
+    stockLink: 'Нужны Mini UPS со склада?', stockLinkCta: 'Модели в наличии',
+    plugs: 'Вилка', plugHint: 'Нажмите на вилку, чтобы выбрать её. Кнопки + / − — чтобы совместить несколько.', assign: 'Осталось распределить: {n} шт.', assigned: 'Всё количество распределено', over: 'Распределено на {n} шт. больше количества',
+    otherName: 'Другой тип', otherWhere: 'Тип J, L, M, N или другой стандарт',
+    otherLabel: 'Какая вилка нужна?', otherPh: 'Напр.: Тип L (Чили), Тип M (ЮАР)', otherReq: 'Укажите тип вилки, чтобы продолжить',
+    where: { US: 'Венесуэла, Колумбия, Эквадор, Мексика, США', EU: 'Европа, Россия, СНГ, Ближний Восток', UK: 'Великобритания, Нигерия, ОАЭ, Малайзия', AU: 'Австралия, Аргентина, Китай', IN: 'Индия, Непал, Шри-Ланка' },
+    typeWord: 'Тип',
+    custTitle: 'Индивидуальное исполнение (по желанию)', brand: 'Свой бренд', box: 'Своя упаковочная коробка',
+    logo: 'Загрузите логотип', logoHint: 'PNG, JPG, WEBP, GIF или PDF, до 5 МБ', brandText: 'Или введите название бренда', brandPh: 'Название вашего бренда',
+    brandReq: 'Загрузите логотип или введите название бренда', uploading: 'Загрузка логотипа…', uploaded: 'Логотип загружен: {f}', remove: 'Удалить',
+    upFail: 'Не удалось загрузить логотип. Вы можете отправить файл в чате WhatsApp или по email.', tooBig: 'Файл больше 5 МБ.', badType: 'Выберите файл PNG, JPG, WEBP, GIF или PDF.',
+    order: 'Запрос в WhatsApp', email: 'Запрос по email',
+    msgHead: 'Здравствуйте, хочу заказать {m} ({k}).', msgQty: 'Количество: {q} шт.', msgPlugs: 'Вилки: {p}',
+    msgBrand: 'Свой бренд: {b}', msgLogo: 'Логотип: {u}', msgLogoLater: 'Логотип: отправлю файл в этом чате', msgBox: 'Своя упаковочная коробка: да', msgEnd: 'Подтвердите, пожалуйста.',
+    kStock: 'в наличии', kCustom: 'под заказ',
+  },
+  ar: {
+    qty: 'الكمية', required: 'مطلوب',
+    hintStock: 'الحد الأدنى 20 قطعة. يغيّر الزرّان + / − الكمية بمقدار 100، أو اكتب أي عدد صحيح من 20 فأكثر.',
+    hintCustom: 'الحد الأدنى 1,000 قطعة والحد الأقصى 50,000 قطعة. يغيّر الزرّان + / − الكمية بمقدار 1,000، أو اكتب أي عدد صحيح من 1,000 إلى 50,000.',
+    stockTag: 'متوفر', customTag: 'حسب الطلب',
+    customNote: 'هذا الطراز يُصنع حسب الطلب وغير متوفر في المخزون. يرجى التواصل مع فريق المبيعات لتأكيد طلبك.',
+    stockLink: 'هل تحتاج Mini UPS من المخزون؟', stockLinkCta: 'عرض الطرازات المتوفرة',
+    plugs: 'القابس', plugHint: 'اضغط على القابس لاختياره. استخدم + / − للجمع بين عدة أنواع.', assign: 'المتبقي للتوزيع: {n} قطعة', assigned: 'تم توزيع الكمية بالكامل', over: 'تم توزيع {n} قطعة أكثر من الكمية',
+    otherName: 'نوع آخر', otherWhere: 'النوع J أو L أو M أو N أو معيار آخر',
+    otherLabel: 'ما القابس الذي تحتاجه؟', otherPh: 'مثال: النوع L (تشيلي)، النوع M (جنوب أفريقيا)', otherReq: 'أدخل نوع القابس للمتابعة',
+    where: { US: 'فنزويلا، كولومبيا، الإكوادور، المكسيك، الولايات المتحدة', EU: 'أوروبا، روسيا، رابطة الدول المستقلة، الشرق الأوسط', UK: 'المملكة المتحدة، نيجيريا، الإمارات، ماليزيا', AU: 'أستراليا، الأرجنتين، الصين', IN: 'الهند، نيبال، سريلانكا' },
+    typeWord: 'النوع',
+    custTitle: 'التخصيص (اختياري)', brand: 'علامة تجارية خاصة', box: 'علبة تغليف مخصصة',
+    logo: 'ارفع شعارك', logoHint: 'PNG أو JPG أو WEBP أو GIF أو PDF، حتى 5 ميغابايت', brandText: 'أو اكتب اسم علامتك التجارية', brandPh: 'اسم علامتك التجارية',
+    brandReq: 'ارفع شعارًا أو اكتب اسم علامتك التجارية', uploading: 'جارٍ رفع الشعار…', uploaded: 'تم رفع الشعار: {f}', remove: 'إزالة',
+    upFail: 'تعذّر رفع الشعار. يمكنك إرسال الملف في محادثة واتساب أو عبر البريد الإلكتروني.', tooBig: 'حجم الملف أكبر من 5 ميغابايت.', badType: 'يرجى اختيار ملف PNG أو JPG أو WEBP أو GIF أو PDF.',
+    order: 'إرسال استفسار عبر واتساب', email: 'إرسال استفسار عبر البريد الإلكتروني',
+    msgHead: 'مرحبًا، أرغب في طلب {m} ({k}).', msgQty: 'الكمية: {q} قطعة', msgPlugs: 'القوابس: {p}',
+    msgBrand: 'علامة تجارية خاصة: {b}', msgLogo: 'الشعار: {u}', msgLogoLater: 'الشعار: سأرسل الملف في هذه المحادثة', msgBox: 'علبة تغليف مخصصة: نعم', msgEnd: 'هل يمكنكم التأكيد؟',
+    kStock: 'متوفر', kCustom: 'حسب الطلب',
+  },
+})[lang] || {};
+
+const cfg = {
+  model: p.model, slug: p.slug, stock, moq, step, max, pstep, wa: SITE.whatsapp, email: SITE.email, api: CHAT.api,
+  t: { assign: T.assign, assigned: T.assigned, over: T.over, uploading: T.uploading, uploaded: T.uploaded, upFail: T.upFail, tooBig: T.tooBig, badType: T.badType,
+    msgHead: T.msgHead, msgQty: T.msgQty, msgPlugs: T.msgPlugs, msgBrand: T.msgBrand, msgLogo: T.msgLogo, msgLogoLater: T.msgLogoLater, msgBox: T.msgBox, msgEnd: T.msgEnd,
+    kind: stock ? T.kStock : T.kCustom, other: T.otherName },
+};
+const fmtN = (n) => n.toLocaleString('en-US');
+---
+<div class="mo" data-mo>
+  <script type="application/json" data-mo-cfg set:html={JSON.stringify(cfg)} />
+
+  <div class="mo-card mo-buy">
+    <span class={`mo-tag ${stock ? 'ok' : 'mto'}`}>{stock ? T.stockTag : T.customTag}</span>
+    <div class="mo-field">
+      <label class="mo-label" for={`mq-${p.slug}`}>{T.qty} <em>· {T.required}</em></label>
+      <div class="mo-stepper">
+        <button type="button" data-minus aria-label="−">−</button>
+        <input id={`mq-${p.slug}`} type="number" inputmode="numeric" min={moq} max={max || undefined} step="1" value={moq} data-qty required />
+        <button type="button" data-plus aria-label="+">+</button>
+      </div>
+      <span class="mo-hint">{stock ? T.hintStock : T.hintCustom}</span>
+      <div data-pack-mini hidden></div>
+    </div>
+    {!stock && <p class="mo-warn">{T.customNote}</p>}
+    {!stock && (
+      <a class="mo-stocklink" href={`/${lang}/mini-ups/?stock=1#shop`}>
+        <span>* {T.stockLink}</span><b>{T.stockLinkCta} →</b>
+      </a>
+    )}
+  </div>
+
+  <div class="mo-card mo-plugcard">
+    <span class="mo-label">{T.plugs}</span>
+    <span class="mo-hint">{T.plugHint}</span>
+    <div class="mo-plugs">
+      {PLUGS.map(([k, name, type]) => (
+        <div class={`mo-plug${k === 'US' ? ' used' : ''}`} data-plug={k} role="button" tabindex="0" aria-pressed={k === 'US' ? 'true' : 'false'}>
+          <span class="mo-ico" set:html={PLUG_ICON[k]} />
+          <span class="mo-pname">
+            <b>{k === 'OT' ? T.otherName : `${name} · ${T.typeWord} ${type}`}</b>
+            <small>{k === 'OT' ? T.otherWhere : T.where[k]}</small>
+          </span>
+          <span class="mo-mini">
+            <button type="button" data-d="-1" aria-label="−">−</button>
+            <output class="num" data-n>{k === 'US' ? fmtN(moq) : 0}</output>
+            <button type="button" data-d="1" aria-label="+">+</button>
+          </span>
+        </div>
+      ))}
+    </div>
+    <span class="mo-remain good" data-remain>{T.assigned}</span>
+    <div class="mo-other" data-other hidden>
+      <label class="mo-label" for={`mo-other-${p.slug}`}>{T.otherLabel}</label>
+      <input id={`mo-other-${p.slug}`} type="text" maxlength="60" placeholder={T.otherPh} data-other-input />
+      <span class="mo-remain bad" data-other-req>{T.otherReq}</span>
+    </div>
+  </div>
+
+  <div class="mo-card mo-checkout">
+    {!stock && (
+      <div class="mo-cust">
+        <span class="mo-label">{T.custTitle}</span>
+        <label class="mo-check"><input type="checkbox" data-brand /> <span>{T.brand}</span></label>
+        <div class="mo-brand" data-brand-box hidden>
+          <label class="mo-sub">{T.logo}</label>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" data-logo />
+          <small class="mo-hint">{T.logoHint}</small>
+          <div class="mo-logo-st" data-logo-st hidden>
+            <span data-logo-msg></span>
+            <button type="button" class="mo-linkbtn" data-logo-rm hidden>{T.remove}</button>
+          </div>
+          <label class="mo-sub" for={`mo-bt-${p.slug}`}>{T.brandText}</label>
+          <input id={`mo-bt-${p.slug}`} type="text" maxlength="80" placeholder={T.brandPh} data-brand-text />
+          <span class="mo-remain bad" data-brand-req>{T.brandReq}</span>
+        </div>
+        <label class="mo-check"><input type="checkbox" data-box /> <span>{T.box}</span></label>
+      </div>
+    )}
+    <div class="mo-cta">
+      {SITE.whatsapp && <a class="mo-btn primary" data-wa href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">{T.order}</a>}
+      {SITE.email && <a class="mo-btn" data-mail href={`mailto:${SITE.email}`}>{T.email}</a>}
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+(function () {
+  document.querySelectorAll('[data-mo]').forEach(function (root) {
+    var c = JSON.parse(root.querySelector('[data-mo-cfg]').textContent);
+    var $ = function (s) { return root.querySelector(s); };
+    var qtyEl = $('[data-qty]');
+    var plugs = Array.prototype.slice.call(root.querySelectorAll('[data-plug]'));
+    var alloc = {}; plugs.forEach(function (r) { alloc[r.dataset.plug] = 0; });
+    alloc.US = c.moq;
+    var qty = c.moq;
+    var logo = null; // { url, name } 上传成功后
+    var logoBusy = false;
+    var fmt = function (n) { return Number(n).toLocaleString('en-US'); };
+    var sum = function () { var s = 0; for (var k in alloc) s += alloc[k]; return s; };
+    var clamp = function (v) { v = Math.round(+v || 0); if (v < c.moq) v = c.moq; if (c.max && v > c.max) v = c.max; return v; };
+
+    function setQty(v) {
+      qty = clamp(v);
+      var used = Object.keys(alloc).filter(function (k) { return alloc[k] > 0; });
+      if (used.length <= 1) { var keep = used[0] || 'US'; for (var k in alloc) alloc[k] = 0; alloc[keep] = qty; }
+      else if (sum() > qty) { for (var k2 in alloc) alloc[k2] = 0; alloc[used[0]] = qty; }
+      render();
+    }
+    function step(dir) {
+      // 现货：20 → 120 → 220 …；定制：1000 → 2000 …（手动输入的非整步数量，按步长继续加减）
+      setQty(qty + dir * c.step);
+    }
+
+    function render() {
+      qtyEl.value = qty;
+      window.dispatchEvent(new CustomEvent('ups:qty', { detail: qty })); // 箱单跟着数量重算
+      var rem = qty - sum();
+      plugs.forEach(function (r) {
+        var k = r.dataset.plug;
+        r.querySelector('[data-n]').textContent = fmt(alloc[k]);
+        r.classList.toggle('used', alloc[k] > 0);
+        r.setAttribute('aria-pressed', alloc[k] > 0 ? 'true' : 'false');
+      });
+      var remEl = $('[data-remain]');
+      remEl.textContent = rem === 0 ? c.t.assigned : rem > 0 ? c.t.assign.replace('{n}', fmt(rem)) : c.t.over.replace('{n}', fmt(-rem));
+      remEl.className = 'mo-remain ' + (rem === 0 ? 'good' : 'bad');
+      var otherVal = $('[data-other-input]').value.trim();
+      $('[data-other]').hidden = !(alloc.OT > 0);
+      $('[data-other-req]').hidden = !!otherVal;
+
+      var brandOn = !!($('[data-brand]') && $('[data-brand]').checked);
+      var boxOn = !!($('[data-box]') && $('[data-box]').checked);
+      var brandText = brandOn ? $('[data-brand-text]').value.trim() : '';
+      if ($('[data-brand-box]')) {
+        $('[data-brand-box]').hidden = !brandOn;
+        $('[data-brand-req]').hidden = !!(logo || brandText || logoBusy);
+      }
+      var brandOk = !brandOn || !!(logo || brandText);
+
+      var ok = rem === 0 && (!(alloc.OT > 0) || !!otherVal) && brandOk && !logoBusy;
+      var plugText = Object.keys(alloc).filter(function (k) { return alloc[k] > 0; })
+        .map(function (k) { return (k === 'OT' ? (otherVal || c.t.other) : k) + ' × ' + fmt(alloc[k]); }).join(', ');
+      var lines = [c.t.msgHead.replace('{m}', c.model).replace('{k}', c.t.kind), c.t.msgQty.replace('{q}', fmt(qty)), c.t.msgPlugs.replace('{p}', plugText)];
+      if (brandOn) {
+        if (brandText) lines.push(c.t.msgBrand.replace('{b}', brandText));
+        lines.push(logo ? c.t.msgLogo.replace('{u}', logo.url) : (brandText ? '' : c.t.msgLogoLater));
+      }
+      if (boxOn) lines.push(c.t.msgBox);
+      lines.push(location.href.split('#')[0]);
+      lines.push(c.t.msgEnd);
+      var msg = lines.filter(Boolean).join('\n');
+      var wa = $('[data-wa]'), mail = $('[data-mail]');
+      [wa, mail].forEach(function (a) { if (a) { a.classList.toggle('disabled', !ok); a.setAttribute('aria-disabled', ok ? 'false' : 'true'); } });
+      if (wa) wa.href = 'https://wa.me/' + c.wa + '?text=' + encodeURIComponent(msg);
+      if (mail) mail.href = 'mailto:' + c.email + '?subject=' + encodeURIComponent(c.model + ' · ' + fmt(qty) + ' pcs') + '&body=' + encodeURIComponent(msg);
+    }
+
+    $('[data-minus]').addEventListener('click', function () { step(-1); });
+    $('[data-plus]').addEventListener('click', function () { step(1); });
+    qtyEl.addEventListener('change', function () { setQty(qtyEl.value); });
+    qtyEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); setQty(qtyEl.value); } });
+    $('[data-other-input]').addEventListener('input', render);
+    function selectOnly(k) {
+      for (var x in alloc) alloc[x] = 0;
+      alloc[k] = qty;
+      render();
+      if (k === 'OT') { var oi = $('[data-other-input]'); if (oi) oi.focus(); }
+    }
+    plugs.forEach(function (r) {
+      var k = r.dataset.plug;
+      r.addEventListener('click', function (e) { if (!e.target.closest('.mo-mini')) selectOnly(k); });
+      r.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target === r) { e.preventDefault(); selectOnly(k); } });
+      r.querySelectorAll('[data-d]').forEach(function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var d = +b.dataset.d * c.pstep;
+          if (d < 0) { alloc[k] = Math.max(0, alloc[k] + d); render(); return; }
+          var room = qty - sum();
+          if (room < d) {
+            // 已分配满：从分得最多的另一种插头里挪过来
+            var need = d - Math.max(0, room), donor = null;
+            for (var x in alloc) if (x !== k && alloc[x] >= need && (!donor || alloc[x] > alloc[donor])) donor = x;
+            if (!donor) { if (room > 0) { alloc[k] += room; render(); } return; }
+            alloc[donor] -= need;
+          }
+          alloc[k] += d;
+          render();
+        });
+      });
+    });
+
+    // 定制项（仅非现货）
+    var brandCb = $('[data-brand]');
+    if (brandCb) {
+      brandCb.addEventListener('change', render);
+      $('[data-box]').addEventListener('change', render);
+      $('[data-brand-text]').addEventListener('input', render);
+      var fileEl = $('[data-logo]'), st = $('[data-logo-st]'), msgEl = $('[data-logo-msg]'), rm = $('[data-logo-rm]');
+      var show = function (text, bad, canRemove) { st.hidden = !text; msgEl.textContent = text || ''; st.classList.toggle('bad', !!bad); rm.hidden = !canRemove; };
+      rm.addEventListener('click', function () { logo = null; fileEl.value = ''; show('', false, false); render(); });
+      fileEl.addEventListener('change', function () {
+        var f = fileEl.files && fileEl.files[0];
+        logo = null;
+        if (!f) { show('', false, false); render(); return; }
+        if (f.size > 5 * 1024 * 1024) { fileEl.value = ''; show(c.t.tooBig, true, false); render(); return; }
+        if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) { fileEl.value = ''; show(c.t.badType, true, false); render(); return; }
+        var fd = new FormData(); fd.append('file', f); fd.append('model', c.model); fd.append('page', location.href.slice(0, 300));
+        logoBusy = true; show(c.t.uploading, false, false); render();
+        fetch(c.api + '/api/chat/brand-logo', { method: 'POST', body: fd })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.url) throw new Error(j.error || r.status); return j; }); })
+          .then(function (j) { logo = { url: j.url, name: f.name }; show(c.t.uploaded.replace('{f}', f.name), false, true); })
+          .catch(function () { logo = null; fileEl.value = ''; show(c.t.upFail, true, false); })
+          .then(function () { logoBusy = false; render(); });
+      });
+    }
+
+    root.addEventListener('click', function (e) { var a = e.target.closest('.mo-btn.disabled'); if (a) e.preventDefault(); });
+    render();
+  });
+})();
+</script>
+
+<style>
+  /* .mo 本身不占位，几张卡片由产品页的网格摆放：buy（右上）/ plugs（通栏）/ checkout（通栏） */
+  .mo { display: contents; }
+  .mo-card { display: grid; gap: 14px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
+  .mo-buy { grid-area: buy; }
+  .mo-plugcard { grid-area: plugs; gap: 10px; }
+  .mo-checkout { grid-column: 1 / -1; }
+  .mo-tag { justify-self: start; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; }
+  .mo-tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .mo-tag.mto { background: var(--charge-soft); color: var(--ink); }
+  .mo-label { font-size: 13px; font-weight: 600; }
+  .mo-label em { font-style: normal; font-weight: 400; color: var(--muted); }
+  .mo-field { display: grid; gap: 8px; }
+  .mo-stepper { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .mo-stepper button { background: var(--bg); border: 0; width: 52px; font-size: 20px; cursor: pointer; color: var(--ink); }
+  .mo-stepper input { flex: 1; min-width: 0; border: 0; border-inline: 1px solid var(--line); text-align: center; font: 500 18px var(--mono); padding: 10px; background: var(--surface); color: var(--ink); }
+  .mo-hint { font-size: 12px; color: var(--muted); }
+  .mo-warn { margin: 0; font-size: 13.5px; background: var(--charge-soft); border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+  .mo-stocklink { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; padding: 10px 12px; border: 1px dashed var(--ok); border-radius: 8px; text-decoration: none; color: var(--ink); font-size: 13.5px; }
+  .mo-stocklink b { color: var(--ok); white-space: nowrap; }
+  .mo-stocklink:hover { background: var(--ok-soft); }
+  .mo-plugs { display: grid; gap: 8px; }
+  @media (min-width: 861px) {
+    .mo-plugs { grid-template-columns: 1fr 1fr; column-gap: 36px; }
+    .mo-plugs [data-plug="US"] { grid-column: 2; grid-row: 1; }
+    .mo-plugs [data-plug="EU"] { grid-column: 2; grid-row: 2; }
+    .mo-plugs [data-plug="UK"] { grid-column: 2; grid-row: 3; }
+    .mo-plugs [data-plug="AU"] { grid-column: 1; grid-row: 1; }
+    .mo-plugs [data-plug="IN"] { grid-column: 1; grid-row: 2; }
+    .mo-plugs [data-plug="OT"] { grid-column: 1; grid-row: 3; }
+  }
+  .mo-plug { cursor: pointer; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+  .mo-plug:hover { border-color: var(--accent); }
+  .mo-plug.used { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .mo-ico { width: 44px; height: 44px; display: block; }
+  .mo-ico :global(svg) { width: 100%; height: 100%; display: block; }
+  .mo-pname { display: grid; line-height: 1.3; min-width: 0; font-size: 14px; }
+  .mo-pname small { color: var(--muted); font-size: 12px; }
+  .mo-mini { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .mo-mini button { background: var(--bg); border: 0; width: 32px; cursor: pointer; font-size: 16px; color: var(--ink); }
+  .mo-mini output { min-width: 58px; text-align: center; padding: 5px 4px; font-size: 14px; }
+  .mo-remain { font-size: 12px; font-weight: 600; }
+  .mo-remain.good { color: var(--ok); } .mo-remain.bad { color: var(--warn); }
+  .mo-remain[hidden] { display: none; }
+  .mo-other { display: grid; gap: 4px; max-width: 420px; }
+  .mo-other input, .mo-brand input[type="text"] { padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; font: inherit; background: var(--surface); color: var(--ink); }
+  .mo-other input { border-color: var(--accent); }
+  .mo-cust { display: grid; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .mo-check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+  .mo-check input { width: 17px; height: 17px; accent-color: var(--accent); }
+  .mo-brand { display: grid; gap: 6px; max-width: 460px; margin: -2px 0 4px 25px; }
+  .mo-brand[hidden] { display: none; }
+  .mo-sub { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .mo-brand input[type="file"] { font: inherit; font-size: 13px; }
+  .mo-logo-st { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--ok); }
+  .mo-logo-st.bad { color: var(--warn); }
+  .mo-logo-st[hidden] { display: none; }
+  .mo-linkbtn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+  .mo-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mo-btn { flex: 1; min-width: 180px; display: inline-flex; align-items: center; justify-content: center; text-align: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .mo-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .mo-btn.disabled { opacity: .45; cursor: not-allowed; }
+</style>

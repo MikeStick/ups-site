@@ -31,8 +31,6 @@ const allTags = [...new Set(items.flatMap((x) => x.tags))].sort((a, b) => {
 // 电池容量：每个出现过的总容量各一个选项，从小到大；以后新增更小或更大容量的型号会自动出现
 const caps = [...new Set(items.map((x) => x.mah).filter((v) => v > 0))].sort((a, b) => a - b);
 // 迷你UPS 不再有拼单和网站报价：只按"现货"筛选（有现货、也有非现货的型号时才显示这个筛选）
-const hasStock = products.some((p) => p.inStock);
-const hasGroup = products.some((p) => !p.inStock);
 // Mini UPS 定制入口（OEM 贴牌 / ODM 完全定制）——以前在顶部菜单，现在放在 Mini DC UPS 栏目里
 const CB = addAr({
   en: ['Custom Mini UPS — OEM & ODM', 'Your outputs, battery and brand. OEM from 1000 pcs; ODM sample fee US$2,000, refunded in your mass-production order.', 'Design yours'],
@@ -80,15 +78,10 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
             </fieldset>
           )}
 
-          {hasStock && hasGroup && (
-            <fieldset>
-              <legend>{C.avail}</legend>
-              <div class="chips">
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="" checked data-avail /> <span>{C.any}</span></label>
-                <label class="chip"><input type="radio" name={`avail-${lang}`} value="stock" data-avail /> <span>{C.stock}</span></label>
-              </div>
-            </fieldset>
-          )}
+          <fieldset>
+            <legend>{C.avail}</legend>
+            <label class="check"><input type="checkbox" value="stock" data-avail /> {C.stock}</label>
+          </fieldset>
 
           <fieldset>
             <legend>{C.load} <span class="load-total num" data-load-total></span></legend>
@@ -158,8 +151,8 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
   function apply() {
     var tags = [].slice.call(root.querySelectorAll('[data-tag]:checked')).map(function (x) { return x.value; });
     var capsSel = [].slice.call(root.querySelectorAll('[data-cap]:checked')).map(function (x) { return x.value; });
-    var availEl = root.querySelector('[data-avail]:checked');
-    var avail = availEl ? availEl.value : '';
+    var availEl = root.querySelector('[data-avail]');
+    var avail = availEl && availEl.checked ? 'stock' : '';
     var total = load();
     var canPower = root.querySelector('[data-can-power]').checked;
     root.querySelector('[data-load-total]').textContent = total ? '· ' + total + ' W' : '';
@@ -189,12 +182,15 @@ const cfg = { eff: EFFICIENCY, h: C.h, min: C.min, runs: C.runs, count: C.count,
   });
   root.querySelector('[data-clear]').addEventListener('click', function () {
     root.querySelectorAll('[data-tag], [data-cap]').forEach(function (x) { x.checked = false; });
-    var any = root.querySelector('[data-avail][value=""]'); if (any) any.checked = true;
+    var av = root.querySelector('[data-avail]'); if (av) av.checked = false;
     counts = {}; root.querySelector('[data-custom]').value = '';
     apply();
   });
-  // 手机上默认收起筛选
-  if (window.matchMedia('(max-width: 860px)').matches) root.querySelector('.filters').open = false;
+  // ?stock=1（非现货产品页"需要现货"的链接）：默认勾上"现货"
+  var fromStock = /[?&]stock=1(&|$)/.test(location.search);
+  if (fromStock) { var avs = root.querySelector('[data-avail]'); if (avs) avs.checked = true; }
+  // 手机上默认收起筛选（从"需要现货"链接进来时保持展开，让客户看到已勾选现货）
+  if (!fromStock && window.matchMedia('(max-width: 860px)').matches) root.querySelector('.filters').open = false;
   apply();
 })();
 </script>
